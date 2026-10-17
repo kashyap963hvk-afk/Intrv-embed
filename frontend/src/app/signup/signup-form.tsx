@@ -65,8 +65,18 @@ export function SignupForm() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      <FormField id="org_slug" label="Organization ID" error={errors.org_slug?.message} hint="Ask your administrator for it.">
-        <Input id="org_slug" autoComplete="organization" aria-invalid={!!errors.org_slug} {...form.register("org_slug")} />
+      <FormField
+        id="org_slug"
+        label="Organization ID"
+        error={errors.org_slug?.message}
+        hint="Ask your administrator for it."
+      >
+        <Input
+          id="org_slug"
+          autoComplete="organization"
+          aria-invalid={!!errors.org_slug}
+          {...form.register("org_slug")}
+        />
       </FormField>
       <FormField id="name" label="Full name" error={errors.name?.message}>
         <Input id="name" autoComplete="name" aria-invalid={!!errors.name} {...form.register("name")} />

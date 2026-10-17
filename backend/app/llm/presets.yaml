@@ -1,0 +1,206 @@
+# LLM provider presets. DATA, not code: edit freely. Model lists are fetched live from GET {base_url}/models;
+# `model_hints` are only suggestions. Free tiers and data policies change often; verify on the provider's site.
+#
+# trains_on_data: true  = the provider's terms allow using prompts to improve models (on the tier described)
+#                 false = the provider states API data is not used for training by default
+#                 null  = unknown / depends on routing: treated like `true` when the org blocks PII on such providers
+
+- key: gemini
+  display_name: Google Gemini (AI Studio, OpenAI-compatible)
+  kind: OPENAI_COMPATIBLE
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  requires_api_key: true
+  docs_url: https://ai.google.dev/gemini-api/docs/openai
+  signup_url: https://aistudio.google.com/apikey
+  free_tier: true
+  trains_on_data: true
+  notes: Free tier prompts may be used to improve Google products; use a paid key for candidate data.
+  default_rpm: 10
+  default_rpd: 250
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: [gemini-2.5-flash, gemini-2.5-pro]
+
+- key: groq
+  display_name: Groq
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.groq.com/openai/v1
+  requires_api_key: true
+  docs_url: https://console.groq.com/docs/openai
+  signup_url: https://console.groq.com/keys
+  free_tier: true
+  trains_on_data: null
+  notes: Very low latency; a good fit for voice interviews. Free tier is rate-limited.
+  default_rpm: 30
+  default_rpd: 1000
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: false}
+  model_hints: [llama-3.3-70b-versatile]
+
+- key: openrouter
+  display_name: OpenRouter
+  kind: OPENAI_COMPATIBLE
+  base_url: https://openrouter.ai/api/v1
+  requires_api_key: true
+  docs_url: https://openrouter.ai/docs
+  signup_url: https://openrouter.ai/keys
+  free_tier: true
+  trains_on_data: null
+  notes: ":free models: about 20 requests/min and 50/day (1000/day after a one-time credit purchase). Demos only."
+  default_rpm: 20
+  default_rpd: 50
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: ["meta-llama/llama-3.3-70b-instruct:free"]
+
+- key: cerebras
+  display_name: Cerebras
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.cerebras.ai/v1
+  requires_api_key: true
+  docs_url: https://inference-docs.cerebras.ai
+  signup_url: https://cloud.cerebras.ai
+  free_tier: true
+  trains_on_data: null
+  default_rpm: 30
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: false}
+  model_hints: [llama-3.3-70b]
+
+- key: mistral
+  display_name: Mistral AI
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.mistral.ai/v1
+  requires_api_key: true
+  docs_url: https://docs.mistral.ai
+  signup_url: https://console.mistral.ai
+  free_tier: true
+  trains_on_data: null
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: [mistral-small-latest, mistral-large-latest]
+
+- key: openai
+  display_name: OpenAI
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.openai.com/v1
+  requires_api_key: true
+  docs_url: https://platform.openai.com/docs
+  signup_url: https://platform.openai.com/api-keys
+  free_tier: false
+  trains_on_data: false
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: []
+
+- key: anthropic
+  display_name: Anthropic Claude (OpenAI-compatible endpoint)
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.anthropic.com/v1/
+  requires_api_key: true
+  docs_url: https://docs.claude.com/en/api/openai-sdk
+  signup_url: https://console.anthropic.com
+  free_tier: false
+  trains_on_data: false
+  supports: {stream: true, json_schema: false, json_object: false, tools: true, vision: true}
+  model_hints: [claude-sonnet-5-5, claude-haiku-5-5, claude-opus-5-5]
+
+- key: deepseek
+  display_name: DeepSeek
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.deepseek.com/v1
+  requires_api_key: true
+  docs_url: https://api-docs.deepseek.com
+  signup_url: https://platform.deepseek.com
+  free_tier: false
+  trains_on_data: null
+  supports: {stream: true, json_schema: false, json_object: true, tools: true, vision: false}
+  model_hints: [deepseek-chat]
+
+- key: together
+  display_name: Together AI
+  kind: OPENAI_COMPATIBLE
+  base_url: https://api.together.xyz/v1
+  requires_api_key: true
+  docs_url: https://docs.together.ai
+  signup_url: https://api.together.ai
+  free_tier: false
+  trains_on_data: null
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: []
+
+- key: huggingface
+  display_name: Hugging Face Inference Providers
+  kind: OPENAI_COMPATIBLE
+  base_url: https://router.huggingface.co/v1
+  requires_api_key: true
+  docs_url: https://huggingface.co/docs/inference-providers
+  signup_url: https://huggingface.co/settings/tokens
+  free_tier: true
+  trains_on_data: null
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: []
+
+- key: nvidia
+  display_name: NVIDIA NIM (build.nvidia.com)
+  kind: OPENAI_COMPATIBLE
+  base_url: https://integrate.api.nvidia.com/v1
+  requires_api_key: true
+  docs_url: https://docs.api.nvidia.com
+  signup_url: https://build.nvidia.com
+  free_tier: true
+  trains_on_data: null
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: false}
+  model_hints: []
+
+- key: github_models
+  display_name: GitHub Models
+  kind: OPENAI_COMPATIBLE
+  base_url: https://models.github.ai/inference
+  requires_api_key: true
+  docs_url: https://docs.github.com/en/github-models
+  signup_url: https://github.com/settings/tokens
+  free_tier: true
+  trains_on_data: null
+  notes: Uses a GitHub personal access token with the models scope.
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: []
+
+- key: ollama
+  display_name: Ollama (self-hosted)
+  kind: SERVER_LOCAL
+  base_url: http://ollama:11434/v1
+  requires_api_key: false
+  docs_url: https://ollama.com
+  free_tier: true
+  trains_on_data: false
+  notes: Reachable from the backend's network (self-host mode). On your own PC use the Local Model Bridge.
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: true}
+  model_hints: [qwen2.5:14b-instruct, llama3.1:8b]
+
+- key: llama_server
+  display_name: llama.cpp llama-server (self-hosted)
+  kind: SERVER_LOCAL
+  base_url: http://host.docker.internal:8080/v1
+  requires_api_key: false
+  docs_url: https://github.com/ggml-org/llama.cpp/tree/master/tools/server
+  free_tier: true
+  trains_on_data: false
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: false}
+  model_hints: []
+
+- key: vllm
+  display_name: vLLM (self-hosted)
+  kind: SERVER_LOCAL
+  base_url: http://vllm:8000/v1
+  requires_api_key: false
+  docs_url: https://docs.vllm.ai
+  free_tier: true
+  trains_on_data: false
+  supports: {stream: true, json_schema: true, json_object: true, tools: true, vision: false}
+  model_hints: []
+
+- key: lm_studio
+  display_name: LM Studio (self-hosted)
+  kind: SERVER_LOCAL
+  base_url: http://host.docker.internal:1234/v1
+  requires_api_key: false
+  docs_url: https://lmstudio.ai/docs
+  free_tier: true
+  trains_on_data: false
+  supports: {stream: true, json_schema: true, json_object: true, tools: false, vision: false}
+  model_hints: []

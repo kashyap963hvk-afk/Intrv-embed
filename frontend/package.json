@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "gen:api": "openapi-typescript ../backend/openapi.json --default-non-nullable=false -o src/lib/api/schema.d.ts",
     "check:api": "openapi-typescript ../backend/openapi.json --default-non-nullable=false -o src/lib/api/schema.d.ts && git diff --exit-code -- src/lib/api/schema.d.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "dependencies": {
     "@hookform/resolvers": "5.9.2",
@@ -42,6 +44,7 @@
     "eslint-config-next": "16.4.2",
     "jsdom": "29.1.1",
     "openapi-typescript": "7.13.0",
+    "prettier": "3.9.10",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "5.0.5"

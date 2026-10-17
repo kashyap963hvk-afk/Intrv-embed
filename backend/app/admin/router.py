@@ -26,6 +26,7 @@ from app.auth.deps import Owner, SettingsDep, csrf_protect, require_owner
 from app.auth.router import MailerDep
 from app.db.deps import DbSession
 from app.db.models import UserStatus
+from app.orgs.policy import OrgPolicy, org_policy
 
 router = APIRouter(
     prefix="/api/admin",
@@ -184,3 +185,13 @@ async def get_org(db: DbSession, owner: Owner) -> OrgSettingsOut:
 @router.patch("/org", response_model=OrgSettingsOut)
 async def update_org(body: OrgUpdate, db: DbSession, owner: Owner, meta: Meta) -> OrgSettingsOut:
     return OrgSettingsOut.model_validate(await service.rename_org(db, owner, body.name, meta))
+
+
+@router.get("/org-policy", response_model=OrgPolicy)
+async def get_org_policy(db: DbSession, owner: Owner) -> OrgPolicy:
+    return org_policy(await service.get_org(db, owner.org_id))
+
+
+@router.put("/org-policy", response_model=OrgPolicy)
+async def put_org_policy(body: OrgPolicy, db: DbSession, owner: Owner, meta: Meta) -> OrgPolicy:
+    return await service.update_org_policy(db, owner, body, meta)

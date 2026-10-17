@@ -19,7 +19,9 @@ export function AuditTab() {
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }) =>
       unwrap(
-        await api.GET("/api/admin/audit", { params: { query: { limit: 50, cursor: pageParam, action: action || null } } }),
+        await api.GET("/api/admin/audit", {
+          params: { query: { limit: 50, cursor: pageParam, action: action || null } },
+        }),
       ),
     getNextPageParam: (last) => last.next_cursor,
   });
@@ -47,9 +49,13 @@ export function AuditTab() {
         <TableBody>
           {items.map((item) => (
             <TableRow key={item.id}>
-              <TableCell className="text-xs whitespace-nowrap text-muted-foreground">{new Date(item.at).toLocaleString()}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
+                {new Date(item.at).toLocaleString()}
+              </TableCell>
               <TableCell className="font-mono text-xs">{item.action}</TableCell>
-              <TableCell className="text-xs">{item.actor_id ? (names.get(item.actor_id) ?? item.actor_id) : "system"}</TableCell>
+              <TableCell className="text-xs">
+                {item.actor_id ? (names.get(item.actor_id) ?? item.actor_id) : "system"}
+              </TableCell>
               <TableCell className="text-xs">
                 {item.target_type}
                 {item.target_id ? `: ${names.get(item.target_id) ?? item.target_id}` : ""}
@@ -62,7 +68,12 @@ export function AuditTab() {
         </TableBody>
       </Table>
       {audit.hasNextPage && (
-        <Button variant="outline" className="w-fit" disabled={audit.isFetchingNextPage} onClick={() => void audit.fetchNextPage()}>
+        <Button
+          variant="outline"
+          className="w-fit"
+          disabled={audit.isFetchingNextPage}
+          onClick={() => void audit.fetchNextPage()}
+        >
           Load more
         </Button>
       )}

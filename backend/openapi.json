@@ -92,6 +92,20 @@
         "title": "AdminUserOut",
         "type": "object"
       },
+      "AgentRole": {
+        "enum": [
+          "interviewer",
+          "controller",
+          "grader",
+          "planner",
+          "question_gen",
+          "extractor",
+          "vision",
+          "role_builder"
+        ],
+        "title": "AgentRole",
+        "type": "string"
+      },
       "AuditOut": {
         "properties": {
           "action": {
@@ -265,6 +279,83 @@
           "latency_ms"
         ],
         "title": "DependencyStatus",
+        "type": "object"
+      },
+      "DiscoverRequest": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ProviderKind",
+            "default": "OPENAI_COMPATIBLE"
+          },
+          "preset_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Key"
+          }
+        },
+        "title": "DiscoverRequest",
+        "type": "object"
+      },
+      "GenerationParams": {
+        "properties": {
+          "max_tokens": {
+            "anyOf": [
+              {
+                "maximum": 64000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Tokens"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          }
+        },
+        "title": "GenerationParams",
         "type": "object"
       },
       "GroupIn": {
@@ -533,6 +624,22 @@
         "title": "MeResponse",
         "type": "object"
       },
+      "ModelList": {
+        "properties": {
+          "models": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Models",
+            "type": "array"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "title": "ModelList",
+        "type": "object"
+      },
       "OrgOut": {
         "properties": {
           "id": {
@@ -555,6 +662,46 @@
           "slug"
         ],
         "title": "OrgOut",
+        "type": "object"
+      },
+      "OrgPolicy": {
+        "properties": {
+          "allow_member_llm_profiles": {
+            "default": true,
+            "description": "Members may add their own models and API keys (subject to their permissions).",
+            "title": "Allow Member Llm Profiles",
+            "type": "boolean"
+          },
+          "allowed_preset_keys": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Restrict cloud providers to these presets; null allows all.",
+            "title": "Allowed Preset Keys"
+          },
+          "allowed_provider_kinds": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderKind"
+            },
+            "title": "Allowed Provider Kinds",
+            "type": "array"
+          },
+          "block_training_providers_for_pii": {
+            "default": true,
+            "description": "Never send candidate data (CVs, transcripts) to providers that may train on it or whose policy is unknown.",
+            "title": "Block Training Providers For Pii",
+            "type": "boolean"
+          }
+        },
+        "title": "OrgPolicy",
         "type": "object"
       },
       "OrgSettingsOut": {
@@ -740,6 +887,566 @@
         "title": "PolicyUpdate",
         "type": "object"
       },
+      "PresetOut": {
+        "properties": {
+          "base_url": {
+            "title": "Base Url",
+            "type": "string"
+          },
+          "display_name": {
+            "title": "Display Name",
+            "type": "string"
+          },
+          "docs_url": {
+            "title": "Docs Url",
+            "type": "string"
+          },
+          "free_tier": {
+            "title": "Free Tier",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ProviderKind"
+          },
+          "model_hints": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Model Hints",
+            "type": "array"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "requires_api_key": {
+            "title": "Requires Api Key",
+            "type": "boolean"
+          },
+          "signup_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Signup Url"
+          },
+          "supports": {
+            "$ref": "#/components/schemas/PresetSupports"
+          },
+          "trains_on_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trains On Data"
+          }
+        },
+        "required": [
+          "key",
+          "display_name",
+          "kind",
+          "base_url",
+          "requires_api_key",
+          "docs_url",
+          "signup_url",
+          "free_tier",
+          "trains_on_data",
+          "notes",
+          "supports",
+          "model_hints"
+        ],
+        "title": "PresetOut",
+        "type": "object"
+      },
+      "PresetSupports": {
+        "properties": {
+          "json_object": {
+            "default": false,
+            "title": "Json Object",
+            "type": "boolean"
+          },
+          "json_schema": {
+            "default": false,
+            "title": "Json Schema",
+            "type": "boolean"
+          },
+          "stream": {
+            "default": true,
+            "title": "Stream",
+            "type": "boolean"
+          },
+          "tools": {
+            "default": false,
+            "title": "Tools",
+            "type": "boolean"
+          },
+          "vision": {
+            "default": false,
+            "title": "Vision",
+            "type": "boolean"
+          }
+        },
+        "title": "PresetSupports",
+        "type": "object"
+      },
+      "ProfileCreate": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ProviderKind",
+            "default": "OPENAI_COMPATIBLE"
+          },
+          "model": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Model",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/GenerationParams"
+          },
+          "preset_key": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Key"
+          },
+          "rpd_limit": {
+            "anyOf": [
+              {
+                "maximum": 10000000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpd Limit"
+          },
+          "rpm_limit": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm Limit"
+          },
+          "scope": {
+            "default": "personal",
+            "enum": [
+              "personal",
+              "org"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "script": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "FAKE provider only (dev/test).",
+            "title": "Script"
+          },
+          "trains_on_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Owners only: override the preset (e.g. a paid tier with a no-training agreement).",
+            "title": "Trains On Data"
+          }
+        },
+        "required": [
+          "name",
+          "model"
+        ],
+        "title": "ProfileCreate",
+        "type": "object"
+      },
+      "ProfileOut": {
+        "properties": {
+          "api_key_last4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key Last4"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "capabilities": {
+            "additionalProperties": true,
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "has_api_key": {
+            "title": "Has Api Key",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ProviderKind"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_probe_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Probe At"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owned_by_me": {
+            "title": "Owned By Me",
+            "type": "boolean"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "preset_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Key"
+          },
+          "quality_tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rpd_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpd Limit"
+          },
+          "rpm_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm Limit"
+          },
+          "scope": {
+            "enum": [
+              "personal",
+              "org"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProfileStatus"
+          },
+          "trains_on_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trains On Data"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scope",
+          "owned_by_me",
+          "kind",
+          "preset_key",
+          "base_url",
+          "has_api_key",
+          "api_key_last4",
+          "model",
+          "params",
+          "capabilities",
+          "quality_tier",
+          "trains_on_data",
+          "rpm_limit",
+          "rpd_limit",
+          "status",
+          "last_probe_at",
+          "last_error",
+          "created_at"
+        ],
+        "title": "ProfileOut",
+        "type": "object"
+      },
+      "ProfileStatus": {
+        "enum": [
+          "UNTESTED",
+          "OK",
+          "DEGRADED",
+          "ERROR"
+        ],
+        "title": "ProfileStatus",
+        "type": "string"
+      },
+      "ProfileUpdate": {
+        "properties": {
+          "api_key": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "params": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/GenerationParams"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rpd_limit": {
+            "anyOf": [
+              {
+                "maximum": 10000000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpd Limit"
+          },
+          "rpm_limit": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm Limit"
+          },
+          "trains_on_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trains On Data"
+          }
+        },
+        "title": "ProfileUpdate",
+        "type": "object"
+      },
+      "ProviderKind": {
+        "enum": [
+          "OPENAI_COMPATIBLE",
+          "SERVER_LOCAL",
+          "BRIDGE",
+          "GGUF_MANAGED",
+          "FAKE"
+        ],
+        "title": "ProviderKind",
+        "type": "string"
+      },
+      "QualityTier": {
+        "enum": [
+          "BASIC",
+          "USABLE",
+          "GOOD",
+          "EXCELLENT"
+        ],
+        "title": "QualityTier",
+        "type": "string"
+      },
       "ReadinessResponse": {
         "properties": {
           "checks": {
@@ -824,6 +1531,77 @@
         "title": "RoleUpdate",
         "type": "object"
       },
+      "RoutesOut": {
+        "properties": {
+          "mine": {
+            "additionalProperties": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/AgentRole"
+            },
+            "title": "Mine",
+            "type": "object"
+          },
+          "org": {
+            "additionalProperties": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "propertyNames": {
+              "$ref": "#/components/schemas/AgentRole"
+            },
+            "title": "Org",
+            "type": "object"
+          }
+        },
+        "required": [
+          "org",
+          "mine"
+        ],
+        "title": "RoutesOut",
+        "type": "object"
+      },
+      "RoutesUpdate": {
+        "properties": {
+          "routes": {
+            "additionalProperties": {
+              "items": {
+                "format": "uuid",
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "description": "Ordered fallback chain per agent role; an empty list removes the route.",
+            "propertyNames": {
+              "$ref": "#/components/schemas/AgentRole"
+            },
+            "title": "Routes",
+            "type": "object"
+          },
+          "scope": {
+            "enum": [
+              "personal",
+              "org"
+            ],
+            "title": "Scope",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "routes"
+        ],
+        "title": "RoutesUpdate",
+        "type": "object"
+      },
       "SignupAccepted": {
         "properties": {
           "message": {
@@ -873,6 +1651,68 @@
           "password"
         ],
         "title": "SignupRequest",
+        "type": "object"
+      },
+      "TryRequest": {
+        "properties": {
+          "message": {
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "system": {
+            "anyOf": [
+              {
+                "maxLength": 4000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "System"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "title": "TryRequest",
+        "type": "object"
+      },
+      "TryResponse": {
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          },
+          "tokens_in": {
+            "title": "Tokens In",
+            "type": "integer"
+          },
+          "tokens_out": {
+            "title": "Tokens Out",
+            "type": "integer"
+          },
+          "ttft_ms": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ttft Ms"
+          }
+        },
+        "required": [
+          "text",
+          "ttft_ms",
+          "tokens_in",
+          "tokens_out"
+        ],
+        "title": "TryResponse",
         "type": "object"
       },
       "UserOut": {
@@ -1506,6 +2346,66 @@
           }
         },
         "summary": "Update Org",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/org-policy": {
+      "get": {
+        "operationId": "get_org_policy_api_admin_org_policy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgPolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Org Policy",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "put_org_policy_api_admin_org_policy_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrgPolicy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgPolicy"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Org Policy",
         "tags": [
           "admin"
         ]
@@ -2237,6 +3137,422 @@
         "summary": "Request to join an org",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/llm/models/discover": {
+      "post": {
+        "operationId": "discover_models_api_llm_models_discover_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DiscoverRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List a provider's models before saving",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/presets": {
+      "get": {
+        "operationId": "presets_api_llm_presets_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PresetOut"
+                  },
+                  "title": "Response Presets Api Llm Presets Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Presets",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/profiles": {
+      "get": {
+        "operationId": "list_profiles_api_llm_profiles_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProfileOut"
+                  },
+                  "title": "Response List Profiles Api Llm Profiles Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Profiles",
+        "tags": [
+          "llm"
+        ]
+      },
+      "post": {
+        "operationId": "create_profile_api_llm_profiles_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Profile",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/profiles/{profile_id}": {
+      "delete": {
+        "operationId": "delete_profile_api_llm_profiles__profile_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Profile",
+        "tags": [
+          "llm"
+        ]
+      },
+      "patch": {
+        "operationId": "update_profile_api_llm_profiles__profile_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Profile",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/profiles/{profile_id}/models": {
+      "get": {
+        "operationId": "profile_models_api_llm_profiles__profile_id__models_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Profile Models",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/profiles/{profile_id}/probe": {
+      "post": {
+        "operationId": "probe_profile_api_llm_profiles__profile_id__probe_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Test connection and capabilities",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/profiles/{profile_id}/try": {
+      "post": {
+        "operationId": "try_profile_api_llm_profiles__profile_id__try_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "profile_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Profile Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TryRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TryResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send one message to a model",
+        "tags": [
+          "llm"
+        ]
+      }
+    },
+    "/api/llm/routes": {
+      "get": {
+        "operationId": "get_routes_api_llm_routes_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Get Routes",
+        "tags": [
+          "llm"
+        ]
+      },
+      "put": {
+        "operationId": "put_routes_api_llm_routes_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoutesUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoutesOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Put Routes",
+        "tags": [
+          "llm"
         ]
       }
     },

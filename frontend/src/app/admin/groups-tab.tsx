@@ -16,12 +16,16 @@ function GroupCard({ group, users }: { group: Group; users: Map<string, string> 
   const path = { group_id: group.id };
   const add = useAdminMutation(
     async (user_id: string) =>
-      unwrap(await api.PUT("/api/admin/groups/{group_id}/members/{user_id}", { params: { path: { ...path, user_id } } })),
+      unwrap(
+        await api.PUT("/api/admin/groups/{group_id}/members/{user_id}", { params: { path: { ...path, user_id } } }),
+      ),
     "Member added",
   );
   const removeMember = useAdminMutation(
     async (user_id: string) =>
-      unwrap(await api.DELETE("/api/admin/groups/{group_id}/members/{user_id}", { params: { path: { ...path, user_id } } })),
+      unwrap(
+        await api.DELETE("/api/admin/groups/{group_id}/members/{user_id}", { params: { path: { ...path, user_id } } }),
+      ),
     "Member removed",
   );
   const removeGroup = useAdminMutation(
@@ -111,8 +115,20 @@ export function GroupsTab() {
           });
         }}
       >
-        <Input aria-label="Group name" placeholder="Group name, e.g. Firmware panel" className="max-w-xs" value={name} onChange={(e) => setName(e.target.value)} />
-        <Input aria-label="Description" placeholder="Description (optional)" className="max-w-sm" value={description} onChange={(e) => setDescription(e.target.value)} />
+        <Input
+          aria-label="Group name"
+          placeholder="Group name, e.g. Firmware panel"
+          className="max-w-xs"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <Input
+          aria-label="Description"
+          placeholder="Description (optional)"
+          className="max-w-sm"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+        />
         <Button type="submit" disabled={!name.trim() || create.isPending}>
           Create group
         </Button>
@@ -121,7 +137,9 @@ export function GroupsTab() {
         Groups make access easier: grant a knowledge space to a group instead of to each member.
       </p>
       <div className="grid gap-4 md:grid-cols-2">
-        {groups.data?.map((group) => <GroupCard key={group.id} group={group} users={users} />)}
+        {groups.data?.map((group) => (
+          <GroupCard key={group.id} group={group} users={users} />
+        ))}
       </div>
     </div>
   );

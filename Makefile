@@ -41,7 +41,7 @@ lint: ## Ruff, mypy, ESLint, OpenAPI/type drift checks
 	$(BACKEND) uv run ruff check . && uv run ruff format --check . && uv run mypy
 	$(BACKEND) uv run python -m app.export_openapi | diff -q - openapi.json >/dev/null || \
 		{ echo "backend/openapi.json is stale: run 'make openapi'"; exit 1; }
-	$(FRONTEND) npm run lint && npm run typecheck
+	$(FRONTEND) npm run lint && npm run format:check && npm run typecheck
 
 fmt: ## Auto-format backend code
 	$(BACKEND) uv run ruff check --fix . && uv run ruff format .

@@ -16,7 +16,11 @@ import { unwrap } from "@/lib/api/problem";
 import { passwordSchema } from "@/lib/validation";
 
 const schema = z
-  .object({ current_password: z.string().min(1, "Enter your current password"), new_password: passwordSchema, confirm: z.string() })
+  .object({
+    current_password: z.string().min(1, "Enter your current password"),
+    new_password: passwordSchema,
+    confirm: z.string(),
+  })
   .refine((v) => v.new_password === v.confirm, { path: ["confirm"], message: "Passwords do not match" });
 type Values = z.infer<typeof schema>;
 
@@ -47,7 +51,12 @@ function ChangePassword() {
         </Alert>
       )}
       <FormField id="current_password" label="Current password" error={errors.current_password?.message}>
-        <Input id="current_password" type="password" autoComplete="current-password" {...form.register("current_password")} />
+        <Input
+          id="current_password"
+          type="password"
+          autoComplete="current-password"
+          {...form.register("current_password")}
+        />
       </FormField>
       <FormField id="new_password" label="New password" error={errors.new_password?.message}>
         <Input id="new_password" type="password" autoComplete="new-password" {...form.register("new_password")} />

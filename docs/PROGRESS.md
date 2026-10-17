@@ -1,5 +1,37 @@
 # Build progress
 
+## Phase 2: LLM Gateway ✅ (2026-10-17)
+
+### Delivered
+- **Security primitives**: envelope encryption (`app/core/crypto.py`, per-org data keys in `org_keys`), SSRF guard
+  with connect-time DNS pinning (`app/core/ssrf.py`).
+- **Gateway** (`app/llm/`): OpenAI-compatible and Fake providers; fallback chains, retries with jitter, TTFT and
+  idle timeouts, cancellation, Valkey-backed RPM/RPD budgets and circuit breaker, structured-output ladder,
+  usage ledger (`usage_events`, append-only).
+- **Presets** (`app/llm/presets.yaml`, 16 providers, data not code), live model discovery, **capability probe**
+  with honest quality tiers and warnings.
+- **Policy**: org AI policy (`/api/admin/org-policy`), per-user permissions, PII protection from providers that may
+  train on data, RLS privacy for personal profiles and routes.
+- **API** `/api/llm`: presets, profiles CRUD (write-only keys), probe, try-it, discover, routes.
+- **Frontend** `/app/llm`: add-model wizard (presets, key, live model list, share with org, no-training override),
+  model cards (status, tier, capabilities, TTFT, tok/s, warnings), try-it dialog, per-role fallback-chain
+  editor; admin "AI policy" tab. Prettier added.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| Streaming; 429 → fallback; circuit opens after 5 failures; TTFT timeout fallback; cancellation closes stream; JSON ladder recovers malformed JSON; PII policy block | ✅ `tests/unit/test_gateway.py` (in-process) + `tests/integration/test_llm.py` (real HTTP SSE against a fake OpenAI server, real Postgres/Valkey): `test_routing_falls_back_and_records_usage`, `test_circuit_breaker_opens_after_repeated_failures`, `test_candidate_data_never_goes_to_training_providers` |
+| API key never in any response or log | ✅ `test_api_key_is_encrypted_and_never_returned` (checks responses, the raw DB bytes and captured logs) |
+| Live test against a real provider | ⏭️ `tests/live/test_live_llm.py` is ready; skipped here (no key in the sandbox, and Groq/OpenRouter hosts are blocked by its network policy). Run with `LIVE_OPENAI_COMPAT_*` set |
+| SSRF | ✅ 34 unit cases (private/loopback/link-local/CGNAT/metadata/IPv4-mapped/NAT64, decimal and hex IPs, DNS rebinding) + API-level rejection |
+| Browser walkthrough | ✅ add model via wizard → models discovered → probed → rated Excellent → try-it chat → routing saved → AI policy tab |
+
+Bug found by the browser walkthrough and fixed: concurrent CSRF fetches could leave the cached token out of sync
+with the cookie (one spurious 403 on login, hidden by the retry). The fetch is now shared, with a regression test.
+
+Totals: backend 96 unit + 39 integration tests, frontend 8 Vitest tests.
+
+
 ## Phase 1: Identity, tenancy, RBAC, RLS, audit ✅ (2026-10-17)
 
 ### Delivered

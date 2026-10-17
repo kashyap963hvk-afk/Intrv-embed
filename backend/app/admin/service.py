@@ -22,6 +22,7 @@ from app.core.config import Settings
 from app.core.email import EmailSender, OutgoingEmail
 from app.core.errors import AppError, ConflictError, NotFoundError
 from app.db.models import AuditLog, Group, GroupMember, Organization, Role, User, UserInvite, UserPolicy, UserStatus
+from app.orgs.policy import OrgPolicy, org_policy, with_policy
 from app.orgs.service import CreatedInvite, create_invite
 
 
@@ -492,3 +493,21 @@ async def rename_org(db: AsyncSession, owner: Principal, name: str, meta: Client
     )
     await db.flush()
     return org
+
+
+async def update_org_policy(db: AsyncSession, owner: Principal, policy: OrgPolicy, meta: ClientMeta) -> OrgPolicy:
+    org = await get_org(db, owner.org_id)
+    previous = org_policy(org)
+    org.settings = with_policy(org, policy)
+    await record(
+        db,
+        org_id=owner.org_id,
+        actor_id=owner.user_id,
+        action="org.policy_changed",
+        meta=meta,
+        target_type="org",
+        target_id=org.id,
+        detail={"from": previous.model_dump(mode="json"), "to": policy.model_dump(mode="json")},
+    )
+    await db.flush()
+    return policy

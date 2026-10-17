@@ -21,11 +21,26 @@ function formatDate(value: string | null | undefined): string {
 
 function UserActions({ user, isSelf }: { user: AdminUser; isSelf: boolean }) {
   const path = { params: { path: { user_id: user.id } } };
-  const approve = useAdminMutation(async () => unwrap(await api.POST("/api/admin/users/{user_id}/approve", path)), `${user.name} approved`);
-  const reject = useAdminMutation(async () => unwrap(await api.POST("/api/admin/users/{user_id}/reject", path)), `Request from ${user.name} rejected`);
-  const suspend = useAdminMutation(async () => unwrap(await api.POST("/api/admin/users/{user_id}/suspend", path)), `${user.name} suspended`);
-  const reactivate = useAdminMutation(async () => unwrap(await api.POST("/api/admin/users/{user_id}/reactivate", path)), `${user.name} reactivated`);
-  const remove = useAdminMutation(async () => unwrap(await api.DELETE("/api/admin/users/{user_id}", path)), `${user.name} deleted`);
+  const approve = useAdminMutation(
+    async () => unwrap(await api.POST("/api/admin/users/{user_id}/approve", path)),
+    `${user.name} approved`,
+  );
+  const reject = useAdminMutation(
+    async () => unwrap(await api.POST("/api/admin/users/{user_id}/reject", path)),
+    `Request from ${user.name} rejected`,
+  );
+  const suspend = useAdminMutation(
+    async () => unwrap(await api.POST("/api/admin/users/{user_id}/suspend", path)),
+    `${user.name} suspended`,
+  );
+  const reactivate = useAdminMutation(
+    async () => unwrap(await api.POST("/api/admin/users/{user_id}/reactivate", path)),
+    `${user.name} reactivated`,
+  );
+  const remove = useAdminMutation(
+    async () => unwrap(await api.DELETE("/api/admin/users/{user_id}", path)),
+    `${user.name} deleted`,
+  );
   const setRole = useAdminMutation(
     async (role: "OWNER" | "MEMBER") =>
       unwrap(await api.PUT("/api/admin/users/{user_id}/role", { ...path, body: { role } })),
@@ -92,7 +107,11 @@ export function UsersTab({ currentUserId }: { currentUserId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        <NativeSelect aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as UserStatus | "")}>
+        <NativeSelect
+          aria-label="Filter by status"
+          value={status}
+          onChange={(e) => setStatus(e.target.value as UserStatus | "")}
+        >
           <option value="">All members</option>
           <option value="PENDING">Pending ({pendingCount})</option>
           <option value="ACTIVE">Active</option>

@@ -21,7 +21,10 @@ describe("problem helpers", () => {
     expect(unwrap({ data: { a: 1 }, response: new Response(null, { status: 200 }) })).toEqual({ a: 1 });
     expect(unwrap({ data: undefined, response: new Response(null, { status: 204 }) })).toBeUndefined();
     try {
-      unwrap({ error: { type: "t", title: "Conflict", status: 409, detail: "Taken." }, response: new Response(null, { status: 409 }) });
+      unwrap({
+        error: { type: "t", title: "Conflict", status: 409, detail: "Taken." },
+        response: new Response(null, { status: 409 }),
+      });
       expect.unreachable();
     } catch (error) {
       expect(error).toBeInstanceOf(ApiError);

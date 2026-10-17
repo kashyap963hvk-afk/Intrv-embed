@@ -33,7 +33,10 @@ export function Dashboard() {
                   {me.policy.can_use_coding ? "allowed" : "not allowed"} · Prompt editing:{" "}
                   {me.policy.can_edit_prompts ? "allowed" : "not allowed"}
                 </p>
-                <Link href="/app/account" className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}>
+                <Link
+                  href="/app/account"
+                  className={buttonVariants({ variant: "outline", size: "sm", className: "w-fit" })}
+                >
                   Account settings
                 </Link>
               </CardContent>
@@ -42,7 +45,9 @@ export function Dashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Organization</CardTitle>
-                  <CardDescription>Approve members, manage groups and invitations, review the audit log.</CardDescription>
+                  <CardDescription>
+                    Approve members, manage groups and invitations, review the audit log.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Link href="/admin" className={buttonVariants({ size: "sm" })}>

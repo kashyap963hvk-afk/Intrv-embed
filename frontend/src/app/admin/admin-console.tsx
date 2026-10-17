@@ -3,6 +3,7 @@
 import { RequireAuth } from "@/components/auth/require-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+import { AiPolicyCard } from "./ai-policy-card";
 import { AuditTab } from "./audit-tab";
 import { GroupsTab } from "./groups-tab";
 import { InvitesTab } from "./invites-tab";
@@ -26,6 +27,7 @@ export function AdminConsole() {
               <TabsTrigger value="groups">Groups</TabsTrigger>
               <TabsTrigger value="invites">Invitations</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
+              <TabsTrigger value="ai">AI policy</TabsTrigger>
               <TabsTrigger value="org">Organization</TabsTrigger>
             </TabsList>
             <TabsContent value="users">
@@ -39,6 +41,9 @@ export function AdminConsole() {
             </TabsContent>
             <TabsContent value="audit">
               <AuditTab />
+            </TabsContent>
+            <TabsContent value="ai">
+              <AiPolicyCard />
             </TabsContent>
             <TabsContent value="org">
               <OrgTab />

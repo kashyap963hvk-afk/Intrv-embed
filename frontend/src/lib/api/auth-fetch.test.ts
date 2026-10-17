@@ -106,4 +106,25 @@ describe("createAuthFetch", () => {
     expect(response.status).toBe(200);
     expect(csrfCalls).toBe(2);
   });
+
+  it("shares one CSRF fetch between concurrent mutations", async () => {
+    let csrfCalls = 0;
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      if (urlOf(input).endsWith("/api/auth/csrf")) {
+        csrfCalls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 5));
+        return json(200, { csrf_token: `tok-${csrfCalls}` });
+      }
+      return json(200, { token: (input as Request).headers.get("X-CSRF-Token") });
+    });
+    const authFetch = createAuthFetch({ baseUrl: BASE, fetchImpl: fetchImpl as typeof fetch });
+
+    const responses = await Promise.all(
+      [1, 2, 3].map(() => authFetch(new Request(`${BASE}/api/x`, { method: "POST", body: "{}" }))),
+    );
+    const tokens = await Promise.all(responses.map(async (r) => ((await r.json()) as { token: string }).token));
+
+    expect(csrfCalls).toBe(1);
+    expect(new Set(tokens)).toEqual(new Set(["tok-1"]));
+  });
 });

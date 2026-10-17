@@ -128,6 +128,24 @@ export interface paths {
         patch: operations["update_org_api_admin_org_patch"];
         trace?: never;
     };
+    "/api/admin/org-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Org Policy */
+        get: operations["get_org_policy_api_admin_org_policy_get"];
+        /** Put Org Policy */
+        put: operations["put_org_policy_api_admin_org_policy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users": {
         parameters: {
             query?: never;
@@ -438,6 +456,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/llm/models/discover": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** List a provider's models before saving */
+        post: operations["discover_models_api_llm_models_discover_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/presets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Presets */
+        get: operations["presets_api_llm_presets_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Profiles */
+        get: operations["list_profiles_api_llm_profiles_get"];
+        put?: never;
+        /** Create Profile */
+        post: operations["create_profile_api_llm_profiles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/profiles/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Profile */
+        delete: operations["delete_profile_api_llm_profiles__profile_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Profile */
+        patch: operations["update_profile_api_llm_profiles__profile_id__patch"];
+        trace?: never;
+    };
+    "/api/llm/profiles/{profile_id}/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Profile Models */
+        get: operations["profile_models_api_llm_profiles__profile_id__models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/profiles/{profile_id}/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test connection and capabilities */
+        post: operations["probe_profile_api_llm_profiles__profile_id__probe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/profiles/{profile_id}/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send one message to a model */
+        post: operations["try_profile_api_llm_profiles__profile_id__try_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/llm/routes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Routes */
+        get: operations["get_routes_api_llm_routes_get"];
+        /** Put Routes */
+        put: operations["put_routes_api_llm_routes_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -509,6 +666,11 @@ export interface components {
             role: components["schemas"]["Role"];
             status: components["schemas"]["UserStatus"];
         };
+        /**
+         * AgentRole
+         * @enum {string}
+         */
+        AgentRole: "interviewer" | "controller" | "grader" | "planner" | "question_gen" | "extractor" | "vision" | "role_builder";
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -566,6 +728,24 @@ export interface components {
              * @enum {string}
              */
             status: "ok" | "error";
+        };
+        /** DiscoverRequest */
+        DiscoverRequest: {
+            /** Api Key */
+            api_key?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** @default OPENAI_COMPATIBLE */
+            kind?: components["schemas"]["ProviderKind"];
+            /** Preset Key */
+            preset_key?: string | null;
+        };
+        /** GenerationParams */
+        GenerationParams: {
+            /** Max Tokens */
+            max_tokens?: number | null;
+            /** Temperature */
+            temperature?: number | null;
         };
         /** GroupIn */
         GroupIn: {
@@ -683,6 +863,11 @@ export interface components {
             policy: components["schemas"]["PolicyOut"];
             user: components["schemas"]["UserOut"];
         };
+        /** ModelList */
+        ModelList: {
+            /** Models */
+            models: string[];
+        };
         /** OrgOut */
         OrgOut: {
             /**
@@ -694,6 +879,28 @@ export interface components {
             name: string;
             /** Slug */
             slug: string;
+        };
+        /** OrgPolicy */
+        OrgPolicy: {
+            /**
+             * Allow Member Llm Profiles
+             * @description Members may add their own models and API keys (subject to their permissions).
+             * @default true
+             */
+            allow_member_llm_profiles?: boolean;
+            /**
+             * Allowed Preset Keys
+             * @description Restrict cloud providers to these presets; null allows all.
+             */
+            allowed_preset_keys?: string[] | null;
+            /** Allowed Provider Kinds */
+            allowed_provider_kinds?: components["schemas"]["ProviderKind"][];
+            /**
+             * Block Training Providers For Pii
+             * @description Never send candidate data (CVs, transcripts) to providers that may train on it or whose policy is unknown.
+             * @default true
+             */
+            block_training_providers_for_pii?: boolean;
         };
         /** OrgSettingsOut */
         OrgSettingsOut: {
@@ -752,6 +959,183 @@ export interface components {
             /** Monthly Interview Quota */
             monthly_interview_quota?: number | null;
         };
+        /** PresetOut */
+        PresetOut: {
+            /** Base Url */
+            base_url: string;
+            /** Display Name */
+            display_name: string;
+            /** Docs Url */
+            docs_url: string;
+            /** Free Tier */
+            free_tier: boolean;
+            /** Key */
+            key: string;
+            kind: components["schemas"]["ProviderKind"];
+            /** Model Hints */
+            model_hints: string[];
+            /** Notes */
+            notes: string | null;
+            /** Requires Api Key */
+            requires_api_key: boolean;
+            /** Signup Url */
+            signup_url: string | null;
+            supports: components["schemas"]["PresetSupports"];
+            /** Trains On Data */
+            trains_on_data: boolean | null;
+        };
+        /** PresetSupports */
+        PresetSupports: {
+            /**
+             * Json Object
+             * @default false
+             */
+            json_object?: boolean;
+            /**
+             * Json Schema
+             * @default false
+             */
+            json_schema?: boolean;
+            /**
+             * Stream
+             * @default true
+             */
+            stream?: boolean;
+            /**
+             * Tools
+             * @default false
+             */
+            tools?: boolean;
+            /**
+             * Vision
+             * @default false
+             */
+            vision?: boolean;
+        };
+        /** ProfileCreate */
+        ProfileCreate: {
+            /** Api Key */
+            api_key?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** @default OPENAI_COMPATIBLE */
+            kind?: components["schemas"]["ProviderKind"];
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            params?: components["schemas"]["GenerationParams"];
+            /** Preset Key */
+            preset_key?: string | null;
+            /** Rpd Limit */
+            rpd_limit?: number | null;
+            /** Rpm Limit */
+            rpm_limit?: number | null;
+            /**
+             * Scope
+             * @default personal
+             * @enum {string}
+             */
+            scope?: "personal" | "org";
+            /**
+             * Script
+             * @description FAKE provider only (dev/test).
+             */
+            script?: {
+                [key: string]: unknown;
+            }[] | null;
+            /**
+             * Trains On Data
+             * @description Owners only: override the preset (e.g. a paid tier with a no-training agreement).
+             */
+            trains_on_data?: boolean | null;
+        };
+        /** ProfileOut */
+        ProfileOut: {
+            /** Api Key Last4 */
+            api_key_last4: string | null;
+            /** Base Url */
+            base_url: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Has Api Key */
+            has_api_key: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ProviderKind"];
+            /** Last Error */
+            last_error: string | null;
+            /** Last Probe At */
+            last_probe_at: string | null;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /** Owned By Me */
+            owned_by_me: boolean;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Preset Key */
+            preset_key: string | null;
+            quality_tier: components["schemas"]["QualityTier"] | null;
+            /** Rpd Limit */
+            rpd_limit: number | null;
+            /** Rpm Limit */
+            rpm_limit: number | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "personal" | "org";
+            status: components["schemas"]["ProfileStatus"];
+            /** Trains On Data */
+            trains_on_data: boolean | null;
+        };
+        /**
+         * ProfileStatus
+         * @enum {string}
+         */
+        ProfileStatus: "UNTESTED" | "OK" | "DEGRADED" | "ERROR";
+        /** ProfileUpdate */
+        ProfileUpdate: {
+            /** Api Key */
+            api_key?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** Model */
+            model?: string | null;
+            /** Name */
+            name?: string | null;
+            params?: components["schemas"]["GenerationParams"] | null;
+            /** Rpd Limit */
+            rpd_limit?: number | null;
+            /** Rpm Limit */
+            rpm_limit?: number | null;
+            /** Trains On Data */
+            trains_on_data?: boolean | null;
+        };
+        /**
+         * ProviderKind
+         * @enum {string}
+         */
+        ProviderKind: "OPENAI_COMPATIBLE" | "SERVER_LOCAL" | "BRIDGE" | "GGUF_MANAGED" | "FAKE";
+        /**
+         * QualityTier
+         * @enum {string}
+         */
+        QualityTier: "BASIC" | "USABLE" | "GOOD" | "EXCELLENT";
         /** ReadinessResponse */
         ReadinessResponse: {
             /** Checks */
@@ -789,6 +1173,32 @@ export interface components {
         RoleUpdate: {
             role: components["schemas"]["Role"];
         };
+        /** RoutesOut */
+        RoutesOut: {
+            /** Mine */
+            mine: {
+                [key: string]: string[];
+            };
+            /** Org */
+            org: {
+                [key: string]: string[];
+            };
+        };
+        /** RoutesUpdate */
+        RoutesUpdate: {
+            /**
+             * Routes
+             * @description Ordered fallback chain per agent role; an empty list removes the route.
+             */
+            routes: {
+                [key: string]: string[];
+            };
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "personal" | "org";
+        };
         /** SignupAccepted */
         SignupAccepted: {
             /** Message */
@@ -813,6 +1223,24 @@ export interface components {
             org_slug: string;
             /** Password */
             password: string;
+        };
+        /** TryRequest */
+        TryRequest: {
+            /** Message */
+            message: string;
+            /** System */
+            system?: string | null;
+        };
+        /** TryResponse */
+        TryResponse: {
+            /** Text */
+            text: string;
+            /** Tokens In */
+            tokens_in: number;
+            /** Tokens Out */
+            tokens_out: number;
+            /** Ttft Ms */
+            ttft_ms: number | null;
         };
         /** UserOut */
         UserOut: {
@@ -1200,6 +1628,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_org_policy_api_admin_org_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgPolicy"];
+                };
+            };
+        };
+    };
+    put_org_policy_api_admin_org_policy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OrgPolicy"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgPolicy"];
                 };
             };
             /** @description Validation Error */
@@ -1754,6 +2235,326 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SignupAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discover_models_api_llm_models_discover_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscoverRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    presets_api_llm_presets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PresetOut"][];
+                };
+            };
+        };
+    };
+    list_profiles_api_llm_profiles_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileOut"][];
+                };
+            };
+        };
+    };
+    create_profile_api_llm_profiles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_profile_api_llm_profiles__profile_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_profile_api_llm_profiles__profile_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    profile_models_api_llm_profiles__profile_id__models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    probe_profile_api_llm_profiles__profile_id__probe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    try_profile_api_llm_profiles__profile_id__try_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TryRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TryResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_routes_api_llm_routes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutesOut"];
+                };
+            };
+        };
+    };
+    put_routes_api_llm_routes_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RoutesUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoutesOut"];
                 };
             };
             /** @description Validation Error */

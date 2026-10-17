@@ -14,15 +14,22 @@ export interface AuthFetchOptions {
 
 export function createAuthFetch({ baseUrl, fetchImpl = (...args) => fetch(...args) }: AuthFetchOptions) {
   let csrfToken: string | null = null;
+  let csrfInFlight: Promise<string> | null = null;
   let refreshInFlight: Promise<boolean> | null = null;
 
-  async function getCsrf(force = false): Promise<string> {
-    if (!csrfToken || force) {
+  // Concurrent callers share one fetch: two parallel fetches would each set a different cookie, and the
+  // cached token could then disagree with whichever cookie the browser kept.
+  function getCsrf(force = false): Promise<string> {
+    if (csrfToken && !force) return Promise.resolve(csrfToken);
+    csrfInFlight ??= (async () => {
       const response = await fetchImpl(`${baseUrl}/api/auth/csrf`, { credentials: "include" });
       if (!response.ok) throw new Error(`Could not obtain a CSRF token (HTTP ${response.status})`);
       csrfToken = ((await response.json()) as { csrf_token: string }).csrf_token;
-    }
-    return csrfToken;
+      return csrfToken;
+    })().finally(() => {
+      csrfInFlight = null;
+    });
+    return csrfInFlight;
   }
 
   function withCsrf(request: Request, token: string): Request {
@@ -57,7 +64,10 @@ export function createAuthFetch({ baseUrl, fetchImpl = (...args) => fetch(...arg
 
   async function isCsrfRejection(response: Response): Promise<boolean> {
     if (response.status !== 403) return false;
-    const body = (await response.clone().json().catch(() => null)) as { detail?: string } | null;
+    const body = (await response
+      .clone()
+      .json()
+      .catch(() => null)) as { detail?: string } | null;
     return Boolean(body?.detail?.includes("CSRF"));
   }
 

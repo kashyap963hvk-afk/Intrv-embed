@@ -22,7 +22,8 @@ export function InvitesTab() {
     (r) => `Invitation created for ${r.invite.email}`,
   );
   const revoke = useAdminMutation(
-    async (invite_id: string) => unwrap(await api.DELETE("/api/admin/invites/{invite_id}", { params: { path: { invite_id } } })),
+    async (invite_id: string) =>
+      unwrap(await api.DELETE("/api/admin/invites/{invite_id}", { params: { path: { invite_id } } })),
     "Invitation revoked",
   );
 
@@ -40,7 +41,14 @@ export function InvitesTab() {
           });
         }}
       >
-        <Input aria-label="Email to invite" type="email" placeholder="name@company.com" className="max-w-xs" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Input
+          aria-label="Email to invite"
+          type="email"
+          placeholder="name@company.com"
+          className="max-w-xs"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
         <NativeSelect aria-label="Role" value={role} onChange={(e) => setRole(e.target.value as "MEMBER" | "OWNER")}>
           <option value="MEMBER">Member</option>
           <option value="OWNER">Owner</option>
@@ -51,7 +59,9 @@ export function InvitesTab() {
       </form>
       {lastLink && (
         <Alert>
-          <AlertTitle>{lastLink.emailSent ? "Invitation emailed" : "Email not sent: share this link yourself"}</AlertTitle>
+          <AlertTitle>
+            {lastLink.emailSent ? "Invitation emailed" : "Email not sent: share this link yourself"}
+          </AlertTitle>
           <AlertDescription>
             <code className="break-all">{lastLink.link}</code>
             <Button
@@ -78,7 +88,9 @@ export function InvitesTab() {
             <TableRow key={invite.id}>
               <TableCell>{invite.email}</TableCell>
               <TableCell>{invite.role.toLowerCase()}</TableCell>
-              <TableCell className="text-xs text-muted-foreground">{new Date(invite.expires_at).toLocaleString()}</TableCell>
+              <TableCell className="text-xs text-muted-foreground">
+                {new Date(invite.expires_at).toLocaleString()}
+              </TableCell>
               <TableCell className="text-right">
                 <Button size="sm" variant="ghost" className="text-destructive" onClick={() => revoke.mutate(invite.id)}>
                   Revoke

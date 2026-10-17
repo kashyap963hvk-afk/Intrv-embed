@@ -19,6 +19,11 @@ export function MainNav() {
           Dashboard
         </Link>
       )}
+      {me && me.user.status === "ACTIVE" && (
+        <Link href="/app/llm" className={link}>
+          AI models
+        </Link>
+      )}
       {isOwner(me) && (
         <Link href="/admin" className={link}>
           Admin

@@ -22,6 +22,7 @@ from app.core.logging import configure_logging, get_logger
 from app.core.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.readiness import build_checks
 from app.core.resources import Resources
+from app.llm import router as llm_router
 from app.orgs.service import bootstrap_first_owner
 
 log = get_logger("app")
@@ -78,6 +79,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth_router.router)
     app.include_router(admin_router.router)
+    app.include_router(llm_router.router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

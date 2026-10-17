@@ -12,14 +12,32 @@ from app.db.models.identity import (
     UserPolicy,
     UserStatus,
 )
+from app.db.models.llm import (
+    AgentRole,
+    LLMProfile,
+    LLMRoleRoute,
+    OrgKey,
+    ProfileStatus,
+    ProviderKind,
+    QualityTier,
+    UsageEvent,
+)
 
 __all__ = [
+    "AgentRole",
     "AuditLog",
     "Group",
     "GroupMember",
+    "LLMProfile",
+    "LLMRoleRoute",
+    "OrgKey",
     "Organization",
+    "ProfileStatus",
+    "ProviderKind",
+    "QualityTier",
     "RefreshToken",
     "Role",
+    "UsageEvent",
     "User",
     "UserInvite",
     "UserPolicy",

@@ -17,6 +17,9 @@ x-backend: &backend
     target: dev
   image: intrv-backend:dev
   env_file: .env
+  extra_hosts:
+    # Lets self-host presets reach servers on the Docker host (llama-server, LM Studio) on Linux too.
+    - "host.docker.internal:host-gateway"
   volumes:
     - ./backend/app:/app/app
     - ./backend/workers:/app/workers

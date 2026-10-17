@@ -35,7 +35,10 @@ export function AcceptInvite() {
     queryFn: async () => unwrap(await api.GET("/api/auth/invites/{token}", { params: { path: { token } } })),
     retry: false,
   });
-  const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { name: "", password: "", confirm: "" } });
+  const form = useForm<Values>({
+    resolver: zodResolver(schema),
+    defaultValues: { name: "", password: "", confirm: "" },
+  });
   const { errors, isSubmitting } = form.formState;
 
   async function onSubmit({ name, password }: Values) {
@@ -73,7 +76,12 @@ export function AcceptInvite() {
       <FormField id="name" label="Full name" error={errors.name?.message}>
         <Input id="name" autoComplete="name" aria-invalid={!!errors.name} {...form.register("name")} />
       </FormField>
-      <FormField id="password" label="Choose a password" error={errors.password?.message} hint="At least 12 characters.">
+      <FormField
+        id="password"
+        label="Choose a password"
+        error={errors.password?.message}
+        hint="At least 12 characters."
+      >
         <Input id="password" type="password" autoComplete="new-password" {...form.register("password")} />
       </FormField>
       <FormField id="confirm" label="Confirm password" error={errors.confirm?.message}>

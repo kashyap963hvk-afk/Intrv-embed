@@ -35,9 +35,15 @@ export function OrgTab() {
       <div className="flex flex-col gap-1 text-sm">
         <span className="font-medium">Organization ID</span>
         <span className="font-mono text-muted-foreground">{org.data.slug}</span>
-        <span className="text-xs text-muted-foreground">Share it with people who should request access at /signup.</span>
+        <span className="text-xs text-muted-foreground">
+          Share it with people who should request access at /signup.
+        </span>
       </div>
-      <Button type="submit" className="w-fit" disabled={rename.isPending || value.trim().length < 2 || value === org.data.name}>
+      <Button
+        type="submit"
+        className="w-fit"
+        disabled={rename.isPending || value.trim().length < 2 || value === org.data.name}
+      >
         Save
       </Button>
     </form>
