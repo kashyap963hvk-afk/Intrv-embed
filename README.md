@@ -4,7 +4,15 @@ An agentic, human-like AI interviewer. **Embedded Systems is the default domain,
 Plug and play any AI: cloud APIs (Gemini, Groq, OpenRouter, OpenAI-compatible...), your own server, or a `.gguf` model on a pendrive.
 Enterprise RAG (hybrid search + reranking) over owner- and user-provided documents with strict per-user access control.
 
-This repository currently holds the **complete design and build prompt**. The code is generated phase by phase with Claude Code.
+The code is built phase by phase with Claude Code from `PROMPT.md`. **Status: Phase 0 (foundation) done**; see [`docs/PROGRESS.md`](docs/PROGRESS.md).
+
+## Quickstart (local)
+```bash
+make env        # create .env with random secrets
+make up         # Postgres, Valkey, Qdrant, SeaweedFS (S3), backend, worker, frontend
+open http://localhost:3000/healthz   # system status page; API docs at http://localhost:8000/docs
+make lint test  # ruff, mypy, eslint, tsc, pytest (integration tests need Docker)
+```
 
 ## Files
 | File | Purpose |
@@ -18,8 +26,7 @@ This repository currently holds the **complete design and build prompt**. The co
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Vercel + backend hosting + every API key and where to get it. |
 | [`docs/GEMINI_DRAFT_REVIEW.md`](docs/GEMINI_DRAFT_REVIEW.md) | 24 problems in the earlier Gemini architecture, and how this design fixes them. |
 
-## How to use
+## Continue the build with Claude Code
 ```bash
-git clone <this repo> && cd Intrv-embed
-claude "Read CLAUDE.md, PROMPT.md and everything in docs/. Then execute Phase 0. Stop at the end of each phase, show me the acceptance results, and wait for 'continue'."
+claude "Read CLAUDE.md, PROMPT.md and everything in docs/ (start with docs/PROGRESS.md). Execute the next phase. Stop at the end of the phase, show me the acceptance results, and wait for 'continue'."
 ```

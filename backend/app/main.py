@@ -1,0 +1,71 @@
+"""FastAPI application factory.
+
+Run with: `uvicorn app.main:create_app --factory`. No work happens at import time, so tests can
+build apps with explicit settings.
+"""
+
+from __future__ import annotations
+
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api import health
+from app.core.config import Settings, get_settings
+from app.core.errors import register_exception_handlers
+from app.core.logging import configure_logging, get_logger
+from app.core.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
+from app.core.readiness import build_checks
+from app.core.resources import Resources
+
+log = get_logger("app")
+
+API_VERSION = "0.1.0"
+
+
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+    configure_logging(level=settings.log_level, json=settings.log_json)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        resources = Resources.create(settings)
+        app.state.resources = resources
+        app.state.readiness_checks = build_checks(resources, settings)
+        log.info("app.startup", app_env=settings.app_env)
+        try:
+            yield
+        finally:
+            await resources.close()
+            log.info("app.shutdown")
+
+    app = FastAPI(
+        title="Intrv-embed API",
+        version=API_VERSION,
+        lifespan=lifespan,
+        docs_url=None if settings.is_prod else "/docs",
+        redoc_url=None,
+        openapi_url=None if settings.is_prod else "/openapi.json",
+    )
+    app.state.settings = settings
+
+    register_exception_handlers(app)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["Content-Type", "X-CSRF-Token", REQUEST_ID_HEADER],
+        expose_headers=[REQUEST_ID_HEADER],
+        max_age=600,
+    )
+    # Added last so it is the outermost middleware: every response, including CORS rejections
+    # and errors, carries the request id and is logged and measured.
+    app.add_middleware(RequestContextMiddleware)
+
+    app.include_router(health.router)
+    if settings.metrics_enabled:
+        app.include_router(health.metrics_router)
+    return app

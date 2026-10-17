@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (lint, types, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.32"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - name: Ruff
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: Mypy (strict)
+        run: uv run mypy
+      - name: OpenAPI snapshot is current
+        run: uv run python -m app.export_openapi | diff -u openapi.json -
+      - name: Tests (unit + integration with testcontainers)
+        env:
+          REQUIRE_DOCKER: "1"
+        run: uv run pytest -m "not live"
+
+  frontend:
+    name: Frontend (lint, types, build)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_PUBLIC_API_BASE_URL: https://api.example.com
+      NEXT_PUBLIC_WS_BASE_URL: wss://api.example.com
+      NEXT_PUBLIC_APP_URL: https://app.example.com
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - name: API types match backend/openapi.json
+        run: npm run check:api
+      - run: npm run build
+
+  security:
+    name: Security (secrets, dependency audits)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Gitleaks (full history)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --redact --no-banner
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.32"
+      - name: pip-audit (production dependencies)
+        working-directory: backend
+        run: |
+          uv export --frozen --no-dev --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit==2.10.1 -r "$RUNNER_TEMP/requirements.txt" --disable-pip --require-hashes
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: npm audit (production dependencies, blocking)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+      - name: npm audit (dev dependencies, report only; see docs/adr/0001)
+        working-directory: frontend
+        continue-on-error: true
+        run: npm audit --audit-level=high

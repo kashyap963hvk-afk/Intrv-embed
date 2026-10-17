@@ -1,0 +1,210 @@
+"""Application settings, loaded from environment variables (and `.env` in development).
+
+Every variable from docs/ARCHITECTURE.md §20 is declared here so that misconfiguration fails at
+startup, not at the first request that happens to need it.
+"""
+
+from __future__ import annotations
+
+import base64
+import binascii
+import os
+from functools import lru_cache
+from typing import Annotated, Literal
+from urllib.parse import urlparse
+
+from pydantic import Field, SecretStr, field_validator, model_validator
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
+
+AppEnv = Literal["dev", "test", "prod"]
+
+MASTER_KEY_BYTES = 32
+MIN_JWT_SECRET_LENGTH = 32
+_PLACEHOLDER_SECRETS = {"change-me", "changeme", "secret", "dev", "test", "password"}
+
+
+def _split_csv(value: object) -> object:
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(",") if item.strip()]
+    return value
+
+
+def _split_pathsep(value: object) -> object:
+    if isinstance(value, str):
+        return [item.strip() for item in value.split(os.pathsep) if item.strip()]
+    return value
+
+
+CsvList = Annotated[list[str], NoDecode]
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+        case_sensitive=False,
+    )
+
+    # --- Application -------------------------------------------------------------------------
+    app_env: AppEnv = "dev"
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    log_json: bool = True
+    public_app_url: str = "http://localhost:3000"
+    api_public_url: str = "http://localhost:8000"
+    cors_allowed_origins: CsvList = Field(default_factory=lambda: ["http://localhost:3000"])
+    cookie_domain: str | None = None
+    metrics_enabled: bool = True
+    readiness_timeout_s: float = Field(default=2.0, gt=0, le=30)
+
+    # --- Data stores -------------------------------------------------------------------------
+    database_url: str
+    database_migration_url: str | None = None
+    db_pool_size: int = Field(default=10, ge=1, le=200)
+    db_max_overflow: int = Field(default=10, ge=0, le=200)
+    valkey_url: str
+    qdrant_url: str
+    qdrant_api_key: SecretStr | None = None
+    s3_endpoint_url: str | None = None
+    s3_region: str = "us-east-1"
+    s3_bucket: str
+    s3_access_key: SecretStr | None = None
+    s3_secret_key: SecretStr | None = None
+    s3_force_path_style: bool = True
+
+    # --- Secrets -----------------------------------------------------------------------------
+    master_key_base64: SecretStr
+    jwt_secret: SecretStr
+    owner_bootstrap_email: str | None = None
+
+    # --- Retrieval models --------------------------------------------------------------------
+    embed_backend: Literal["tei", "sentence_transformers", "fastembed", "openai"] = "tei"
+    embed_model: str = "BAAI/bge-m3"
+    tei_url: str | None = None
+    rerank_backend: Literal["tei", "fastembed", "none"] = "tei"
+    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    tei_rerank_url: str | None = None
+
+    # --- Speech ------------------------------------------------------------------------------
+    stt_backend: Literal["faster_whisper", "groq"] = "faster_whisper"
+    stt_model: str = "large-v3-turbo"
+    stt_device: Literal["cuda", "cpu"] = "cpu"
+    groq_api_key: SecretStr | None = None
+    tts_backend: Literal["kokoro", "piper", "browser"] = "kokoro"
+    kokoro_voice: str = "af_heart"
+
+    # --- Agent engine / LLM ------------------------------------------------------------------
+    engine_turn_mode: Literal["auto", "single_call", "two_call"] = "auto"
+    allow_private_llm_endpoints: bool = False
+    gguf_allowed_dirs: Annotated[list[str], NoDecode] = Field(default_factory=list)
+
+    # --- Connectors --------------------------------------------------------------------------
+    google_oauth_client_id: str | None = None
+    google_oauth_client_secret: SecretStr | None = None
+    google_picker_api_key: str | None = None
+    google_service_account_json_base64: SecretStr | None = None
+    ms_client_id: str | None = None
+    ms_client_secret: SecretStr | None = None
+    ms_tenant: str = "common"
+    dropbox_app_key: str | None = None
+    dropbox_app_secret: SecretStr | None = None
+
+    # --- Realtime media ----------------------------------------------------------------------
+    turn_urls: CsvList = Field(default_factory=list)
+    turn_username: str | None = None
+    turn_credential: SecretStr | None = None
+    turn_shared_secret: SecretStr | None = None
+    stun_urls: CsvList = Field(default_factory=lambda: ["stun:stun.l.google.com:19302"])
+
+    # --- Email -------------------------------------------------------------------------------
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_password: SecretStr | None = None
+    mail_from: str | None = None
+
+    # --- Practical rounds --------------------------------------------------------------------
+    piston_url: str | None = None
+    renode_enabled: bool = False
+
+    # --- Observability -----------------------------------------------------------------------
+    otel_exporter_otlp_endpoint: str | None = None
+    langfuse_host: str | None = None
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: SecretStr | None = None
+
+    _split_csv_fields = field_validator("cors_allowed_origins", "turn_urls", "stun_urls", mode="before")(_split_csv)
+    _split_dirs = field_validator("gguf_allowed_dirs", mode="before")(_split_pathsep)
+
+    @field_validator("database_url", "database_migration_url")
+    @classmethod
+    def _require_asyncpg(cls, value: str | None) -> str | None:
+        if value is not None and not value.startswith("postgresql+asyncpg://"):
+            raise ValueError("must use the postgresql+asyncpg:// scheme")
+        return value
+
+    @field_validator("valkey_url")
+    @classmethod
+    def _require_redis_scheme(cls, value: str) -> str:
+        if urlparse(value).scheme not in {"redis", "rediss"}:
+            raise ValueError("must use the redis:// or rediss:// scheme")
+        return value
+
+    @field_validator("cors_allowed_origins")
+    @classmethod
+    def _no_wildcard_origin(cls, value: list[str]) -> list[str]:
+        if "*" in value:
+            raise ValueError("'*' is not allowed: credentials (cookies) require explicit origins")
+        for origin in value:
+            parsed = urlparse(origin)
+            if parsed.scheme not in {"http", "https"} or not parsed.netloc or parsed.path not in {"", "/"}:
+                raise ValueError(f"invalid origin {origin!r}: expected scheme://host[:port]")
+        return [origin.rstrip("/") for origin in value]
+
+    @field_validator("master_key_base64")
+    @classmethod
+    def _master_key_is_32_bytes(cls, value: SecretStr) -> SecretStr:
+        try:
+            raw = base64.b64decode(value.get_secret_value(), validate=True)
+        except (binascii.Error, ValueError) as exc:
+            raise ValueError("must be valid base64") from exc
+        if len(raw) != MASTER_KEY_BYTES:
+            raise ValueError("must decode to exactly 32 bytes (generate with: openssl rand -base64 32)")
+        return value
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _jwt_secret_strength(cls, value: SecretStr) -> SecretStr:
+        secret = value.get_secret_value()
+        if len(secret) < MIN_JWT_SECRET_LENGTH or secret.lower() in _PLACEHOLDER_SECRETS:
+            raise ValueError("must be at least 32 characters of random data")
+        return value
+
+    @model_validator(mode="after")
+    def _cross_field_rules(self) -> Settings:
+        if self.gguf_allowed_dirs and not self.allow_private_llm_endpoints:
+            raise ValueError("gguf_allowed_dirs requires allow_private_llm_endpoints=true (self-host mode)")
+        if self.app_env != "prod":
+            return self
+        insecure = [
+            name
+            for name, url in (("public_app_url", self.public_app_url), ("api_public_url", self.api_public_url))
+            if urlparse(url).scheme != "https"
+        ]
+        insecure += [f"cors_allowed_origins[{o}]" for o in self.cors_allowed_origins if not o.startswith("https://")]
+        if insecure:
+            raise ValueError(f"production requires https for: {', '.join(insecure)}")
+        return self
+
+    @property
+    def master_key(self) -> bytes:
+        return base64.b64decode(self.master_key_base64.get_secret_value())
+
+    @property
+    def is_prod(self) -> bool:
+        return self.app_env == "prod"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()  # required fields come from the environment

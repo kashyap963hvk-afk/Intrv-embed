@@ -25,14 +25,13 @@ The spec is `docs/ARCHITECTURE.md`. The build plan is `PROMPT.md`. Read both bef
 
 ## Commands
 ```
-make up            # docker compose --profile core up -d
-make migrate       # alembic upgrade head (as app_owner)
-make seed          # load role packs + provider presets + demo org (dev only)
-make create-owner  # bootstrap owner
-make test          # unit + isolation + agents + api
-make lint          # ruff, mypy, eslint, tsc
-make e2e           # playwright against compose stack
-make selftest      # model load + dimension + connectivity checks
+make env               # create .env with random secrets (once)
+make up / down / logs  # docker compose --profile core
+make test              # backend unit + integration (Docker) tests, frontend typecheck
+make test-unit         # fast, no Docker
+make lint              # ruff, ruff format --check, mypy, OpenAPI drift, eslint, tsc
+make openapi           # regenerate backend/openapi.json + frontend/src/lib/api/schema.d.ts after API changes
+make migrate | seed | create-owner | e2e | selftest   # arrive in Phases 1/2/1/6/3
 ```
 
 ## Definition of done (every task)
