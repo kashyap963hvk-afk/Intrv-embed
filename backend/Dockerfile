@@ -40,6 +40,8 @@ RUN groupadd --system --gid 10001 app && useradd --system --uid 10001 --gid app 
 COPY --from=deps /opt/venv /opt/venv
 COPY app ./app
 COPY workers ./workers
+COPY migrations ./migrations
+COPY alembic.ini ./
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \

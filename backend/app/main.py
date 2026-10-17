@@ -12,13 +12,17 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.admin import router as admin_router
 from app.api import health
+from app.auth import router as auth_router
 from app.core.config import Settings, get_settings
+from app.core.email import EmailSender
 from app.core.errors import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.readiness import build_checks
 from app.core.resources import Resources
+from app.orgs.service import bootstrap_first_owner
 
 log = get_logger("app")
 
@@ -35,6 +39,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.resources = resources
         app.state.readiness_checks = build_checks(resources, settings)
         log.info("app.startup", app_env=settings.app_env)
+        if settings.owner_bootstrap_email:
+            try:
+                await bootstrap_first_owner(resources.session_factory, settings, app.state.mailer)
+            except Exception:  # the API must still start (e.g. migrations not applied yet)
+                log.exception("org.bootstrap_failed")
         try:
             yield
         finally:
@@ -50,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         openapi_url=None if settings.is_prod else "/openapi.json",
     )
     app.state.settings = settings
+    app.state.mailer = EmailSender(settings)
 
     register_exception_handlers(app)
     app.add_middleware(
@@ -66,6 +76,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
 
     app.include_router(health.router)
+    app.include_router(auth_router.router)
+    app.include_router(admin_router.router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

@@ -1,5 +1,37 @@
 # Build progress
 
+## Phase 1: Identity, tenancy, RBAC, RLS, audit ✅ (2026-10-17)
+
+### Delivered
+- **Data model + migration**: organizations, users, user_policies, groups, group_members, user_invites,
+  refresh_tokens, audit_logs. FORCE RLS tenant policies on every table. Append-only audit log for the runtime role.
+  SECURITY DEFINER auth lookups (ADR 0002).
+- **Auth API** (`/api/auth`): csrf, signup (pending), register-org (opt-in), login (multi-org aware), refresh
+  rotation with reuse detection, logout, me, password change (ends other sessions), invite preview/accept. Rate
+  limits. Argon2id.
+- **Owner API** (`/api/admin`): members list/search/approve/reject/suspend/reactivate/delete/role, per-user
+  policies (voice, coding, prompt editing, own LLM keys, monthly interview quota), groups + membership, invitations,
+  audit log with cursor pagination, organization rename. Last-owner protection.
+- **Bootstrap**: `OWNER_BOOTSTRAP_EMAIL` first-run invite; `make create-owner` CLI.
+- **Infra**: `migrate` one-shot compose service (runs before the backend), Mailpit for dev email (UI :8025).
+- **Frontend**: login (org picker), signup, pending, invitation acceptance, dashboard, account (password change),
+  admin console (members, permissions dialog, groups, invitations with copyable link, audit log, organization).
+  Typed API client with CSRF handling and a single shared session refresh on 401. Vitest suite.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| Pending users get 403 on member APIs; approved users pass | ✅ `test_signup_pending_until_approved` |
+| Members get 403 on every `/api/admin/*` route | ✅ `test_member_cannot_use_admin_api` |
+| RLS: `app_rw` with org A context sees only org A; without context sees nothing; cross-tenant writes rejected; context ends at commit | ✅ `tests/integration/test_rls.py` (raw psycopg, no ORM) |
+| Refresh-token reuse revokes the whole family (+ audit entry) | ✅ `test_refresh_rotates_and_reuse_revokes_family` |
+| Audit rows for approve/suspend/policy change | ✅ `test_lifecycle_is_audited` |
+| Extra coverage | Owners cannot read or modify another org's users (404); logout and suspension invalidate copied access tokens; rate limiting; invite single-use and revocation; last-owner protection; bootstrap idempotency; CLI |
+| Real browser walkthrough (compose stack + Chromium) | ✅ bootstrap invite → owner joins → member requests access → pending page → owner approves → member dashboard; member blocked from admin; audit shows `user.approved`; invitation email delivered to Mailpit |
+
+Totals: backend 42 unit + 29 integration tests, frontend 7 Vitest tests. Lint (ruff, mypy --strict, eslint, tsc) clean.
+
+
 ## Phase 0: Foundation ✅ (2026-10-17)
 
 ### Delivered

@@ -20,15 +20,18 @@ x-backend: &backend
   volumes:
     - ./backend/app:/app/app
     - ./backend/workers:/app/workers
+    - ./backend/migrations:/app/migrations
   depends_on:
-    postgres:
-      condition: service_healthy
+    migrate:
+      condition: service_completed_successfully
     valkey:
       condition: service_healthy
     qdrant:
       condition: service_healthy
     s3-init:
       condition: service_completed_successfully
+    mailpit:
+      condition: service_started
   restart: unless-stopped
 
 services:
@@ -124,6 +127,29 @@ services:
         aws --endpoint-url http://seaweedfs:8333 s3api create-bucket --bucket "$$S3_BUCKET" && exit 0;
         sleep 2; done; echo "could not create bucket $$S3_BUCKET" >&2; exit 1
     restart: "no"
+
+  migrate:
+    image: intrv-backend:dev
+    build:
+      context: ./backend
+      target: dev
+    profiles: [core]
+    env_file: .env
+    command: ["alembic", "upgrade", "head"]
+    volumes:
+      - ./backend/migrations:/app/migrations
+      - ./backend/app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  mailpit:
+    image: axllent/mailpit:v1.31.6
+    profiles: [core]
+    ports:
+      - "127.0.0.1:8025:8025"   # web UI: http://localhost:8025
+    restart: unless-stopped
 
   backend:
     <<: *backend

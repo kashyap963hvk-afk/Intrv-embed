@@ -1,6 +1,7 @@
 #!/bin/sh
 # Creates the two application roles and the application database (runs once, on an empty volume).
-#   app_owner: owns the schema, used only by migrations.
+#   app_owner: owns the schema, used only by migrations. BYPASSRLS so that the few SECURITY DEFINER
+#              functions it owns (cross-tenant auth lookups, see migrations) can see across tenants.
 #   app_rw:    runtime role; NOT the table owner, so Row-Level Security applies to it (Phase 1).
 set -eu
 
@@ -9,8 +10,8 @@ set -eu
 
 psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname postgres \
   -v owner_pw="$APP_OWNER_DB_PASSWORD" -v rw_pw="$APP_RW_DB_PASSWORD" <<'SQL'
-CREATE ROLE app_owner LOGIN PASSWORD :'owner_pw';
-CREATE ROLE app_rw LOGIN PASSWORD :'rw_pw';
+CREATE ROLE app_owner LOGIN BYPASSRLS PASSWORD :'owner_pw';
+CREATE ROLE app_rw LOGIN NOBYPASSRLS PASSWORD :'rw_pw';
 CREATE DATABASE intrv OWNER app_owner;
 REVOKE ALL ON DATABASE intrv FROM PUBLIC;
 GRANT CONNECT ON DATABASE intrv TO app_rw;

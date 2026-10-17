@@ -57,7 +57,20 @@ Auth uses **httpOnly cookies**. Browsers block third-party cookies, so `my-app.v
 
 No secrets go on Vercel. TURN credentials, OAuth tokens and LLM keys are all served or used by the backend.
 
-### 4.2 Backend (VPS / container secrets)
+### 4.2 Database roles (required for Row-Level Security)
+
+The app uses two Postgres roles (created automatically by `infra/postgres/init/01-roles.sh` in Docker):
+
+| Role | Used by | Needs |
+|---|---|---|
+| `app_owner` | migrations (`DATABASE_MIGRATION_URL`) | owns the schema, **`BYPASSRLS`** (its SECURITY DEFINER auth-lookup functions must see across tenants) |
+| `app_rw` | the API and workers (`DATABASE_URL`) | `NOBYPASSRLS`, not the table owner, so every query is confined to one organization |
+
+On a managed Postgres (Neon, Supabase, RDS…) create both roles yourself with the SQL from that script.
+**Check that your provider lets you grant `BYPASSRLS`**; without it, login cannot work. Supabase's `postgres`
+role has it; on others, use the provider's admin role to `ALTER ROLE app_owner BYPASSRLS`.
+
+### 4.3 Backend (VPS / container secrets)
 | Variable | How to get it | Required |
 |---|---|---|
 | `MASTER_KEY_BASE64`, `JWT_SECRET` | `openssl rand -base64 32` (each) | Yes |

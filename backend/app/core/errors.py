@@ -27,10 +27,23 @@ class AppError(Exception):
     slug: str = "bad-request"
     title: str = "Bad request"
 
-    def __init__(self, detail: str | None = None, *, extra: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        detail: str | None = None,
+        *,
+        extra: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(detail or self.title)
         self.detail = detail
         self.extra = extra or {}
+        self.headers = headers
+
+
+class UnauthorizedError(AppError):
+    status_code = 401
+    slug = "unauthorized"
+    title = "Authentication required"
 
 
 class NotFoundError(AppError):
@@ -49,6 +62,19 @@ class ConflictError(AppError):
     status_code = 409
     slug = "conflict"
     title = "Conflict"
+
+
+class RateLimitedError(AppError):
+    status_code = 429
+    slug = "rate-limited"
+    title = "Too many requests"
+
+    def __init__(self, retry_after_s: int) -> None:
+        super().__init__(
+            "Too many attempts; try again later.",
+            extra={"retry_after_s": retry_after_s},
+            headers={"Retry-After": str(retry_after_s)},
+        )
 
 
 def _request_id(request: Request) -> str | None:
@@ -96,7 +122,13 @@ async def _app_error_handler(request: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, AppError):
         raise TypeError(type(exc).__name__)
     return problem_response(
-        request, status=exc.status_code, slug=exc.slug, title=exc.title, detail=exc.detail, extra=exc.extra
+        request,
+        status=exc.status_code,
+        slug=exc.slug,
+        title=exc.title,
+        detail=exc.detail,
+        extra=exc.extra,
+        headers=exc.headers,
     )
 
 

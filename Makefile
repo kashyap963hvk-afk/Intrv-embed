@@ -50,14 +50,15 @@ openapi: ## Regenerate backend/openapi.json and frontend API types
 	$(BACKEND) uv run python -m app.export_openapi openapi.json
 	$(FRONTEND) npm run gen:api
 
-migrate: ## Apply database migrations (available from Phase 1)
-	@echo "make migrate: available from Phase 1 (Alembic migrations)"; exit 1
+migrate: ## Apply database migrations (also runs automatically on `make up`)
+	$(COMPOSE) run --rm migrate
 
 seed: ## Load role packs, provider presets and demo data (available from Phase 2/5)
 	@echo "make seed: available from Phase 2 (provider presets) and Phase 5 (role packs)"; exit 1
 
-create-owner: ## Bootstrap the first owner account (available from Phase 1)
-	@echo "make create-owner: available from Phase 1"; exit 1
+create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.com NAME="Your Name"
+	@test -n "$(ORG)" -a -n "$(EMAIL)" -a -n "$(NAME)" || { echo 'usage: make create-owner ORG=slug EMAIL=you@x.com NAME="Your Name"'; exit 1; }
+	$(COMPOSE) exec backend python -m app.cli create-owner --org-slug "$(ORG)" --org-name "$(ORG)" --email "$(EMAIL)" --name "$(NAME)" --password-stdin
 
 e2e: ## Playwright end-to-end tests (available from Phase 6)
 	@echo "make e2e: available from Phase 6"; exit 1

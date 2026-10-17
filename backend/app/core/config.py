@@ -44,6 +44,8 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
         case_sensitive=False,
+        # `SMTP_USER=` in .env means "not set", not "the empty string".
+        env_ignore_empty=True,
     )
 
     # --- Application -------------------------------------------------------------------------
@@ -76,6 +78,15 @@ class Settings(BaseSettings):
     master_key_base64: SecretStr
     jwt_secret: SecretStr
     owner_bootstrap_email: str | None = None
+    owner_bootstrap_org_name: str = "My Organization"
+    owner_bootstrap_org_slug: str = "default"
+
+    # --- Auth ----------------------------------------------------------------------------------
+    access_token_ttl_s: int = Field(default=900, ge=60, le=3600)
+    refresh_token_ttl_days: int = Field(default=30, ge=1, le=90)
+    invite_ttl_hours: int = Field(default=168, ge=1, le=720)
+    allow_org_signup: bool = False
+    cookie_secure: bool | None = None  # default: secure when API_PUBLIC_URL is https
 
     # --- Retrieval models --------------------------------------------------------------------
     embed_backend: Literal["tei", "sentence_transformers", "fastembed", "openai"] = "tei"
@@ -121,6 +132,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str | None = None
     smtp_password: SecretStr | None = None
+    smtp_tls: Literal["none", "starttls", "ssl"] = "starttls"
     mail_from: str | None = None
 
     # --- Practical rounds --------------------------------------------------------------------
@@ -203,6 +215,12 @@ class Settings(BaseSettings):
     @property
     def is_prod(self) -> bool:
         return self.app_env == "prod"
+
+    @property
+    def secure_cookies(self) -> bool:
+        if self.cookie_secure is not None:
+            return self.cookie_secure
+        return urlparse(self.api_public_url).scheme == "https"
 
 
 @lru_cache

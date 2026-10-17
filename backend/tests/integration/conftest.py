@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import os
 import secrets
+import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
@@ -16,6 +18,7 @@ from pathlib import Path
 import boto3
 import docker
 import httpx
+import psycopg
 import pytest
 import redis
 from botocore.config import Config as BotoConfig
@@ -23,6 +26,7 @@ from docker.errors import DockerException
 from testcontainers.core.container import DockerContainer
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+BACKEND_ROOT = REPO_ROOT / "backend"
 # Ephemeral credentials for the throwaway SeaweedFS container, generated per test session.
 S3_ACCESS_KEY = f"itest{secrets.token_hex(4)}"
 S3_SECRET_KEY = secrets.token_hex(20)
@@ -72,25 +76,81 @@ def _url(container: DockerContainer, port: int) -> tuple[str, int]:
     return container.get_container_host_ip(), int(container.get_exposed_port(port))
 
 
+PG_SUPER_PASSWORD = secrets.token_hex(12)
+PG_OWNER_PASSWORD = secrets.token_hex(12)
+PG_RW_PASSWORD = secrets.token_hex(12)
+EMPTY_TEMPLATE_DB = "intrv_empty_template"
+
+
+@dataclass(frozen=True)
+class Postgres:
+    host: str
+    port: int
+
+    def url(self, role: str, database: str = "intrv") -> str:
+        password = {"postgres": PG_SUPER_PASSWORD, "app_owner": PG_OWNER_PASSWORD, "app_rw": PG_RW_PASSWORD}[role]
+        return f"postgresql+asyncpg://{role}:{password}@{self.host}:{self.port}/{database}"
+
+    def dsn(self, role: str, database: str = "intrv") -> str:
+        return self.url(role, database).replace("postgresql+asyncpg://", "postgresql://")
+
+
+def run_migrations(database_url: str) -> None:
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"],
+        cwd=BACKEND_ROOT,
+        env={**os.environ, "DATABASE_MIGRATION_URL": database_url},
+        check=True,
+        capture_output=True,
+    )
+
+
 @pytest.fixture(scope="session")
-def postgres() -> Iterator[str]:
+def pg() -> Iterator[Postgres]:
+    """Postgres initialised exactly like production (infra/postgres/init) and migrated to head."""
     container = (
         DockerContainer("postgres:16-alpine")
-        .with_env("POSTGRES_USER", "intrv")
-        .with_env("POSTGRES_PASSWORD", "intrv")
-        .with_env("POSTGRES_DB", "intrv")
+        .with_env("POSTGRES_USER", "postgres")
+        .with_env("POSTGRES_PASSWORD", PG_SUPER_PASSWORD)
+        .with_env("APP_OWNER_DB_PASSWORD", PG_OWNER_PASSWORD)
+        .with_env("APP_RW_DB_PASSWORD", PG_RW_PASSWORD)
+        .with_volume_mapping(str(REPO_ROOT / "infra/postgres/init"), "/docker-entrypoint-initdb.d", "ro")
         .with_exposed_ports(5432)
     )
     with container:
         host, port = _url(container, 5432)
 
         def probe() -> None:
-            exit_code, _ = container.exec(["pg_isready", "-U", "intrv", "-d", "intrv", "-h", "127.0.0.1"])
+            exit_code, _ = container.exec(["pg_isready", "-U", "postgres", "-d", "intrv", "-h", "127.0.0.1"])
             if exit_code != 0:
                 raise RuntimeError("pg_isready failed")
 
         wait_until(probe, what="postgres")
-        yield f"postgresql+asyncpg://intrv:intrv@{host}:{port}/intrv"
+        server = Postgres(host, port)
+        run_migrations(server.url("app_owner"))
+        # Snapshot of the freshly migrated, empty schema for tests that need an empty install.
+        _psql(server, f"CREATE DATABASE {EMPTY_TEMPLATE_DB} TEMPLATE intrv OWNER app_owner")
+        yield server
+
+
+def _psql(server: Postgres, sql: str, database: str = "postgres") -> None:
+    with psycopg.connect(server.dsn("postgres", database), autocommit=True) as conn:
+        conn.execute(sql)  # type: ignore[arg-type]
+
+
+def create_empty_database(server: Postgres) -> str:
+    """A brand-new migrated database with no rows (returns the app_rw URL)."""
+    name = f"intrv_{secrets.token_hex(4)}"
+    _psql(server, f"CREATE DATABASE {name} TEMPLATE {EMPTY_TEMPLATE_DB} OWNER app_owner")
+    _psql(server, f"REVOKE ALL ON DATABASE {name} FROM PUBLIC")
+    _psql(server, f"GRANT CONNECT ON DATABASE {name} TO app_rw")
+    return server.url("app_rw", name)
+
+
+@pytest.fixture(scope="session")
+def postgres(pg: Postgres) -> str:
+    """Runtime (app_rw) URL of the shared migrated database."""
+    return pg.url("app_rw")
 
 
 @pytest.fixture(scope="session")
@@ -100,6 +160,13 @@ def valkey() -> Iterator[str]:
         url = f"redis://{host}:{port}/0"
         wait_until(lambda: redis.Redis.from_url(url).ping(), what="valkey")
         yield url
+
+
+@pytest.fixture
+def fresh_valkey(valkey: str) -> str:
+    """The shared Valkey, flushed: rate-limit counters and caches never leak between tests."""
+    redis.Redis.from_url(valkey).flushdb()
+    return valkey
 
 
 @pytest.fixture(scope="session")

@@ -83,3 +83,15 @@ def test_settings_read_from_environment(monkeypatch: pytest.MonkeyPatch) -> None
     assert settings.stun_urls == ["stun:one:3478", "stun:two:3478"]
     assert settings.s3_secret_key is not None
     assert "test-secret" not in repr(settings)
+
+
+def test_empty_environment_values_mean_unset(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name, value in settings_values().items():
+        monkeypatch.setenv(name.upper(), str(value))
+    monkeypatch.setenv("SMTP_USER", "")
+    monkeypatch.setenv("COOKIE_DOMAIN", "")
+    monkeypatch.setenv("SMTP_PORT", "")
+    settings = Settings(_env_file=None)  # type: ignore[call-arg]
+    assert settings.smtp_user is None
+    assert settings.cookie_domain is None
+    assert settings.smtp_port == 587
