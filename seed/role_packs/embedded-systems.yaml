@@ -1,0 +1,819 @@
+# Default Role Pack: Embedded Systems.
+# Data, not code. Users fork/edit this in the UI; the engine has no hardcoded domain knowledge.
+# Schema: docs/DOMAIN_PACK_EMBEDDED.md §1. Validated by backend/app/rolepacks/schema.py.
+
+slug: embedded-systems
+version: 1.0.0
+name: Embedded Systems Engineering
+description: >
+  Interviews for firmware, embedded Linux/BSP, device driver, automotive, IoT and embedded test roles.
+  Competencies are weighted per role variant. Seed questions are fallbacks; the planner prefers
+  questions grounded in the candidate's CV claims and the org's knowledge base.
+domain_tags: [embedded, firmware, mcu, rtos, embedded.linux, drivers, automotive, iot, hil]
+seniority_levels: [JUNIOR, MID, SENIOR, STAFF]
+
+competencies:
+  - id: emb.c_language
+    name: C for embedded
+    description: Language semantics that matter on bare metal and in drivers.
+    anchors:
+      1: "Knows syntax; cannot explain volatile, integer promotion or why UB matters; treats C like a scripting language."
+      2: "Explains volatile and const correctly; knows common UB; bit manipulation with help; vague on alignment/packing."
+      3: "Fluent with pointers, bitfields vs masks, alignment, packing, endianness; explains compiler effects of volatile and optimization levels with examples from own code."
+      4: "Reasons about generated assembly, strict aliasing, memory ordering vs volatile, linker interactions; teaches others; cites real bugs they found."
+    signals:
+      - volatile prevents caching the value in a register/elision of accesses, but provides no atomicity or ordering across cores
+      - integer promotion and signed/unsigned comparison pitfalls
+      - shifting by >= width is undefined behavior
+      - struct padding/alignment and packed struct costs (unaligned access faults on some cores)
+      - const placement (pointer to const vs const pointer), const data placed in flash
+      - static at file scope vs function scope
+    red_flags:
+      - claims volatile makes code thread-safe or atomic
+      - "uses malloc freely in ISRs or hard real-time paths without discussing fragmentation"
+      - cannot explain what happens on 1u << 32
+    probe_ladder:
+      - "What exactly does the compiler do differently with that keyword?"
+      - "Show me how that looks in a register-level access."
+      - "What breaks if optimization goes from -O0 to -O2?"
+      - "How did you find it when it broke?"
+    seed_questions:
+      - text: "A flag is set in an ISR and polled in main. It works at -O0 and hangs at -O2. Walk me through why and how you'd fix it."
+        difficulty: 2
+        level: [JUNIOR, MID]
+        expected_signals: [volatile, register caching, compiler optimization, also consider atomicity of the flag type]
+        follow_ups:
+          - "Is volatile enough if the flag were a 64-bit counter on a Cortex-M4?"
+          - "What would you use instead on a dual-core part?"
+      - text: "How do you write a macro or inline function to set a 3-bit field at bit position 5 of a 32-bit register without disturbing the others?"
+        difficulty: 2
+        level: [JUNIOR, MID]
+        expected_signals: [read-modify-write, mask creation, clear then set, masking the input value, RMW race with ISR]
+        follow_ups:
+          - "What goes wrong if an interrupt modifies the same register between your read and write?"
+          - "How do set/clear (BSRR-style) registers avoid that?"
+      - text: "When would you use a packed struct to map a protocol frame, and what are the costs on Cortex-M0 vs M4?"
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [unaligned access fault on M0, performance cost, endianness, explicit serialization alternative]
+        follow_ups:
+          - "How would you serialize it portably instead?"
+
+  - id: emb.mcu_architecture
+    name: MCU architecture and boot
+    description: What happens from reset to main, memory map, clocks, core features.
+    anchors:
+      1: "Treats the HAL/IDE as magic; cannot describe the reset sequence."
+      2: "Knows vector table and reset handler exist; vague on .data/.bss initialization and clock setup."
+      3: "Explains reset handler, stack pointer load, .data copy and .bss zero, SystemInit clocks, linker script sections, NVIC basics."
+      4: "Has written startup code and linker scripts, configured MPU/caches, debugged clock or flash wait-state issues, relocated vector tables for bootloaders."
+    signals:
+      - initial SP and reset vector loaded from the vector table
+      - .data copied from flash to RAM, .bss zeroed before main
+      - flash wait states must match the clock frequency
+      - VTOR relocation for bootloader plus application layouts
+      - "cache coherency with DMA on Cortex-M7 (clean/invalidate)"
+    red_flags:
+      - "cannot say where global initialized variables live at boot"
+      - "believes main() is the first code executed"
+    probe_ladder:
+      - "What runs before main?"
+      - "Where in the linker script is that defined?"
+      - "What symptom would you see if that step were missing?"
+    seed_questions:
+      - text: "Walk me through everything that happens from power-on reset until the first line of main executes on a Cortex-M part."
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [vector table, SP load, reset handler, .data copy, .bss zero, clock init, C runtime init, constructors for C++]
+        follow_ups:
+          - "Your bootloader jumps to an application at 0x08008000. What must it do before the jump?"
+          - "The app runs but interrupts go to the bootloader's handlers. Why?"
+      - text: "You raise the system clock from 16 MHz to 168 MHz and the board hard-faults immediately. What do you check first?"
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [flash wait states/latency, voltage scaling, PLL lock, peripheral bus prescalers]
+        follow_ups:
+          - "How would you confirm it with a debugger?"
+
+  - id: emb.interrupts_concurrency
+    name: Interrupts and concurrency
+    description: ISR design, shared data, atomicity, priorities, latency.
+    anchors:
+      1: "Puts heavy work in ISRs; unaware of shared-data races."
+      2: "Keeps ISRs short; knows to disable interrupts around shared data but cannot reason about latency or priority effects."
+      3: "Designs ISR-to-task handoff (flags, queues, ring buffers), uses critical sections minimally, understands NVIC priorities, tail-chaining and preemption, and atomic access sizes."
+      4: "Quantifies interrupt latency and jitter, uses lock-free SPSC structures correctly with barriers, diagnoses priority inversion and priority-grouping misconfiguration, has fixed real race conditions."
+    signals:
+      - read-modify-write races between ISR and main context
+      - "aligned 32-bit loads/stores are single-copy atomic on Cortex-M; 64-bit are not"
+      - LDREX/STREX or C11 atomics; disabling interrupts vs BASEPRI masking
+      - deferred processing to task/main loop
+      - "FreeRTOS: only FromISR APIs inside ISRs, configMAX_SYSCALL_INTERRUPT_PRIORITY"
+    red_flags:
+      - "printf inside an ISR in production code without discussing cost"
+      - "disables all interrupts for long periods as the default fix"
+    probe_ladder:
+      - "What's shared between the two contexts here?"
+      - "What's the worst-case interleaving?"
+      - "How long are interrupts masked, and what does that do to your latency budget?"
+      - "How did you prove the fix worked?"
+    seed_questions:
+      - text: "A UART RX interrupt feeds bytes to a parser in the main loop at 921600 baud and you're dropping bytes. How do you redesign it?"
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [ring buffer SPSC, DMA with idle-line or half/full callbacks, overrun flag, ISR time budget per byte, priority]
+        follow_ups:
+          - "Is your ring buffer safe without disabling interrupts? Why?"
+          - "Would anything change on a Cortex-M7 with D-cache enabled?"
+      - text: "Explain priority inversion with a concrete example and how you'd prevent it."
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [low/medium/high task example, mutex with priority inheritance, avoid binary semaphore for mutual exclusion]
+        follow_ups:
+          - "Why doesn't a binary semaphore give you priority inheritance in FreeRTOS?"
+
+  - id: emb.rtos
+    name: RTOS design
+    description: Tasks, scheduling, synchronization primitives, memory, timing.
+    anchors:
+      1: "Has called xTaskCreate from examples; cannot reason about scheduling."
+      2: "Uses queues/semaphores correctly in simple cases; stack sizes guessed."
+      3: "Chooses primitives deliberately (queue vs notification vs event group), sizes stacks with high-water marks, understands tick, tickless idle and deadlock avoidance."
+      4: "Designs task architecture with rate-monotonic reasoning, measures CPU load and latency, handles watchdog supervision of tasks, ports or configures the RTOS kernel."
+    signals:
+      - "preemptive priority scheduling; time slicing among equal priority"
+      - mutex vs binary semaphore vs counting semaphore vs task notification
+      - stack high-water mark measurement and overflow detection hooks
+      - "watchdog fed by a supervisor task that checks liveness of all tasks"
+      - "static allocation (xTaskCreateStatic) for deterministic memory"
+    red_flags:
+      - "feeds the watchdog from a timer ISR (masks hung tasks)"
+      - "uses vTaskDelay for precise periodic timing instead of vTaskDelayUntil"
+    probe_ladder:
+      - "Why that primitive and not another?"
+      - "How did you size it?"
+      - "What happens under overload?"
+    seed_questions:
+      - text: "Design the task structure for a device that samples a sensor at 1 kHz, runs a filter, logs to flash every second and talks BLE. What tasks, priorities and IPC?"
+        difficulty: 4
+        level: [SENIOR, STAFF]
+        expected_signals: [ISR or DMA for sampling, priority by deadline, queue/stream buffer, flash writes off critical path, BLE stack constraints, watchdog supervision]
+        follow_ups:
+          - "Flash erase blocks for 40 ms. What breaks and how do you design around it?"
+      - text: "Your device resets randomly every few days. The watchdog is involved. How do you find the cause?"
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [reset cause register, persistent fault log in no-init RAM, stack overflow hooks, task liveness tracking, HardFault handler dump]
+        follow_ups:
+          - "How do you capture state across the reset?"
+
+  - id: emb.peripherals_protocols
+    name: Peripherals and communication protocols
+    description: GPIO, timers, ADC, DMA, UART, SPI, I2C, CAN, USB, BLE fundamentals.
+    anchors:
+      1: "Uses HAL calls without knowing the protocol on the wire."
+      2: "Describes protocols at textbook level; limited debugging of bus issues."
+      3: "Explains timing, modes and failure behavior (I2C NACK, clock stretching, bus lockup; SPI modes/CPOL/CPHA; CAN arbitration and error states); uses DMA effectively."
+      4: "Has debugged buses with a logic analyzer or scope, designed robust recovery, tuned CAN bit timing, and handled EMI/signal-integrity-induced errors."
+    signals:
+      - "I2C: open-drain, pull-ups, ACK/NACK, repeated start, clock stretching, 9-clock bus recovery"
+      - "SPI: CPOL/CPHA modes, CS handling, full duplex, DMA"
+      - "CAN: dominant/recessive arbitration by ID, bit stuffing, error passive/bus-off, termination 120 ohm"
+      - "UART: framing/overrun errors, baud mismatch tolerance, RS-485 direction control"
+      - "ADC: sampling time vs source impedance, reference, oversampling, DMA circular"
+    red_flags:
+      - cannot explain why I2C needs pull-up resistors
+      - "thinks CAN is master/slave"
+    probe_ladder:
+      - "What does that look like on the logic analyzer?"
+      - "What's the failure mode and how do you recover?"
+      - "How would you make it robust in the field?"
+    seed_questions:
+      - text: "After a brown-out reset, your I2C sensor bus is stuck with SDA held low. Why does this happen and how do you recover in firmware?"
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [slave mid-transaction, toggle SCL up to 9 times as GPIO, STOP condition, reinit peripheral, sensor reset line]
+        follow_ups:
+          - "How would you detect it automatically at boot?"
+      - text: "Explain how two CAN nodes transmitting at the same time are resolved, and what happens to the node that loses."
+        difficulty: 2
+        level: [JUNIOR, MID]
+        expected_signals: [bitwise arbitration, dominant 0 wins, lower ID wins, loser becomes receiver and retries, non-destructive]
+        follow_ups:
+          - "What do error-passive and bus-off mean and how does a node recover?"
+      - text: "Your SPI flash reads return every byte shifted by one bit. What is your hypothesis?"
+        difficulty: 2
+        level: [JUNIOR, MID]
+        expected_signals: [wrong CPOL/CPHA mode, clock edge sampling, check datasheet timing diagram, scope it]
+        follow_ups:
+          - "How do you read the correct mode from the datasheet timing diagram?"
+
+  - id: emb.low_power
+    name: Low-power design
+    description: Sleep modes, wake sources, current budgets.
+    anchors:
+      1: "Unaware of sleep modes beyond 'turn things off'."
+      2: "Knows sleep/stop/standby exist; no measurement experience."
+      3: "Chooses modes per use case, manages wake sources, clock gating, GPIO states in sleep; measures current with a power analyzer."
+      4: "Builds an energy budget to battery life, finds leakage from floating pins or pull-ups, uses tickless RTOS idle, and verifies across temperature."
+    signals:
+      - "floating inputs and pull-ups as leakage sources"
+      - "RTC/LPTIM wake, retention RAM, peripheral clock gating"
+      - "average current = sum(duty_i * I_i); battery capacity derating"
+    red_flags:
+      - "never measured actual current"
+    probe_ladder:
+      - "What was the measured sleep current and what dominated it?"
+      - "How did you find the leak?"
+    seed_questions:
+      - text: "Your sensor node should last 2 years on a 2400 mAh coin-cell pack but measurements say 4 months. Walk me through finding the problem."
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [energy budget, measure sleep vs active, GPIO states, peripherals left clocked, radio duty cycle, regulator quiescent current]
+        follow_ups:
+          - "What tool do you use to see microamp sleep and milliamp bursts in one trace?"
+
+  - id: emb.debugging_tools
+    name: Debugging and tooling
+    description: Systematic debugging with debuggers, fault analysis and instruments.
+    anchors:
+      1: "Debugs only with printf and guesswork."
+      2: "Uses breakpoints and watch variables; limited fault analysis."
+      3: "Decodes HardFaults (CFSR/HFSR, stacked PC/LR), uses watchpoints, SWO/ITM, logic analyzer, scope; forms and tests hypotheses."
+      4: "Builds debug infrastructure (fault logging, core dumps, trace), solves intermittent field bugs, mentors on methodology."
+    signals:
+      - "HardFault: read CFSR, BFAR/MMFAR, stacked PC from exception frame"
+      - data watchpoints to catch memory corruption
+      - printf timing side effects (heisenbugs)
+      - binary search with git bisect for regressions
+    red_flags:
+      - "cannot describe a single hard bug they personally solved in detail"
+    probe_ladder:
+      - "What was your first hypothesis and what evidence killed it?"
+      - "What instrument did you use and what did you see?"
+      - "What did you change so it can't happen again?"
+    seed_questions:
+      - text: "Tell me about the hardest embedded bug you have personally root-caused. Start with the symptom."
+        difficulty: 3
+        level: [MID, SENIOR, STAFF]
+        expected_signals: [specific symptom, hypotheses, instruments, evidence, root cause, prevention]
+        follow_ups:
+          - "What would you do differently now?"
+          - "How long did it take, and what slowed you down?"
+      - text: "The device hard-faults once a day in the field. You have no debugger attached. How do you get actionable data?"
+        difficulty: 4
+        level: [SENIOR, STAFF]
+        expected_signals: [fault handler saving registers to no-init RAM or flash, stacked PC/LR, CFSR, map file lookup, upload on next boot]
+        follow_ups:
+          - "How do you turn a stacked PC into a source line?"
+
+  - id: emb.embedded_linux
+    name: Embedded Linux, BSP and drivers
+    description: Boot chain, device tree, kernel drivers, build systems.
+    anchors:
+      1: "Has used Raspberry Pi Linux as a user only."
+      2: "Builds images with Yocto/Buildroot from recipes; limited kernel work."
+      3: "Explains boot chain, writes device tree nodes, writes or modifies platform/character drivers, understands probe and resource management."
+      4: "Brings up new boards, debugs early boot, writes complex drivers (DMA, interrupts, power management), upstreams patches, maintains BSP layers."
+    signals:
+      - "ROM -> SPL/MLO -> U-Boot -> kernel + DTB -> init/rootfs"
+      - "device tree compatible strings bind to drivers; status, reg, interrupts, clocks properties"
+      - "platform driver probe/remove, devm_* managed resources"
+      - "user/kernel boundary: copy_to_user, ioctl, sysfs, mmap"
+      - "Yocto layers, recipes, bbappend; Buildroot defconfig"
+    red_flags:
+      - "cannot explain how a driver gets matched to hardware"
+    probe_ladder:
+      - "Where in the boot chain does that happen?"
+      - "Show me the device tree node."
+      - "How do you debug if the kernel hangs before the console comes up?"
+    seed_questions:
+      - text: "You add a new I2C temperature sensor to a custom board. Walk me through everything from device tree to reading it from user space."
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [DT node under i2c bus with compatible and reg, driver match, probe, hwmon/IIO subsystem, sysfs read, verify with i2cdetect]
+        follow_ups:
+          - "The driver never probes. How do you debug that?"
+      - text: "The kernel prints 'Starting kernel ...' and then nothing. What do you check?"
+        difficulty: 4
+        level: [SENIOR, STAFF]
+        expected_signals: [earlycon/earlyprintk, console bootargs, DTB address/mismatch, memory node, wrong UART in DT, load addresses]
+        follow_ups:
+          - "How do you get output before the serial driver is up?"
+
+  - id: emb.hardware_literacy
+    name: Hardware literacy
+    description: Schematics, datasheets, electrical basics relevant to firmware.
+    anchors:
+      1: "Cannot read a schematic or find information in a datasheet."
+      2: "Reads pinouts and basic schematics; limited electrical reasoning."
+      3: "Reads schematics and timing diagrams confidently; understands pull-ups, level shifting, decoupling, ADC references; works effectively with hardware engineers."
+      4: "Participates in schematic reviews, catches hardware issues before layout, uses scope and power analysis to separate hardware from firmware faults."
+    signals:
+      - "open-drain vs push-pull outputs"
+      - "3.3 V vs 5 V tolerance, level shifting"
+      - "absolute maximum ratings vs recommended operating conditions"
+      - "reading timing diagrams: setup/hold times"
+    red_flags:
+      - "blames hardware without measuring"
+    probe_ladder:
+      - "Where in the datasheet would you look?"
+      - "How would you prove it's hardware and not firmware?"
+    seed_questions:
+      - text: "A GPIO output drives an LED fine on the bench but the line looks slow and rounded on a long cable to another board. What could be going on?"
+        difficulty: 2
+        level: [JUNIOR, MID]
+        expected_signals: [capacitance, drive strength/slew settings, open-drain with weak pull-up, termination, scope measurement]
+        follow_ups:
+          - "What GPIO configuration options would you look at in firmware?"
+
+  - id: emb.reliability_safety
+    name: Reliability and functional safety
+    description: Defensive design, coding standards, safety standards awareness.
+    anchors:
+      1: "No concept of failure modes beyond 'it crashed'."
+      2: "Uses watchdog and asserts; knows MISRA exists."
+      3: "Applies MISRA or an internal standard, designs for brown-out, watchdog strategy and safe states, and understands FMEA basics."
+      4: "Has worked under ISO 26262/IEC 61508/IEC 62304; designs diagnostic coverage, memory/CPU self-tests, freedom from interference."
+    signals:
+      - "safe state definition; fail-safe vs fail-operational"
+      - "windowed watchdog; brown-out detection"
+      - "MISRA rationale (not just rule numbers); deviations process"
+      - "RAM/flash CRC checks, stack canaries, MPU isolation"
+    red_flags:
+      - "treats coding standards as bureaucracy without understanding rationale"
+    probe_ladder:
+      - "What's the safe state and how do you guarantee you reach it?"
+      - "How do you detect that the detection itself failed?"
+    seed_questions:
+      - text: "A motor controller must never leave the motor energized if the firmware hangs. How do you design for that?"
+        difficulty: 4
+        level: [SENIOR, STAFF]
+        expected_signals: [hardware default-off, windowed or external watchdog, independent supervision, safe state on reset, pin default states]
+        follow_ups:
+          - "What if the watchdog is fed from a task that is still running while the control loop is stuck?"
+
+  - id: emb.security_ota
+    name: Security and OTA updates
+    description: Secure boot, signing, OTA robustness, device hardening.
+    anchors:
+      1: "Security is out of scope for them."
+      2: "Knows firmware should be signed; vague on implementation."
+      3: "Explains secure boot chain, signature verification, A/B partitions with rollback, debug port lockdown, key storage."
+      4: "Has implemented secure boot/OTA in production, designed key management and anti-rollback, handled vulnerability responses."
+    signals:
+      - "immutable root of trust verifies the next stage signature"
+      - "A/B slots, swap or copy, confirm-after-boot with automatic rollback"
+      - "anti-rollback version counters"
+      - "JTAG/SWD lockdown (readout protection levels)"
+      - "MCUboot as an example bootloader"
+    red_flags:
+      - "uses a symmetric key embedded in every device for signing"
+    probe_ladder:
+      - "What happens if power is lost halfway through the update?"
+      - "Where are the keys and who can access them?"
+    seed_questions:
+      - text: "Design an OTA update for a fleet of MCU devices so that a bad image or power loss never bricks a device."
+        difficulty: 4
+        level: [SENIOR, STAFF]
+        expected_signals: [dual bank/A-B, signature check before boot, trial boot + confirm, rollback, anti-rollback counter, resumable download]
+        follow_ups:
+          - "The new image boots but its network stack is broken, so it can never report success. What happens?"
+
+  - id: emb.testing
+    name: Testing and quality
+    description: Host-based unit tests, HIL, CI for firmware, static analysis.
+    anchors:
+      1: "Tests manually on the board only."
+      2: "Some unit tests; hardware-dependent code untested."
+      3: "Separates HAL from logic to unit test on host (Unity/Ceedling/GoogleTest), uses mocks, static analysis and CI builds."
+      4: "Built HIL rigs and automated regression on real hardware, coverage strategy, fault injection; drives team quality culture."
+    signals:
+      - "hardware abstraction to enable host testing"
+      - "mocking registers or HAL (CMock, fff)"
+      - "HIL: test fixtures, relay-controlled power, automated flashing"
+      - "static analysis: cppcheck, clang-tidy, MISRA checkers"
+    red_flags:
+      - "says firmware can't be unit tested"
+    probe_ladder:
+      - "How would you test that without the board?"
+      - "What does your CI pipeline do on each commit?"
+    seed_questions:
+      - text: "How would you unit test a driver for an SPI temperature sensor without the hardware?"
+        difficulty: 3
+        level: [MID, SENIOR]
+        expected_signals: [abstract SPI transfer interface, mock/fake, test register sequences and conversions, error paths]
+        follow_ups:
+          - "What would you still need HIL for?"
+
+  - id: emb.system_design
+    name: Embedded system design
+    description: End-to-end device architecture under constraints.
+    anchors:
+      1: "Cannot structure a system beyond a single loop."
+      2: "Designs functional blocks; misses timing, memory or failure constraints."
+      3: "Partitions hardware/firmware, budgets timing/memory/power, chooses buffering and communication patterns, identifies failure modes."
+      4: "Makes and defends trade-offs across cost, power, safety and maintainability; anticipates manufacturing, field updates and diagnostics."
+    signals:
+      - "explicit budgets: RAM, flash, CPU, latency, power"
+      - "data flow with buffering and backpressure"
+      - "failure modes and recovery"
+      - "manufacturing test, provisioning, field diagnostics"
+    red_flags:
+      - "no numbers anywhere in the design"
+    probe_ladder:
+      - "What are the numbers?"
+      - "What fails first under stress?"
+      - "How do you diagnose it in the field?"
+    seed_questions:
+      - text: "Design a battery-powered vibration monitor that samples 3 axes at 4 kHz, detects anomalies on-device, and reports over LTE-M once an hour."
+        difficulty: 4
+        level: [SENIOR, STAFF]
+        expected_signals: [sampling via DMA, windowed FFT/feature extraction, memory budget, duty cycling, radio cost dominates, buffering, OTA, failure handling]
+        follow_ups:
+          - "Where does most of the energy go and how do you cut it in half?"
+
+  - id: beh.ownership
+    name: Ownership
+    description: Takes responsibility end to end, including after shipping.
+    anchors:
+      1: "Describes work as tasks assigned; deflects responsibility."
+      2: "Owns assigned work; limited initiative beyond scope."
+      3: "Drives problems to resolution across boundaries; follows up after release."
+      4: "Raises the bar for the team; owns outcomes and systemic fixes."
+    signals: [specific personal actions, measurable outcomes, follow-through]
+    red_flags: ["'we' with no identifiable personal contribution after probing"]
+    probe_ladder: ["What did you personally do?", "What was the outcome, in numbers?"]
+    seed_questions:
+      - text: "Tell me about a time a bug you introduced reached the field. What did you do?"
+        difficulty: 2
+        level: [JUNIOR, MID, SENIOR, STAFF]
+        expected_signals: [honesty, fast mitigation, root cause, prevention]
+        follow_ups: ["What changed in your process afterwards?"]
+
+  - id: beh.collaboration
+    name: Collaboration
+    description: Works effectively with hardware, test, product and other teams.
+    anchors:
+      1: "Conflict-avoidant or blames other teams."
+      2: "Cooperates when asked."
+      3: "Proactively aligns with hardware/test; resolves disagreements with data."
+      4: "Bridges teams; improves interfaces and processes between disciplines."
+    signals: [data-driven disagreement, shared debugging with hardware team, clear communication]
+    red_flags: ["blames hardware or QA by default"]
+    probe_ladder: ["How did you resolve the disagreement?", "What did the other side think?"]
+    seed_questions:
+      - text: "Tell me about a disagreement with a hardware engineer about whether a bug was hardware or firmware."
+        difficulty: 2
+        level: [MID, SENIOR, STAFF]
+        expected_signals: [evidence gathering, measurement, respect, resolution]
+        follow_ups: ["Who turned out to be right, and how did you prove it?"]
+
+  - id: beh.learning
+    name: Learning and growth
+    description: Learns new domains quickly and reflects on mistakes.
+    anchors:
+      1: "No recent learning examples."
+      2: "Learns when required by the job."
+      3: "Seeks out new knowledge; applies it to work with results."
+      4: "Builds learning systems for the team; shares knowledge widely."
+    signals: [specific learning approach, application, reflection]
+    red_flags: ["claims to know everything already"]
+    probe_ladder: ["How did you learn it?", "How did you know you'd learned it well enough?"]
+    seed_questions:
+      - text: "Tell me about a new MCU family, protocol or tool you had to learn quickly for a project. How did you approach it?"
+        difficulty: 1
+        level: [JUNIOR, MID, SENIOR, STAFF]
+        expected_signals: [datasheet/reference manual first, small experiments, errata, asking experts]
+        follow_ups: ["What surprised you?"]
+
+roles:
+  - id: firmware_mcu
+    name: Firmware Engineer (MCU)
+    weights:
+      emb.c_language: 0.14
+      emb.mcu_architecture: 0.12
+      emb.interrupts_concurrency: 0.14
+      emb.rtos: 0.10
+      emb.peripherals_protocols: 0.12
+      emb.low_power: 0.04
+      emb.debugging_tools: 0.10
+      emb.hardware_literacy: 0.05
+      emb.testing: 0.04
+      emb.system_design: 0.05
+      beh.ownership: 0.04
+      beh.collaboration: 0.03
+      beh.learning: 0.03
+    default_structure:
+      - {section: OPENING, minutes: 2}
+      - {section: CV_WALKTHROUGH, minutes: 6}
+      - {section: TECHNICAL, minutes: 22}
+      - {section: PRACTICAL, minutes: 12}
+      - {section: BEHAVIORAL, minutes: 5}
+      - {section: CANDIDATE_QUESTIONS, minutes: 3}
+      - {section: CLOSE, minutes: 1}
+
+  - id: embedded_linux_bsp
+    name: Embedded Linux / BSP Engineer
+    weights:
+      emb.c_language: 0.12
+      emb.embedded_linux: 0.28
+      emb.mcu_architecture: 0.06
+      emb.interrupts_concurrency: 0.10
+      emb.debugging_tools: 0.10
+      emb.peripherals_protocols: 0.08
+      emb.security_ota: 0.06
+      emb.testing: 0.05
+      emb.system_design: 0.05
+      beh.ownership: 0.04
+      beh.collaboration: 0.03
+      beh.learning: 0.03
+    default_structure:
+      - {section: OPENING, minutes: 2}
+      - {section: CV_WALKTHROUGH, minutes: 6}
+      - {section: TECHNICAL, minutes: 25}
+      - {section: PRACTICAL, minutes: 10}
+      - {section: BEHAVIORAL, minutes: 4}
+      - {section: CANDIDATE_QUESTIONS, minutes: 3}
+      - {section: CLOSE, minutes: 1}
+
+  - id: device_driver
+    name: Device Driver Engineer
+    weights:
+      emb.c_language: 0.14
+      emb.embedded_linux: 0.20
+      emb.interrupts_concurrency: 0.16
+      emb.peripherals_protocols: 0.14
+      emb.debugging_tools: 0.10
+      emb.hardware_literacy: 0.06
+      emb.mcu_architecture: 0.06
+      emb.testing: 0.04
+      beh.ownership: 0.04
+      beh.collaboration: 0.03
+      beh.learning: 0.03
+    default_structure:
+      - {section: OPENING, minutes: 2}
+      - {section: CV_WALKTHROUGH, minutes: 5}
+      - {section: TECHNICAL, minutes: 25}
+      - {section: PRACTICAL, minutes: 12}
+      - {section: BEHAVIORAL, minutes: 4}
+      - {section: CANDIDATE_QUESTIONS, minutes: 2}
+      - {section: CLOSE, minutes: 1}
+
+  - id: automotive_embedded
+    name: Automotive Embedded Engineer
+    weights:
+      emb.c_language: 0.12
+      emb.reliability_safety: 0.18
+      emb.peripherals_protocols: 0.14
+      emb.interrupts_concurrency: 0.10
+      emb.rtos: 0.10
+      emb.mcu_architecture: 0.06
+      emb.testing: 0.08
+      emb.security_ota: 0.06
+      emb.debugging_tools: 0.06
+      beh.ownership: 0.04
+      beh.collaboration: 0.03
+      beh.learning: 0.03
+    default_structure:
+      - {section: OPENING, minutes: 2}
+      - {section: CV_WALKTHROUGH, minutes: 6}
+      - {section: TECHNICAL, minutes: 25}
+      - {section: PRACTICAL, minutes: 8}
+      - {section: BEHAVIORAL, minutes: 5}
+      - {section: CANDIDATE_QUESTIONS, minutes: 3}
+      - {section: CLOSE, minutes: 1}
+
+  - id: iot_connectivity
+    name: IoT / Connectivity Engineer
+    weights:
+      emb.c_language: 0.10
+      emb.peripherals_protocols: 0.14
+      emb.low_power: 0.14
+      emb.rtos: 0.10
+      emb.security_ota: 0.14
+      emb.interrupts_concurrency: 0.08
+      emb.debugging_tools: 0.06
+      emb.system_design: 0.08
+      emb.testing: 0.06
+      beh.ownership: 0.04
+      beh.collaboration: 0.03
+      beh.learning: 0.03
+    default_structure:
+      - {section: OPENING, minutes: 2}
+      - {section: CV_WALKTHROUGH, minutes: 6}
+      - {section: TECHNICAL, minutes: 22}
+      - {section: PRACTICAL, minutes: 12}
+      - {section: BEHAVIORAL, minutes: 5}
+      - {section: CANDIDATE_QUESTIONS, minutes: 3}
+      - {section: CLOSE, minutes: 1}
+
+  - id: embedded_test_hil
+    name: Embedded Test / HIL Engineer
+    weights:
+      emb.testing: 0.30
+      emb.c_language: 0.10
+      emb.debugging_tools: 0.14
+      emb.peripherals_protocols: 0.10
+      emb.hardware_literacy: 0.08
+      emb.reliability_safety: 0.08
+      emb.system_design: 0.10
+      beh.ownership: 0.04
+      beh.collaboration: 0.03
+      beh.learning: 0.03
+    default_structure:
+      - {section: OPENING, minutes: 2}
+      - {section: CV_WALKTHROUGH, minutes: 6}
+      - {section: TECHNICAL, minutes: 22}
+      - {section: PRACTICAL, minutes: 12}
+      - {section: BEHAVIORAL, minutes: 5}
+      - {section: CANDIDATE_QUESTIONS, minutes: 3}
+      - {section: CLOSE, minutes: 1}
+
+practical_tasks:
+  - id: debug_isr_adc
+    kind: DEBUG_SNIPPET
+    language: c
+    prompt: >
+      This firmware samples an ADC in an interrupt and processes samples in the main loop.
+      It hangs at -O2 and occasionally processes corrupted data at -O0. Find every bug you can,
+      explain the consequence of each, and propose a fix.
+    starter_code: |
+      #include <stdint.h>
+      #include <stdbool.h>
+
+      extern uint16_t adc_read_data_register(void);   /* reads the ADC data register */
+      extern void adc_init(void);
+      extern void process(const uint16_t *samples, uint32_t count);
+
+      static bool data_ready = false;
+      static uint32_t sample_count = 0;
+      static uint16_t buffer[64];
+      static uint8_t head = 0;
+
+      void ADC_IRQHandler(void)
+      {
+          buffer[head++] = adc_read_data_register();
+          if (head == 64) {
+              head = 0;
+          }
+          sample_count++;
+          data_ready = true;
+      }
+
+      int main(void)
+      {
+          adc_init();
+          while (1) {
+              while (!data_ready) {
+              }
+              data_ready = false;
+              process(buffer, sample_count);
+          }
+      }
+    known_bugs:
+      - "data_ready (and other ISR-shared variables) are not volatile, so at -O2 the polling loop can be compiled into an infinite loop"
+      - "process() reads buffer while the ISR keeps overwriting it; no double buffering, snapshot or critical section, so data is torn or corrupted"
+      - "sample_count grows without bound and is passed as the element count, so process() reads past the end of the 64-element buffer"
+      - "no record of which samples are new: head is not used by main, so data order and freshness are undefined"
+      - "flag-based handoff loses events if more than one interrupt fires per main-loop iteration; a counter or queue is needed"
+    tests: []
+    rubric_competencies: [emb.c_language, emb.interrupts_concurrency]
+
+  - id: debug_ring_buffer
+    kind: DEBUG_SNIPPET
+    language: c
+    prompt: >
+      This ring buffer is written from a UART RX interrupt (rb_put) and read from the main loop (rb_get).
+      Users report corrupted bytes and occasional crashes. Find the bugs and fix them.
+    starter_code: |
+      #include <stdint.h>
+      #include <stdbool.h>
+
+      #define RB_SIZE 8
+
+      typedef struct {
+          uint8_t data[RB_SIZE];
+          uint8_t head;
+          uint8_t tail;
+      } rb_t;
+
+      bool rb_put(rb_t *rb, uint8_t b)
+      {
+          rb->data[rb->head++] = b;
+          if (rb->head > RB_SIZE) {
+              rb->head = 0;
+          }
+          return true;
+      }
+
+      bool rb_get(rb_t *rb, uint8_t *out)
+      {
+          if (rb->head == rb->tail) {
+              return false;
+          }
+          *out = rb->data[rb->tail];
+          rb->tail = (rb->tail + 1) % RB_SIZE;
+          return true;
+      }
+    known_bugs:
+      - "wrap check uses > instead of >=, so head reaches RB_SIZE and the next put writes data[8], out of bounds"
+      - "rb_put never checks for full, so it silently overwrites unread data and can make the buffer look empty"
+      - "head and tail are shared between ISR and main without volatile (and without barriers on cores with caches or reordering)"
+      - "rb_put always returns true, so the caller can never detect overflow; an overflow counter is missing"
+    tests: []
+    rubric_competencies: [emb.c_language, emb.interrupts_concurrency]
+
+  - id: write_bitfield_helpers
+    kind: WRITE_CODE
+    language: c
+    prompt: >
+      Implement extract_bits and insert_bits for 32-bit register manipulation. Handle width 32 correctly
+      without undefined behavior, and make sure insert_bits masks val to the field width.
+      Input lines are "reg_hex pos width val_hex"; the program prints "extracted_hex inserted_hex".
+    starter_code: |
+      #include <stdio.h>
+      #include <stdint.h>
+
+      /* Return `width` bits of `reg` starting at bit `pos` (0 = LSB). 1 <= width <= 32, pos + width <= 32. */
+      uint32_t extract_bits(uint32_t reg, unsigned pos, unsigned width)
+      {
+          /* candidate implements */
+          return 0;
+      }
+
+      /* Return `reg` with the `width`-bit field at `pos` replaced by the low `width` bits of `val`. */
+      uint32_t insert_bits(uint32_t reg, unsigned pos, unsigned width, uint32_t val)
+      {
+          /* candidate implements */
+          return 0;
+      }
+
+      int main(void)
+      {
+          unsigned long r, p, w, v;
+          while (scanf("%lx %lu %lu %lx", &r, &p, &w, &v) == 4) {
+              printf("%08lx %08lx\n",
+                     (unsigned long)extract_bits((uint32_t)r, (unsigned)p, (unsigned)w),
+                     (unsigned long)insert_bits((uint32_t)r, (unsigned)p, (unsigned)w, (uint32_t)v));
+          }
+          return 0;
+      }
+    known_bugs: []
+    tests:
+      - {stdin: "deadbeef 4 8 ff\n", expected_stdout: "000000ee deadbfff\n"}
+      - {stdin: "12345678 0 32 0\n", expected_stdout: "12345678 00000000\n"}
+      - {stdin: "00000000 31 1 1\n", expected_stdout: "00000000 80000000\n"}
+      - {stdin: "ffffffff 8 4 3\n", expected_stdout: "0000000f fffff3ff\n"}
+      - {stdin: "00000000 0 4 1f\n", expected_stdout: "00000000 0000000f\n"}
+    rubric_competencies: [emb.c_language]
+
+  - id: whiteboard_sensor_node
+    kind: WHITEBOARD
+    language: none
+    prompt: >
+      Draw the block diagram of a battery-powered environmental sensor node (temperature, humidity, particulate)
+      that reports over BLE to a phone gateway every 5 minutes. Show the MCU, sensors and buses, power
+      domains, and the firmware tasks with how data flows between them. Then talk me through the power budget.
+    starter_code: ""
+    known_bugs: []
+    tests: []
+    rubric_competencies: [emb.system_design, emb.low_power, emb.peripherals_protocols]
+
+  - id: datasheet_timing
+    kind: DATASHEET_READING
+    language: none
+    prompt: >
+      Using the SPI timing diagram from the uploaded sensor datasheet (shown on screen), tell me which SPI mode
+      (CPOL/CPHA) to configure, the maximum clock frequency, and the minimum chip-select setup time.
+      If no datasheet is available in the knowledge base, the interviewer skips this task.
+    starter_code: ""
+    known_bugs: []
+    tests: []
+    rubric_competencies: [emb.hardware_literacy, emb.peripherals_protocols]
+
+behavioral:
+  - competency_id: beh.ownership
+    question: "Tell me about a time you shipped firmware you weren't fully confident in. What did you do about the risk?"
+    star_signals: [situation clarity, personal action, risk mitigation, outcome, reflection]
+  - competency_id: beh.collaboration
+    question: "Describe working with a hardware team during board bring-up when things weren't working."
+    star_signals: [shared debugging, communication, evidence, outcome]
+  - competency_id: beh.learning
+    question: "What's something in embedded you were wrong about early in your career?"
+    star_signals: [self-awareness, specific correction, behavior change]
+
+persona_defaults:
+  interviewer_name: Alex
+  style: >
+    You are a calm, precise senior embedded engineer who has shipped products to millions of devices.
+    You care about how things work at the register and timing level and about how candidates debug.
+    You are friendly but never flattering, and you always push for specifics: part numbers, numbers, measurements.
+
+kb_hints:
+  - MCU reference manuals, datasheets and errata for parts your team uses
+  - Internal C coding standard and MISRA deviation records
+  - RTOS configuration and task architecture guidelines
+  - Anonymized incident postmortems from shipped products
+  - Calibrated example answers from senior engineers for your rubric
+  - Board schematics for datasheet and whiteboard tasks
