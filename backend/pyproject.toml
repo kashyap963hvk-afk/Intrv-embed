@@ -26,7 +26,28 @@ dependencies = [
     "json-repair>=0.64.0",
     "pyyaml>=6.0.3",
     "httpx2>=2.13.1",
+    "qdrant-client>=1.19.1",
+    "pdfplumber>=0.11.10",
+    "python-docx>=1.2.0",
+    "python-pptx>=1.0.2",
+    "openpyxl>=3.1.5",
+    "beautifulsoup4>=4.15.0",
+    "snowballstemmer>=3.1.1",
+    "python-multipart>=0.0.32",
+    "filetype>=1.2.0",
+    "fastembed>=0.9.0",
 ]
+
+[project.optional-dependencies]
+ocr = [
+    "rapidocr-onnxruntime>=1.4.4",
+    # Same cv2 module without the GUI build's libGL/glib system dependencies (see [tool.uv] below).
+    "opencv-python-headless>=4.10",
+]
+
+[tool.uv]
+# rapidocr asks for the desktop OpenCV build; the headless wheel provides the same `cv2` for servers.
+override-dependencies = ["opencv-python; sys_platform == 'never'"]
 
 [build-system]
 requires = ["hatchling"]
@@ -45,6 +66,7 @@ dev = [
     "psycopg[binary]>=3.3.6",
     "pytest>=9.1.1",
     "pytest-asyncio>=1.4.0",
+    "reportlab>=5.0.1",
     "respx>=0.23.1",
     "ruff>=0.17.1",
     "testcontainers>=4.15.0",
@@ -79,6 +101,10 @@ packages = ["app", "workers"]
 module = ["celery.*", "kombu.*"]
 follow_untyped_imports = true
 
+[[tool.mypy.overrides]]
+module = ["snowballstemmer", "pdfplumber.*", "docx.*", "pptx.*", "openpyxl.*", "filetype.*", "fastembed.*", "docling.*", "reportlab.*", "rapidocr_onnxruntime.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
@@ -87,6 +113,7 @@ addopts = "-ra --strict-markers"
 markers = [
     "integration: needs Docker (testcontainers); run with -m integration",
     "live: needs real external credentials; skipped unless the env vars are present",
+    "isolation: tenant/space isolation suite; must pass before any commit touching db, acl, rag, api or agents",
 ]
 filterwarnings = ["error::pytest.PytestUnraisableExceptionWarning"]
 

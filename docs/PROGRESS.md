@@ -1,5 +1,76 @@
 # Build progress
 
+## Phase 3: Knowledge spaces, ingestion, hybrid RAG, isolation suite ✅ (2026-10-18)
+
+### Delivered
+- **Data model + RLS** (migration `0be01dc63975`):
+  - `knowledge_spaces` (personal / org), `space_grants` (user or group, READ / CONTRIBUTE, expiry),
+    `documents`, `document_chunks` (parent/child).
+  - SECURITY DEFINER `app_space_permissions()` shared by RLS and the API (ADR 0004).
+- **Ingestion** (`app/rag/parse.py`, `chunk.py`, `app/knowledge/ingest.py`, Celery `ingest.document`):
+  - PDF, DOCX, PPTX, XLSX, HTML, Markdown/text/code and images (RapidOCR); Docling when installed.
+  - Hidden-text and prompt-injection risk flags.
+  - Structure-aware parent/child chunks.
+  - Zip unpacking with bomb guards; SHA-256 de-duplication; URL import through the SSRF guard.
+- **Retrieval** (`app/rag/`):
+  - Dense embeddings (TEI / fastembed / OpenAI-compatible) plus own BM25 sparse vectors and an exact-identifier
+    prefetch, fused with RRF, then an optional cross-encoder reranker.
+  - Results are re-checked through RLS before any text is returned.
+- **API**:
+  - `/api/spaces`, upload / paste / URL, document get / download (presigned) / reindex / delete, and
+    `/api/search`.
+  - `/api/events` (SSE live status, filtered by readable spaces).
+  - Owner `/api/admin/spaces` + grants, and `/api/system/selftest`. `make selftest` runs the same checks in the
+    CLI.
+- **Frontend**:
+  - `/app/knowledge`: spaces, documents table with live status and risk badges, and the **"+" Add** dialog
+    (Upload drag-and-drop / Paste / Link, doc-type auto-detect).
+  - `/app/knowledge/search` playground with highlighted matches and citations.
+  - Admin "Spaces" tab with a grants editor, plus a self-test card.
+- **Ops**:
+  - `models` compose profile (TEI 1.9.4 for bge-m3 and bge-reranker-v2-m3) and a shared model cache volume.
+  - OCR in the image without system packages.
+  - `S3_PUBLIC_ENDPOINT_URL` and `.env.example` retrieval/ingestion settings.
+- **Isolation suite** (`make test-isolation`, marker `isolation`, 17 tests): personal privacy against
+  colleagues, owners and other orgs; immediate revocation; expired grants; guessed UUIDs; presigned links;
+  SSE; member deletion purge; zero leakage in RAG eval; 200-combination permission fuzz against an independent
+  oracle.
+- **New goal recorded: interview integrity / anti-cheating** (ADR 0005, ARCHITECTURE §15.1, scheduled in Phases
+  6–8). Browser, answer, audio and in-browser camera (presence + gaze-away) signals; the agent reacts with
+  neutral reminders and personal deep-dive probes; the human reviewer gets a timeline. No emotion, identity or
+  automatic verdicts.
+
+### Acceptance results (run in the build sandbox)
+| Criterion | Result |
+|---|---|
+| Upload → parse → chunk → embed → index → search with citations | ✅ PDF/DOCX/MD/zip/paste via API and in the browser; live status Pending → Parsing → Ready over SSE |
+| Hidden-text CV flagged, hidden text never indexed | ✅ `hidden_text` + `injection_patterns` flags; search never returns the hidden sentence |
+| Isolation suite | ✅ 17/17, including the 200-case permission fuzz and SSE privacy over a real HTTP server |
+| RAG golden eval (≥40 queries, recall@6 ≥ 0.8, leakage 0, register-name hits table chunk) | ✅ 49 queries, recall@6 = 1.000, leakage 0, 3/3 register queries hit the table chunk (lexical test embedder) |
+| Real Celery worker path | ✅ `test_ingest_worker.py` and the compose `worker` container |
+| `make selftest` | ✅ embedder, vector store, reranker (disabled), OCR available, Docling not installed |
+| Browser walkthrough | ✅ owner uploads 3 files via "+", sees Ready + risk badges, searches, creates an org space and grants READ to a member; the member sees the space but not the owner's private CV (UI and search); no console errors |
+
+Totals: backend 119 unit + 58 integration tests; frontend 29 Vitest tests. Lint (ruff, mypy --strict, eslint, tsc,
+prettier) clean.
+
+### Bugs found and fixed while testing
+- `INSERT … RETURNING` on spaces failed RLS (policy snapshot); the space manager is now explicit in `space_read`.
+- First upload after auto-creating a personal space could 404 (stale ACL cache); creation now bumps the ACL
+  version, and SSE refreshes on version change.
+- NUL bytes from binary "text" broke Postgres inserts; binaries are rejected and parsers strip control chars.
+- Presigned links used SigV2 (rejected by SeaweedFS/R2); now SigV4.
+- Deleting a user failed on the policy relationship; cascade fixed.
+- `updated_at` lazy-load after flush (MissingGreenlet); models now fetch server defaults eagerly.
+- 500 responses lacked CORS headers, so browsers showed "Failed to fetch"; CORS is now outermost.
+- Vector/file deletion ran before commit; it now runs after commit.
+
+### Known issues / notes
+- Hugging Face is unreachable from the build sandbox, so tests and the sandbox stack use the lexical `hash`
+  embedder. fastembed/TEI paths are covered by unit wiring and `make selftest`, and need a networked run to
+  measure real-model recall.
+- URL documents have no downloadable file until their first fetch completes (download returns 404 until then).
+
 ## Phase 2: LLM Gateway ✅ (2026-10-17)
 
 ### Delivered

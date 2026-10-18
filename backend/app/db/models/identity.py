@@ -46,7 +46,9 @@ class User(IdMixin, TimestampMixin, Base):
     oidc_sub: Mapped[str | None] = mapped_column(String(255))
     last_login_at: Mapped[datetime | None]
 
-    policy: Mapped[UserPolicy] = relationship(back_populates="user", uselist=False, lazy="joined")
+    policy: Mapped[UserPolicy] = relationship(
+        back_populates="user", uselist=False, lazy="joined", cascade="all, delete-orphan", passive_deletes=True
+    )
 
 
 class UserPolicy(Base):

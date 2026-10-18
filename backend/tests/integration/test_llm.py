@@ -171,6 +171,7 @@ def test_circuit_breaker_opens_after_repeated_failures(
     assert [str(u.profile_id) for u in usage] == [good["id"]]  # the broken profile is skipped while open
 
 
+@pytest.mark.isolation
 def test_candidate_data_never_goes_to_training_providers(
     settings: Settings, owner: tuple[ApiClient, Any], fake_llm: str
 ) -> None:
@@ -189,6 +190,7 @@ def test_candidate_data_never_goes_to_training_providers(
     assert api.get("/api/admin/audit", params={"action": "org.policy_changed"}).json()["items"]
 
 
+@pytest.mark.isolation
 def test_personal_profiles_are_private(settings: Settings, owner: tuple[ApiClient, Any], fake_llm: str) -> None:
     owner_api, org = owner
     shared = create_profile(owner_api, fake_llm, scope="org")

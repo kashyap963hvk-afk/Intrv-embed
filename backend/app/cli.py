@@ -3,6 +3,9 @@
 python -m app.cli create-owner --org-slug acme --org-name "Acme" --email owner@acme.com --name "Ada"
     Creates the organization if needed and an owner. With --password-stdin the owner is created
     active with that password; otherwise an owner invitation link is printed (and emailed).
+
+python -m app.cli selftest
+    Loads the embedding/reranking models, checks the vector store and parsers; exit code 1 on any failure.
 """
 
 from __future__ import annotations
@@ -82,6 +85,23 @@ async def _create_owner(args: argparse.Namespace) -> int:
     return 0
 
 
+async def _selftest() -> int:
+    import httpx  # noqa: PLC0415
+
+    from app.rag.engine import RagEngine  # noqa: PLC0415
+    from app.rag.selftest import run_selftest  # noqa: PLC0415
+
+    async with httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=5.0)) as http:
+        rag = RagEngine(get_settings(), http)
+        try:
+            checks = await run_selftest(rag)
+        finally:
+            await rag.close()
+    for check in checks:
+        print(f"[{'ok' if check.ok else 'FAIL'}] {check.name}: {check.detail}")
+    return 0 if all(c.ok for c in checks) else 1
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m app.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -91,9 +111,12 @@ def main(argv: list[str] | None = None) -> int:
     owner.add_argument("--email", required=True)
     owner.add_argument("--name", required=True)
     owner.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
+    sub.add_parser("selftest", help="check models, vector store and parsers")
     args = parser.parse_args(argv)
     if args.command == "create-owner":
         return asyncio.run(_create_owner(args))
+    if args.command == "selftest":
+        return asyncio.run(_selftest())
     return 2
 
 

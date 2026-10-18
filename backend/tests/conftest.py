@@ -28,7 +28,12 @@ def settings_values(**overrides: Any) -> dict[str, Any]:
         "master_key_base64": base64.b64encode(os.urandom(32)).decode(),
         "jwt_secret": base64.b64encode(os.urandom(48)).decode(),
         "cors_allowed_origins": "http://localhost:3000",
+        "embed_backend": "hash",
+        "embed_model": "hash-256",
     }
+    if overrides.get("app_env") == "prod":
+        # The lexical test embedder is refused in production; production-mode tests use the lite default.
+        values.update(embed_backend="fastembed", embed_model="BAAI/bge-small-en-v1.5")
     values.update(overrides)
     return values
 

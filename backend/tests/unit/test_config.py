@@ -95,3 +95,21 @@ def test_empty_environment_values_mean_unset(monkeypatch: pytest.MonkeyPatch) ->
     assert settings.smtp_user is None
     assert settings.cookie_domain is None
     assert settings.smtp_port == 587
+
+
+def test_test_only_embedder_refused_in_production() -> None:
+    with pytest.raises(ValidationError, match="hash"):
+        make_settings(
+            app_env="prod",
+            public_app_url="https://app.example.com",
+            api_public_url="https://api.example.com",
+            cors_allowed_origins="https://app.example.com",
+            embed_backend="hash",
+        )
+
+
+def test_backends_require_their_urls() -> None:
+    with pytest.raises(ValidationError, match="TEI_URL"):
+        make_settings(embed_backend="tei")
+    with pytest.raises(ValidationError, match="TEI_RERANK_URL"):
+        make_settings(rerank_backend="tei")

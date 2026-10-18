@@ -174,7 +174,8 @@ interview_turns(id, org_id, session_id, seq, speaker INTERVIEWER|CANDIDATE|SYSTE
 topic_grades(id, org_id, session_id, topic_id, competency, score NUMERIC, anchor_level, evidence JSONB, confidence, grader_model, run_no)
 scorecards(id, org_id, session_id, data JSONB, variance_flags JSONB, recommendation, human_decision NULL,
            reviewer_id NULL, reviewed_at NULL)
-integrity_events(id, org_id, session_id, kind, detail JSONB, at)    -- tab_blur, paste, injection_attempt, long_silence, ...
+integrity_events(id, org_id, session_id, kind, severity, source BROWSER|AUDIO|CAMERA|ANSWER|AGENT, started_at, duration_ms,
+                 detail JSONB, snapshot_key NULL, addressed_turn_id NULL)   -- §15.1; never read by graders
 usage_events(id, org_id, user_id, kind, provider, model, tokens_in, tokens_out, audio_seconds, cost_estimate, at)
 audit_logs(id, org_id, actor_id, action, target_type, target_id, ip, user_agent, detail JSONB, at)
 ```
@@ -394,7 +395,7 @@ On the backend, `BridgeHub` keeps `device_id → websocket`, and a `BRIDGE` prof
 | **Whiteboard Reader** | `live_turn_graph` (on submit) | `vision` | Text description of the diagram |
 | **Shadow Grader** | Celery `grade` queue | `retrieve_kb` | `topic_grades` (rubric-anchored with evidence quotes) |
 | **Scorecard Synthesizer** | `finalize_graph` | none | `Scorecard` (§13.6) |
-| **Integrity Monitor** | deterministic + rules | event stream | `integrity_events` |
+| **Integrity Monitor** | deterministic + rules (`interview/integrity.py`) | browser/audio/camera event stream, answer analysis | `integrity_events`, `integrity_context` for the controller, reviewer timeline (§15.1) |
 
 ### 11.2 Graphs
 
@@ -495,6 +496,7 @@ class TurnControl(BaseModel):
 - Section time exceeded → `next_section`. Total time is at most 2 minutes from the limit → `wrap_up`.
 - `dont_know` twice on a topic → offer a hint (if allowed), else move on kindly.
 - `injection_attempt` → integrity event, reply stays in role ("Let's stay on the interview. …").
+- Unaddressed integrity signals (§15.1) → at most one neutral reminder per section, or an **integrity probe**: the next question becomes a personal deep-dive on the candidate's own claim or answer. Never an accusation, never a score change.
 - `meta_request` for answers or scores → polite refusal.
 
 ### 13.4 Human-likeness checklist (enforced by prompts plus code)
@@ -567,7 +569,7 @@ Every turn stores `latency{eot_ms, stt_ms, ttft_ms, tts_first_ms, total_ms}`, an
 
 - An embedded Excalidraw board. **Submit diagram** exports a PNG, the Whiteboard Reader (`vision` role) describes it as structured text, and the description is injected into the next controller and interviewer turn as a candidate attachment.
 - Candidates can upload a photo of hand-drawn work (a timing diagram or a circuit sketch), which goes through the same flow.
-- Camera video (optional) is shown to the human reviewer only as recorded presence. **No facial, emotion, gaze-scoring, or "confidence" analysis.**
+- Camera (STRICT integrity mode, §15.1): in-browser presence and gaze-away **signals** plus low-res snapshots for the human reviewer. **No emotion, expression, "confidence", deception or identity analysis**, and camera signals never feed the score.
 
 ### 14.4 Coding / firmware practical round
 
@@ -579,12 +581,31 @@ Every turn stores `latency{eot_ms, stt_ms, ttft_ms, tts_first_ms, total_ms}`, an
 ## 15. Compliance, fairness and integrity (built in, not bolted on)
 
 - **AI disclosure and consent screen** before any interview: what is recorded, how it is used, retention period, human review, the right to request a human interviewer, and a contact. Consent is stored in `interview_sessions.consent` with a timestamp, IP and policy version.
-- **No emotion recognition or biometric categorization**, which the EU AI Act prohibits for workplace and recruitment use. **No face analysis.** Lint tests ban any import of such libraries.
+- **No emotion recognition or biometric categorization**, which the EU AI Act prohibits for workplace and recruitment use (Art. 5(1)(f)/(g)). **No face recognition, no expression/blendshape analysis, no age/gender/ethnicity inference.** Lint tests ban such libraries in the backend, and a frontend test asserts the face landmarker never outputs blendshapes. Gaze/head-pose *direction* and face *count* are allowed only as consented, in-browser integrity signals (ADR 0005).
 - **High-risk AI posture** (EU AI Act Annex III employment; obligations deferred to Dec 2027, not removed): human oversight, logging (audit logs + per-turn traces), transparency docs (`docs/MODEL_CARD.md` generated per deployment), accuracy and robustness monitoring (eval suites).
 - **NYC LL144 / bias**: **blind scoring mode** (on by default for graders) and a script that exports anonymized selection-rate statistics by optional self-reported demographic fields, to support independent bias audits (we do not claim to be audited).
 - **Illinois AIVIA-style requirements**: notice, explanation and consent for AI video interviews; deletion on request within 30 days.
 - **GDPR / DPDP (India)**: per-org retention (`retention_days`, default 180) with a nightly purge job. A **right-to-erasure** endpoint cascades through Postgres rows, S3 objects, Qdrant points, LangGraph checkpoints and audio. Data export (JSON) is available. PII is encrypted at rest.
-- **Integrity signals** (informational only): tab/visibility changes, paste events (size, timing), unusually long silent gaps followed by fluent textbook answers, answer latency outliers, injection attempts, and multiple voices detected (VAD speaker-change heuristic, flag only). **Never auto-reject.**
+- **Integrity signals** (informational only, **never auto-reject**, never graded): see §15.1.
+
+### 15.1 Interview integrity (anti-cheating), ADR 0005
+
+Goal: make cheating hard and visible to the human reviewer without automated verdicts.
+
+| Layer | Signals | Computed |
+|---|---|---|
+| Browser | tab hidden / blur (count, duration), fullscreen exit, extended display, copy/paste (size, timing), burst-typed text (paste-like cadence), split-screen resize, devtools key combos | browser, batched to `POST /api/interviews/{id}/integrity` with the session token |
+| Screen | STRICT: full-monitor share required (`displaySurface === "monitor"`), share-stopped events, periodic low-res frames for the reviewer | browser |
+| Answers | latency outliers, long silence then fluent textbook answer, near-verbatim overlap with model answers / KB text, style shift | backend |
+| Prompt attacks | instructions aimed at the AI | controller |
+| Audio (voice) | second voice (speaker change against the candidate's own first answers; embeddings in memory only), background speech or whispering while the candidate is silent, keyboard typing while speaking, virtual audio devices | voice worker + device labels |
+| Camera (STRICT) | face count 0 or ≥2, head-pose / gaze away from the screen > N s (direction + duration only), virtual cameras, snapshots every 60 s and on events | **in the browser** (MediaPipe Tasks Vision, Apache-2.0, model self-hosted); frames are never uploaded for analysis |
+
+- **Modes** (org policy, per-template override): `OFF` (answer-level only), `STANDARD` (default: browser + answers + prompt attacks + audio in voice mode), `STRICT` (+ required full-screen share, camera presence/gaze, snapshots). The consent screen lists exactly what is monitored; camera monitoring is `optional` or `required` (required → accommodation contact instead of start); owner-configurable jurisdiction exclusions.
+- **Agent reaction**: the controller gets an `integrity_context` (unaddressed signals, summarised). `policy.py` chooses: neutral reminder (org-editable text, ≤ 1 per section), **integrity probe** (personal deep-dive question from CV/transcript/role-pack `probe` templates, hard to answer with outside help), or **pause** when a STRICT requirement (share/camera) stops. The interviewer never accuses or mentions cheating (L0 rule).
+- **Reviewer**: report panel with a timeline, counts and durations, snapshot strip, and a rollup ("nothing notable" / "worth a look"), labelled *"Signals, not proof. A human must review before any decision."* Graders run blind to integrity data.
+- **Honest limits** (shown in docs and the owner UI): overlay copilots are invisible to screen capture and keep the eyes on screen; off-camera phones and earpieces are not reliably detectable; gaze is noisy (thinking, glasses, lighting, some disabilities). Adaptive probing, practical rounds and a human final round are the main defence.
+- **Minimisation**: only derived events leave the device; snapshots are low-res under the session prefix and follow retention/erasure; speaker embeddings are never persisted.
 
 ## 16. API surface (FastAPI)
 

@@ -22,6 +22,8 @@ from app.core.logging import configure_logging, get_logger
 from app.core.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.readiness import build_checks
 from app.core.resources import Resources
+from app.knowledge import admin_router as knowledge_admin_router
+from app.knowledge import router as knowledge_router
 from app.llm import router as llm_router
 from app.orgs.service import bootstrap_first_owner
 
@@ -63,6 +65,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.mailer = EmailSender(settings)
 
     register_exception_handlers(app)
+    # Starlette runs the last-added middleware outermost. Request context goes inside CORS so that every
+    # response it produces, including the 500 it renders for unhandled errors, still gets CORS headers;
+    # otherwise browsers report a server error as an opaque network failure.
+    app.add_middleware(RequestContextMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allowed_origins,
@@ -72,14 +78,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         expose_headers=[REQUEST_ID_HEADER],
         max_age=600,
     )
-    # Added last so it is the outermost middleware: every response, including CORS rejections
-    # and errors, carries the request id and is logged and measured.
-    app.add_middleware(RequestContextMiddleware)
 
     app.include_router(health.router)
     app.include_router(auth_router.router)
     app.include_router(admin_router.router)
     app.include_router(llm_router.router)
+    app.include_router(knowledge_router.router)
+    app.include_router(knowledge_admin_router.router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

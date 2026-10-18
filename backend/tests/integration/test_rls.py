@@ -9,7 +9,7 @@ from app.core.config import Settings
 from tests.integration.conftest import Postgres
 from tests.integration.helpers import app_settings, seed_org, seed_user
 
-pytestmark = pytest.mark.integration
+pytestmark = [pytest.mark.integration, pytest.mark.isolation]
 
 
 @pytest.fixture

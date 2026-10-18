@@ -1,8 +1,9 @@
 # Intrv-embed local stack.  First run:  make env && make up
 #
 # Profiles (docs/ARCHITECTURE.md §21):
-#   core          this file today: data stores + backend + worker + beat + frontend (dev mode)
-#   gpu           Phase 3: CUDA TEI embed/rerank images        voice   Phase 7: voice worker + coturn
+#   core          data stores + backend + worker + beat + frontend (dev mode); fastembed models in-process
+#   models        Text Embeddings Inference (CPU): bge-m3 + bge-reranker-v2-m3 (set EMBED_BACKEND=tei, see .env.example)
+#   gpu           CUDA TEI images (override TEI_IMAGE)          voice   Phase 7: voice worker + coturn
 #   coding        Phase 8: Piston (+ optional Renode)          prod    Phase 10: Caddy + production images
 #   observability Phase 10: OpenTelemetry collector
 # Profiles listed for later phases are added together with the code that needs them.
@@ -24,6 +25,7 @@ x-backend: &backend
     - ./backend/app:/app/app
     - ./backend/workers:/app/workers
     - ./backend/migrations:/app/migrations
+    - models:/models
   depends_on:
     migrate:
       condition: service_completed_successfully
@@ -207,7 +209,39 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  tei-embed:
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4}
+    profiles: [models]
+    command: ["--model-id", "BAAI/bge-m3", "--port", "80", "--max-client-batch-size", "64"]
+    volumes:
+      - teidata:/data
+    ports:
+      - "127.0.0.1:8081:80"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/80"]   # TEI listens only once the model is loaded
+      interval: 15s
+      timeout: 5s
+      retries: 60   # first start downloads ~2.3 GB
+    restart: unless-stopped
+
+  tei-rerank:
+    image: ${TEI_IMAGE:-ghcr.io/huggingface/text-embeddings-inference:cpu-1.9.4}
+    profiles: [models]
+    command: ["--model-id", "BAAI/bge-reranker-v2-m3", "--port", "80"]
+    volumes:
+      - teidata:/data
+    ports:
+      - "127.0.0.1:8082:80"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/80"]   # TEI listens only once the model is loaded
+      interval: 15s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
 volumes:
+  models:
+  teidata:
   pgdata:
   valkeydata:
   qdrantdata:

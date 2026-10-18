@@ -1,0 +1,49 @@
+{"query": "Which register enables the clock for GPIO ports?", "doc": "datasheet", "expect": "RCC_AHB1ENR"}
+{"query": "What is the offset of GPIOx_BSRR?", "doc": "datasheet", "expect": "0x18"}
+{"query": "GPIOx_MODER", "doc": "datasheet", "expect": "Port mode"}
+{"query": "How do I set or clear a pin atomically without read-modify-write?", "doc": "datasheet", "expect": "atomic"}
+{"query": "What is the maximum SYSCLK from the main PLL?", "doc": "datasheet", "expect": "168 MHz"}
+{"query": "Which oscillator is the system clock after reset?", "doc": "datasheet", "expect": "HSI"}
+{"query": "PLLM divider VCO input range", "doc": "datasheet", "expect": "between 1 and 2 MHz"}
+{"query": "RCC_PLLCFGR fields", "doc": "datasheet", "expect": "PLLN"}
+{"query": "How is the USART baud rate calculated with oversampling by 16?", "doc": "datasheet", "expect": "USARTDIV"}
+{"query": "What causes an overrun error ORE on the UART receiver?", "doc": "datasheet", "expect": "overrun"}
+{"query": "How do you start the independent watchdog?", "doc": "datasheet", "expect": "0xCCCC"}
+{"query": "Which key reloads the IWDG counter?", "doc": "datasheet", "expect": "0xAAAA"}
+{"query": "Can the independent watchdog be stopped once it is running?", "doc": "datasheet", "expect": "cannot be stopped"}
+{"query": "Where should the watchdog be refreshed from?", "doc": "datasheet", "expect": "main loop"}
+{"query": "What is the difference between preemption priority and sub-priority in the NVIC?", "doc": "datasheet", "expect": "sub-priority"}
+{"query": "How does a bootloader relocate the vector table?", "doc": "datasheet", "expect": "VTOR"}
+{"query": "How many streams does a DMA controller have?", "doc": "datasheet", "expect": "eight streams"}
+{"query": "DMA circular mode for continuous ADC sampling", "doc": "datasheet", "expect": "Circular mode"}
+{"query": "Why must the data cache be cleaned around DMA transfers?", "doc": "datasheet", "expect": "stale"}
+{"query": "ADC resolution and converter type", "doc": "datasheet", "expect": "12-bit successive approximation"}
+{"query": "Why use DMA with ADC scan mode?", "doc": "datasheet", "expect": "overwritten"}
+{"query": "Which low power mode loses SRAM contents?", "doc": "datasheet", "expect": "Standby"}
+{"query": "How do you enter sleep mode?", "doc": "datasheet", "expect": "WFI"}
+{"query": "Alternate function selection registers AFRL AFRH", "doc": "datasheet", "expect": "AF7"}
+{"query": "When should a variable be declared volatile?", "doc": "rtos", "expect": "volatile"}
+{"query": "Does volatile make an access atomic?", "doc": "rtos", "expect": "does not make access atomic"}
+{"query": "Rules for writing an interrupt service routine", "doc": "rtos", "expect": "Keep interrupt service routines short"}
+{"query": "Which FreeRTOS functions can be called from an ISR?", "doc": "rtos", "expect": "FromISR"}
+{"query": "What is priority inversion?", "doc": "rtos", "expect": "Priority inversion"}
+{"query": "What went wrong on Mars Pathfinder?", "doc": "rtos", "expect": "Mars Pathfinder"}
+{"query": "How does priority inheritance work?", "doc": "rtos", "expect": "Priority inheritance"}
+{"query": "Difference between a mutex and a binary semaphore", "doc": "rtos", "expect": "has an owner"}
+{"query": "What is a counting semaphore used for?", "doc": "rtos", "expect": "counting semaphore"}
+{"query": "How do you detect a task stack overflow in FreeRTOS?", "doc": "rtos", "expect": "configCHECK_FOR_STACK_OVERFLOW"}
+{"query": "Why avoid malloc in safety-critical firmware?", "doc": "rtos", "expect": "fragmentation"}
+{"query": "How to debounce a mechanical switch", "doc": "rtos", "expect": "bounce"}
+{"query": "Lock-free single producer single consumer ring buffer", "doc": "rtos", "expect": "power of two"}
+{"query": "Little endian versus big endian byte order", "doc": "rtos", "expect": "least significant byte"}
+{"query": "Multiplying two Q15 fixed-point numbers", "doc": "rtos", "expect": "Q15"}
+{"query": "What is I2C clock stretching?", "doc": "buses", "expect": "clock stretching"}
+{"query": "Why does I2C need pull-up resistors?", "doc": "buses", "expect": "open-drain"}
+{"query": "What are the four SPI modes CPOL CPHA?", "doc": "buses", "expect": "CPOL"}
+{"query": "How does CAN bus arbitration work?", "doc": "buses", "expect": "dominant"}
+{"query": "CAN standard identifier length", "doc": "buses", "expect": "11-bit"}
+{"query": "What is bit stuffing in CAN?", "doc": "buses", "expect": "stuff bit"}
+{"query": "CAN bus termination resistor value", "doc": "buses", "expect": "120 ohm"}
+{"query": "When does a CAN node go bus-off?", "doc": "buses", "expect": "bus-off"}
+{"query": "What does a UART frame contain?", "doc": "buses", "expect": "start bit"}
+{"query": "Is RS-485 full duplex or half duplex?", "doc": "buses", "expect": "half-duplex"}

@@ -26,12 +26,14 @@ from app.auth.deps import Owner, SettingsDep, csrf_protect, require_owner
 from app.auth.router import MailerDep
 from app.db.deps import DbSession
 from app.db.models import UserStatus
+from app.knowledge.admin_router import purge_personal_content
+from app.knowledge.deps import ResourcesDep, bump_acl_after_mutation
 from app.orgs.policy import OrgPolicy, org_policy
 
 router = APIRouter(
     prefix="/api/admin",
     tags=["admin"],
-    dependencies=[Depends(csrf_protect), Depends(require_owner)],
+    dependencies=[Depends(csrf_protect), Depends(require_owner), Depends(bump_acl_after_mutation)],
 )
 
 
@@ -83,8 +85,9 @@ async def reactivate_user(user_id: uuid.UUID, db: DbSession, owner: Owner, meta:
 
 
 @router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_user(user_id: uuid.UUID, db: DbSession, owner: Owner, meta: Meta) -> None:
+async def delete_user(user_id: uuid.UUID, db: DbSession, owner: Owner, meta: Meta, resources: ResourcesDep) -> None:
     await service.delete_user(db, owner, user_id, meta)
+    await purge_personal_content(resources, db, owner.org_id, user_id)
 
 
 @router.put("/users/{user_id}/role", response_model=AdminUserOut)

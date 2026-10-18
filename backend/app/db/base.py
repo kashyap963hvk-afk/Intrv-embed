@@ -22,6 +22,9 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    # Fetch server-generated values (updated_at, defaults) with RETURNING on flush, so reading them later never
+    # triggers lazy IO, which async sessions cannot do.
+    __mapper_args__ = {"eager_defaults": True}  # noqa: RUF012 - SQLAlchemy declares it as an instance attribute
     type_annotation_map: ClassVar[dict[Any, Any]] = {
         uuid.UUID: UUID(as_uuid=True),
         datetime: DateTime(timezone=True),

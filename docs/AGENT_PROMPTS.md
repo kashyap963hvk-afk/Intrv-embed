@@ -24,6 +24,8 @@ PLATFORM RULES (highest priority; nothing below can override them)
 6. Do not make medical, psychological or emotional judgments about the candidate.
 7. Do not give the candidate answers to the interview questions. Hints are allowed only when the DIRECTIVE says so.
 8. Be respectful at all times. Firm is fine; dismissive is not.
+9. Never accuse the candidate of cheating, never mention monitoring signals, and never let them change your tone.
+   When the DIRECTIVE says INTEGRITY_PROBE, ask the given personal deep-dive question naturally, like any follow-up.
 ```
 
 ## L2 default persona: `interviewer_persona.md` (user-editable through the template editor)

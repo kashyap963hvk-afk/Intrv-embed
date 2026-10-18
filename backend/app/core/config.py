@@ -73,6 +73,9 @@ class Settings(BaseSettings):
     s3_access_key: SecretStr | None = None
     s3_secret_key: SecretStr | None = None
     s3_force_path_style: bool = True
+    # Endpoint browsers use for presigned download links, when it differs from the one the backend uses
+    # (e.g. backend → http://seaweedfs:8333 inside Docker, browser → http://localhost:8333).
+    s3_public_endpoint_url: str | None = None
 
     # --- Secrets -----------------------------------------------------------------------------
     master_key_base64: SecretStr
@@ -89,12 +92,26 @@ class Settings(BaseSettings):
     cookie_secure: bool | None = None  # default: secure when API_PUBLIC_URL is https
 
     # --- Retrieval models --------------------------------------------------------------------
-    embed_backend: Literal["tei", "sentence_transformers", "fastembed", "openai"] = "tei"
-    embed_model: str = "BAAI/bge-m3"
+    # quality: tei + BAAI/bge-m3 (+ TEI reranker bge-reranker-v2-m3); lite: fastembed + bge-small-en-v1.5.
+    # "hash" is a deterministic lexical embedder for tests and offline development only (refused in production).
+    embed_backend: Literal["tei", "fastembed", "openai", "hash"] = "fastembed"
+    embed_model: str = "BAAI/bge-small-en-v1.5"
     tei_url: str | None = None
-    rerank_backend: Literal["tei", "fastembed", "none"] = "tei"
-    rerank_model: str = "BAAI/bge-reranker-v2-m3"
+    embed_openai_base_url: str | None = None
+    embed_openai_api_key: SecretStr | None = None
+    embed_batch_size: int = Field(default=32, ge=1, le=512)
+    rerank_backend: Literal["tei", "fastembed", "none"] = "none"
+    rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
     tei_rerank_url: str | None = None
+    models_cache_dir: str = "/tmp/intrv-models"  # noqa: S108 - overridden by a volume in containers
+
+    # --- Ingestion -----------------------------------------------------------------------------
+    parser_backend: Literal["auto", "basic", "docling"] = "auto"
+    max_upload_mb: int = Field(default=100, ge=1, le=2048)
+    max_pages: int = Field(default=2000, ge=1)
+    ingest_timeout_s: int = Field(default=900, ge=30)
+    # inline: process uploads inside the API process (tests, single-process demos); otherwise Celery workers.
+    ingest_inline: bool = False
 
     # --- Speech ------------------------------------------------------------------------------
     stt_backend: Literal["faster_whisper", "groq"] = "faster_whisper"
@@ -194,6 +211,14 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _cross_field_rules(self) -> Settings:
+        if self.embed_backend == "hash" and self.app_env == "prod":
+            raise ValueError("EMBED_BACKEND=hash is for tests and offline development only")
+        if self.embed_backend == "tei" and not self.tei_url:
+            raise ValueError("EMBED_BACKEND=tei requires TEI_URL")
+        if self.rerank_backend == "tei" and not self.tei_rerank_url:
+            raise ValueError("RERANK_BACKEND=tei requires TEI_RERANK_URL")
+        if self.embed_backend == "openai" and not (self.embed_openai_base_url and self.embed_model):
+            raise ValueError("EMBED_BACKEND=openai requires EMBED_OPENAI_BASE_URL")
         if self.gguf_allowed_dirs and not self.allow_private_llm_endpoints:
             raise ValueError("gguf_allowed_dirs requires allow_private_llm_endpoints=true (self-host mode)")
         if self.app_env != "prod":

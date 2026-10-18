@@ -20,6 +20,11 @@ export function MainNav() {
         </Link>
       )}
       {me && me.user.status === "ACTIVE" && (
+        <Link href="/app/knowledge" className={link}>
+          Knowledge
+        </Link>
+      )}
+      {me && me.user.status === "ACTIVE" && (
         <Link href="/app/llm" className={link}>
           AI models
         </Link>

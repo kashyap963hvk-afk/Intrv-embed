@@ -34,6 +34,6 @@ def create_celery(settings: Settings) -> Celery:
         broker_connection_retry_on_startup=True,
         timezone="UTC",
         enable_utc=True,
-        imports=("app.tasks.system",),
+        imports=("app.tasks.system", "app.tasks.ingest"),
     )
     return app

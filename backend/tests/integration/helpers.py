@@ -11,6 +11,7 @@ from typing import Any
 import httpx
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import SecretStr
 
 from app.audit.service import SYSTEM_META
 from app.core.config import Settings
@@ -27,6 +28,34 @@ PASSWORD = "correct-horse-battery-9"
 
 def app_settings(database_url: str, valkey_url: str, **overrides: Any) -> Settings:
     return make_settings(database_url=database_url, valkey_url=valkey_url, **overrides)
+
+
+def settings_env(settings: Settings) -> dict[str, str]:
+    """Environment variables reproducing `settings` (for components that read the environment, like workers)."""
+    env: dict[str, str] = {}
+    for name, raw in settings.model_dump().items():
+        if raw is None:
+            continue
+        value = raw.get_secret_value() if isinstance(raw, SecretStr) else raw
+        if isinstance(value, list):
+            value = ",".join(str(v) for v in value)
+        env[name.upper()] = str(value).lower() if isinstance(value, bool) else str(value)
+    return env
+
+
+def knowledge_settings(database_url: str, valkey_url: str, qdrant_url: str, s3_url: str, **overrides: Any) -> Settings:
+    """Settings wired to every real dependency, with ingestion run inline so uploads are READY on return."""
+    from tests.integration.conftest import S3_ACCESS_KEY, S3_BUCKET, S3_SECRET_KEY  # noqa: PLC0415
+
+    values: dict[str, Any] = {
+        "qdrant_url": qdrant_url,
+        "s3_endpoint_url": s3_url,
+        "s3_bucket": S3_BUCKET,
+        "s3_access_key": S3_ACCESS_KEY,
+        "s3_secret_key": S3_SECRET_KEY,
+        "ingest_inline": True,
+    }
+    return app_settings(database_url, valkey_url, **{**values, **overrides})
 
 
 class ApiClient:
@@ -141,4 +170,15 @@ def new_client(settings: Settings) -> ApiClient:
     return ApiClient(create_app(settings))
 
 
-__all__ = ["PASSWORD", "ApiClient", "Organization", "SeededOrg", "app_settings", "new_client", "seed_org", "seed_user"]
+__all__ = [
+    "PASSWORD",
+    "ApiClient",
+    "Organization",
+    "SeededOrg",
+    "app_settings",
+    "knowledge_settings",
+    "new_client",
+    "seed_org",
+    "seed_user",
+    "settings_env",
+]

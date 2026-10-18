@@ -214,6 +214,37 @@
         "title": "AuditPage",
         "type": "object"
       },
+      "Body_upload_documents_api_spaces__space_id__documents_post": {
+        "properties": {
+          "doc_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocType"
+              },
+              {
+                "const": "AUTO",
+                "type": "string"
+              }
+            ],
+            "default": "AUTO",
+            "title": "Doc Type"
+          },
+          "files": {
+            "description": "One or more files (zip archives are unpacked)",
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "Body_upload_documents_api_spaces__space_id__documents_post",
+        "type": "object"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "current_password": {
@@ -233,6 +264,57 @@
           "new_password"
         ],
         "title": "ChangePasswordRequest",
+        "type": "object"
+      },
+      "CitationOut": {
+        "properties": {
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "page_from": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page From"
+          },
+          "page_to": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page To"
+          },
+          "section_path": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Section Path",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document_id",
+          "title",
+          "section_path",
+          "page_from",
+          "page_to"
+        ],
+        "title": "CitationOut",
         "type": "object"
       },
       "CsrfResponse": {
@@ -326,6 +408,176 @@
         "title": "DiscoverRequest",
         "type": "object"
       },
+      "DocStatus": {
+        "enum": [
+          "PENDING",
+          "PARSING",
+          "EMBEDDING",
+          "READY",
+          "FAILED",
+          "DELETING"
+        ],
+        "title": "DocStatus",
+        "type": "string"
+      },
+      "DocType": {
+        "enum": [
+          "CV",
+          "JD",
+          "RUBRIC",
+          "QUESTION_BANK",
+          "KNOWLEDGE",
+          "DATASHEET",
+          "CODE",
+          "OTHER"
+        ],
+        "title": "DocType",
+        "type": "string"
+      },
+      "DocumentOut": {
+        "properties": {
+          "chunk_count": {
+            "title": "Chunk Count",
+            "type": "integer"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "doc_type": {
+            "$ref": "#/components/schemas/DocType"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filename"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mime": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mime"
+          },
+          "page_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Count"
+          },
+          "risk_flags": {
+            "additionalProperties": true,
+            "title": "Risk Flags",
+            "type": "object"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "space_id": {
+            "format": "uuid",
+            "title": "Space Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocStatus"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "uploaded_by_me": {
+            "title": "Uploaded By Me",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "space_id",
+          "title",
+          "filename",
+          "source_url",
+          "mime",
+          "size_bytes",
+          "doc_type",
+          "status",
+          "error",
+          "page_count",
+          "chunk_count",
+          "risk_flags",
+          "uploaded_by_me",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "DocumentOut",
+        "type": "object"
+      },
+      "DownloadOut": {
+        "properties": {
+          "expires_in_s": {
+            "title": "Expires In S",
+            "type": "integer"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expires_in_s"
+        ],
+        "title": "DownloadOut",
+        "type": "object"
+      },
       "GenerationParams": {
         "properties": {
           "max_tokens": {
@@ -356,6 +608,99 @@
           }
         },
         "title": "GenerationParams",
+        "type": "object"
+      },
+      "GrantIn": {
+        "properties": {
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/Permission",
+            "default": "READ"
+          },
+          "principal_id": {
+            "format": "uuid",
+            "title": "Principal Id",
+            "type": "string"
+          },
+          "principal_type": {
+            "$ref": "#/components/schemas/PrincipalType"
+          }
+        },
+        "required": [
+          "principal_type",
+          "principal_id"
+        ],
+        "title": "GrantIn",
+        "type": "object"
+      },
+      "GrantOut": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expires At"
+          },
+          "granted_by": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Granted By"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/Permission",
+            "default": "READ"
+          },
+          "principal_id": {
+            "format": "uuid",
+            "title": "Principal Id",
+            "type": "string"
+          },
+          "principal_type": {
+            "$ref": "#/components/schemas/PrincipalType"
+          }
+        },
+        "required": [
+          "principal_type",
+          "principal_id",
+          "id",
+          "granted_by",
+          "created_at"
+        ],
+        "title": "GrantOut",
         "type": "object"
       },
       "GroupIn": {
@@ -728,6 +1073,43 @@
         "title": "OrgSettingsOut",
         "type": "object"
       },
+      "OrgSpaceOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "document_count": {
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "grants": {
+            "items": {
+              "$ref": "#/components/schemas/GrantOut"
+            },
+            "title": "Grants",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "document_count",
+          "grants"
+        ],
+        "title": "OrgSpaceOut",
+        "type": "object"
+      },
       "OrgUpdate": {
         "properties": {
           "name": {
@@ -742,6 +1124,49 @@
         ],
         "title": "OrgUpdate",
         "type": "object"
+      },
+      "PasteIn": {
+        "properties": {
+          "doc_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocType"
+              },
+              {
+                "const": "AUTO",
+                "type": "string"
+              }
+            ],
+            "default": "AUTO",
+            "title": "Doc Type"
+          },
+          "text": {
+            "maxLength": 2000000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "text"
+        ],
+        "title": "PasteIn",
+        "type": "object"
+      },
+      "Permission": {
+        "enum": [
+          "READ",
+          "CONTRIBUTE"
+        ],
+        "title": "Permission",
+        "type": "string"
       },
       "PolicyOut": {
         "properties": {
@@ -1007,6 +1432,14 @@
         },
         "title": "PresetSupports",
         "type": "object"
+      },
+      "PrincipalType": {
+        "enum": [
+          "USER",
+          "GROUP"
+        ],
+        "title": "PrincipalType",
+        "type": "string"
       },
       "ProfileCreate": {
         "properties": {
@@ -1511,6 +1944,24 @@
         "title": "RegisterOrgRequest",
         "type": "object"
       },
+      "RejectedFile": {
+        "properties": {
+          "filename": {
+            "title": "Filename",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "filename",
+          "reason"
+        ],
+        "title": "RejectedFile",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "OWNER",
@@ -1602,6 +2053,175 @@
         "title": "RoutesUpdate",
         "type": "object"
       },
+      "SearchHit": {
+        "properties": {
+          "citation": {
+            "$ref": "#/components/schemas/CitationOut"
+          },
+          "doc_type": {
+            "$ref": "#/components/schemas/DocType"
+          },
+          "fused_rank": {
+            "title": "Fused Rank",
+            "type": "integer"
+          },
+          "matched_text": {
+            "title": "Matched Text",
+            "type": "string"
+          },
+          "rerank_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rerank Score"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "matched_text",
+          "doc_type",
+          "citation",
+          "fused_rank",
+          "rerank_score"
+        ],
+        "title": "SearchHit",
+        "type": "object"
+      },
+      "SearchIn": {
+        "properties": {
+          "doc_types": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/DocType"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Types"
+          },
+          "k": {
+            "default": 6,
+            "maximum": 20.0,
+            "minimum": 1.0,
+            "title": "K",
+            "type": "integer"
+          },
+          "query": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Query",
+            "type": "string"
+          },
+          "rerank": {
+            "default": true,
+            "title": "Rerank",
+            "type": "boolean"
+          },
+          "space_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Space Ids"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SearchIn",
+        "type": "object"
+      },
+      "SearchOut": {
+        "properties": {
+          "reranked": {
+            "title": "Reranked",
+            "type": "boolean"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/SearchHit"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "searched_spaces": {
+            "title": "Searched Spaces",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "results",
+          "reranked",
+          "searched_spaces"
+        ],
+        "title": "SearchOut",
+        "type": "object"
+      },
+      "SelfTestCheck": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "ok",
+          "detail"
+        ],
+        "title": "SelfTestCheck",
+        "type": "object"
+      },
+      "SelfTestOut": {
+        "properties": {
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/SelfTestCheck"
+            },
+            "title": "Checks",
+            "type": "array"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "checks"
+        ],
+        "title": "SelfTestOut",
+        "type": "object"
+      },
       "SignupAccepted": {
         "properties": {
           "message": {
@@ -1651,6 +2271,77 @@
           "password"
         ],
         "title": "SignupRequest",
+        "type": "object"
+      },
+      "SpaceIn": {
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "SpaceIn",
+        "type": "object"
+      },
+      "SpaceKind": {
+        "enum": [
+          "ORG",
+          "PERSONAL"
+        ],
+        "title": "SpaceKind",
+        "type": "string"
+      },
+      "SpaceOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "document_count": {
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "is_mine": {
+            "title": "Is Mine",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/SpaceKind"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "permission": {
+            "$ref": "#/components/schemas/Permission"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "permission",
+          "document_count",
+          "is_mine"
+        ],
+        "title": "SpaceOut",
         "type": "object"
       },
       "TryRequest": {
@@ -1713,6 +2404,78 @@
           "tokens_out"
         ],
         "title": "TryResponse",
+        "type": "object"
+      },
+      "UploadResult": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentOut"
+            },
+            "title": "Documents",
+            "type": "array"
+          },
+          "duplicates": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentOut"
+            },
+            "title": "Duplicates",
+            "type": "array"
+          },
+          "rejected": {
+            "items": {
+              "$ref": "#/components/schemas/RejectedFile"
+            },
+            "title": "Rejected",
+            "type": "array"
+          }
+        },
+        "required": [
+          "documents",
+          "duplicates",
+          "rejected"
+        ],
+        "title": "UploadResult",
+        "type": "object"
+      },
+      "UrlIn": {
+        "properties": {
+          "doc_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocType"
+              },
+              {
+                "const": "AUTO",
+                "type": "string"
+              }
+            ],
+            "default": "AUTO",
+            "title": "Doc Type"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "url": {
+            "maxLength": 2000,
+            "minLength": 8,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "title": "UrlIn",
         "type": "object"
       },
       "UserOut": {
@@ -2406,6 +3169,214 @@
           }
         },
         "summary": "Put Org Policy",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/spaces": {
+      "get": {
+        "operationId": "list_org_spaces_api_admin_spaces_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OrgSpaceOut"
+                  },
+                  "title": "Response List Org Spaces Api Admin Spaces Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Org Spaces",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "operationId": "create_org_space_api_admin_spaces_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Org Space",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/spaces/{space_id}": {
+      "delete": {
+        "operationId": "delete_org_space_api_admin_spaces__space_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Org Space",
+        "tags": [
+          "admin"
+        ]
+      },
+      "patch": {
+        "operationId": "update_org_space_api_admin_spaces__space_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Org Space",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/admin/spaces/{space_id}/grants": {
+      "put": {
+        "operationId": "set_grants_api_admin_spaces__space_id__grants_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "items": {
+                  "$ref": "#/components/schemas/GrantIn"
+                },
+                "title": "Body",
+                "type": "array"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrgSpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Replace who can read or contribute",
         "tags": [
           "admin"
         ]
@@ -3140,6 +4111,188 @@
         ]
       }
     },
+    "/api/documents/{document_id}": {
+      "delete": {
+        "operationId": "delete_document_api_documents__document_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Document",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "get": {
+        "operationId": "get_document_api_documents__document_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Document",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/documents/{document_id}/download": {
+      "get": {
+        "operationId": "download_document_api_documents__document_id__download_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DownloadOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download Document",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/documents/{document_id}/reindex": {
+      "post": {
+        "operationId": "reindex_document_api_documents__document_id__reindex_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Document Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reindex Document",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/events": {
+      "get": {
+        "operationId": "events_api_events_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Server-sent events: live document status for spaces you can read",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
     "/api/llm/models/discover": {
       "post": {
         "operationId": "discover_models_api_llm_models_discover_post",
@@ -3553,6 +4706,336 @@
         "summary": "Put Routes",
         "tags": [
           "llm"
+        ]
+      }
+    },
+    "/api/search": {
+      "post": {
+        "operationId": "search_api_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Hybrid search over the knowledge you can read",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/spaces": {
+      "get": {
+        "operationId": "list_spaces_api_spaces_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SpaceOut"
+                  },
+                  "title": "Response List Spaces Api Spaces Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Spaces",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "post": {
+        "operationId": "create_space_api_spaces_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SpaceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SpaceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Space",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/documents": {
+      "get": {
+        "operationId": "list_documents_api_spaces__space_id__documents_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentOut"
+                  },
+                  "title": "Response List Documents Api Spaces  Space Id  Documents Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Documents",
+        "tags": [
+          "knowledge"
+        ]
+      },
+      "post": {
+        "operationId": "upload_documents_api_spaces__space_id__documents_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_documents_api_spaces__space_id__documents_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Upload Documents",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/documents/paste": {
+      "post": {
+        "operationId": "paste_document_api_spaces__space_id__documents_paste_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Paste Document",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/documents/url": {
+      "post": {
+        "operationId": "add_url_api_spaces__space_id__documents_url_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UrlIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add Url",
+        "tags": [
+          "knowledge"
+        ]
+      }
+    },
+    "/api/system/selftest": {
+      "get": {
+        "operationId": "selftest_api_system_selftest_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SelfTestOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Check models, vector store and parsers",
+        "tags": [
+          "knowledge"
         ]
       }
     },

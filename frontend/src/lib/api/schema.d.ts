@@ -146,6 +146,59 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Org Spaces */
+        get: operations["list_org_spaces_api_admin_spaces_get"];
+        put?: never;
+        /** Create Org Space */
+        post: operations["create_org_space_api_admin_spaces_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/spaces/{space_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Org Space */
+        delete: operations["delete_org_space_api_admin_spaces__space_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Org Space */
+        patch: operations["update_org_space_api_admin_spaces__space_id__patch"];
+        trace?: never;
+    };
+    "/api/admin/spaces/{space_id}/grants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace who can read or contribute */
+        put: operations["set_grants_api_admin_spaces__space_id__grants_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users": {
         parameters: {
             query?: never;
@@ -456,6 +509,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Document */
+        get: operations["get_document_api_documents__document_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Document */
+        delete: operations["delete_document_api_documents__document_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{document_id}/download": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Document */
+        get: operations["download_document_api_documents__document_id__download_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/documents/{document_id}/reindex": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reindex Document */
+        post: operations["reindex_document_api_documents__document_id__reindex_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Server-sent events: live document status for spaces you can read */
+        get: operations["events_api_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/llm/models/discover": {
         parameters: {
             query?: never;
@@ -595,6 +717,110 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hybrid search over the knowledge you can read */
+        post: operations["search_api_search_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/spaces": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Spaces */
+        get: operations["list_spaces_api_spaces_get"];
+        put?: never;
+        /** Create Space */
+        post: operations["create_space_api_spaces_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/spaces/{space_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Documents */
+        get: operations["list_documents_api_spaces__space_id__documents_get"];
+        put?: never;
+        /** Upload Documents */
+        post: operations["upload_documents_api_spaces__space_id__documents_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/spaces/{space_id}/documents/paste": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Paste Document */
+        post: operations["paste_document_api_spaces__space_id__documents_paste_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/spaces/{space_id}/documents/url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add Url */
+        post: operations["add_url_api_spaces__space_id__documents_url_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/system/selftest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Check models, vector store and parsers */
+        get: operations["selftest_api_system_selftest_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/healthz": {
         parameters: {
             query?: never;
@@ -705,12 +931,41 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** Body_upload_documents_api_spaces__space_id__documents_post */
+        Body_upload_documents_api_spaces__space_id__documents_post: {
+            /**
+             * Doc Type
+             * @default AUTO
+             */
+            doc_type?: components["schemas"]["DocType"] | "AUTO";
+            /**
+             * Files
+             * @description One or more files (zip archives are unpacked)
+             */
+            files: string[];
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
             current_password: string;
             /** New Password */
             new_password: string;
+        };
+        /** CitationOut */
+        CitationOut: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Page From */
+            page_from: number | null;
+            /** Page To */
+            page_to: number | null;
+            /** Section Path */
+            section_path: string[];
+            /** Title */
+            title: string;
         };
         /** CsrfResponse */
         CsrfResponse: {
@@ -740,12 +995,114 @@ export interface components {
             /** Preset Key */
             preset_key?: string | null;
         };
+        /**
+         * DocStatus
+         * @enum {string}
+         */
+        DocStatus: "PENDING" | "PARSING" | "EMBEDDING" | "READY" | "FAILED" | "DELETING";
+        /**
+         * DocType
+         * @enum {string}
+         */
+        DocType: "CV" | "JD" | "RUBRIC" | "QUESTION_BANK" | "KNOWLEDGE" | "DATASHEET" | "CODE" | "OTHER";
+        /** DocumentOut */
+        DocumentOut: {
+            /** Chunk Count */
+            chunk_count: number;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            doc_type: components["schemas"]["DocType"];
+            /** Error */
+            error: string | null;
+            /** Filename */
+            filename: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Mime */
+            mime: string | null;
+            /** Page Count */
+            page_count: number | null;
+            /** Risk Flags */
+            risk_flags: {
+                [key: string]: unknown;
+            };
+            /** Size Bytes */
+            size_bytes: number;
+            /** Source Url */
+            source_url: string | null;
+            /**
+             * Space Id
+             * Format: uuid
+             */
+            space_id: string;
+            status: components["schemas"]["DocStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Uploaded By Me */
+            uploaded_by_me: boolean;
+        };
+        /** DownloadOut */
+        DownloadOut: {
+            /** Expires In S */
+            expires_in_s: number;
+            /** Url */
+            url: string;
+        };
         /** GenerationParams */
         GenerationParams: {
             /** Max Tokens */
             max_tokens?: number | null;
             /** Temperature */
             temperature?: number | null;
+        };
+        /** GrantIn */
+        GrantIn: {
+            /** Expires At */
+            expires_at?: string | null;
+            /** @default READ */
+            permission?: components["schemas"]["Permission"];
+            /**
+             * Principal Id
+             * Format: uuid
+             */
+            principal_id: string;
+            principal_type: components["schemas"]["PrincipalType"];
+        };
+        /** GrantOut */
+        GrantOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Expires At */
+            expires_at?: string | null;
+            /** Granted By */
+            granted_by: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** @default READ */
+            permission?: components["schemas"]["Permission"];
+            /**
+             * Principal Id
+             * Format: uuid
+             */
+            principal_id: string;
+            principal_type: components["schemas"]["PrincipalType"];
         };
         /** GroupIn */
         GroupIn: {
@@ -914,11 +1271,44 @@ export interface components {
             /** Slug */
             slug: string;
         };
+        /** OrgSpaceOut */
+        OrgSpaceOut: {
+            /** Description */
+            description: string;
+            /** Document Count */
+            document_count: number;
+            /** Grants */
+            grants: components["schemas"]["GrantOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+        };
         /** OrgUpdate */
         OrgUpdate: {
             /** Name */
             name: string;
         };
+        /** PasteIn */
+        PasteIn: {
+            /**
+             * Doc Type
+             * @default AUTO
+             */
+            doc_type?: components["schemas"]["DocType"] | "AUTO";
+            /** Text */
+            text: string;
+            /** Title */
+            title: string;
+        };
+        /**
+         * Permission
+         * @enum {string}
+         */
+        Permission: "READ" | "CONTRIBUTE";
         /** PolicyOut */
         PolicyOut: {
             /** Allowed Llm Profile Ids */
@@ -1012,6 +1402,11 @@ export interface components {
              */
             vision?: boolean;
         };
+        /**
+         * PrincipalType
+         * @enum {string}
+         */
+        PrincipalType: "USER" | "GROUP";
         /** ProfileCreate */
         ProfileCreate: {
             /** Api Key */
@@ -1164,6 +1559,13 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** RejectedFile */
+        RejectedFile: {
+            /** Filename */
+            filename: string;
+            /** Reason */
+            reason: string;
+        };
         /**
          * Role
          * @enum {string}
@@ -1199,6 +1601,63 @@ export interface components {
              */
             scope: "personal" | "org";
         };
+        /** SearchHit */
+        SearchHit: {
+            citation: components["schemas"]["CitationOut"];
+            doc_type: components["schemas"]["DocType"];
+            /** Fused Rank */
+            fused_rank: number;
+            /** Matched Text */
+            matched_text: string;
+            /** Rerank Score */
+            rerank_score: number | null;
+            /** Text */
+            text: string;
+        };
+        /** SearchIn */
+        SearchIn: {
+            /** Doc Types */
+            doc_types?: components["schemas"]["DocType"][] | null;
+            /**
+             * K
+             * @default 6
+             */
+            k?: number;
+            /** Query */
+            query: string;
+            /**
+             * Rerank
+             * @default true
+             */
+            rerank?: boolean;
+            /** Space Ids */
+            space_ids?: string[] | null;
+        };
+        /** SearchOut */
+        SearchOut: {
+            /** Reranked */
+            reranked: boolean;
+            /** Results */
+            results: components["schemas"]["SearchHit"][];
+            /** Searched Spaces */
+            searched_spaces: number;
+        };
+        /** SelfTestCheck */
+        SelfTestCheck: {
+            /** Detail */
+            detail: string;
+            /** Name */
+            name: string;
+            /** Ok */
+            ok: boolean;
+        };
+        /** SelfTestOut */
+        SelfTestOut: {
+            /** Checks */
+            checks: components["schemas"]["SelfTestCheck"][];
+            /** Ok */
+            ok: boolean;
+        };
         /** SignupAccepted */
         SignupAccepted: {
             /** Message */
@@ -1224,6 +1683,39 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** SpaceIn */
+        SpaceIn: {
+            /**
+             * Description
+             * @default
+             */
+            description?: string;
+            /** Name */
+            name: string;
+        };
+        /**
+         * SpaceKind
+         * @enum {string}
+         */
+        SpaceKind: "ORG" | "PERSONAL";
+        /** SpaceOut */
+        SpaceOut: {
+            /** Description */
+            description: string;
+            /** Document Count */
+            document_count: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Mine */
+            is_mine: boolean;
+            kind: components["schemas"]["SpaceKind"];
+            /** Name */
+            name: string;
+            permission: components["schemas"]["Permission"];
+        };
         /** TryRequest */
         TryRequest: {
             /** Message */
@@ -1241,6 +1733,27 @@ export interface components {
             tokens_out: number;
             /** Ttft Ms */
             ttft_ms: number | null;
+        };
+        /** UploadResult */
+        UploadResult: {
+            /** Documents */
+            documents: components["schemas"]["DocumentOut"][];
+            /** Duplicates */
+            duplicates: components["schemas"]["DocumentOut"][];
+            /** Rejected */
+            rejected: components["schemas"]["RejectedFile"][];
+        };
+        /** UrlIn */
+        UrlIn: {
+            /**
+             * Doc Type
+             * @default AUTO
+             */
+            doc_type?: components["schemas"]["DocType"] | "AUTO";
+            /** Title */
+            title?: string | null;
+            /** Url */
+            url: string;
         };
         /** UserOut */
         UserOut: {
@@ -1681,6 +2194,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgPolicy"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_org_spaces_api_admin_spaces_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSpaceOut"][];
+                };
+            };
+        };
+    };
+    create_org_space_api_admin_spaces_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSpaceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_org_space_api_admin_spaces__space_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_org_space_api_admin_spaces__space_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSpaceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_grants_api_admin_spaces__space_id__grants_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantIn"][];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgSpaceOut"];
                 };
             };
             /** @description Validation Error */
@@ -2248,6 +2913,148 @@ export interface operations {
             };
         };
     };
+    get_document_api_documents__document_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_document_api_documents__document_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    download_document_api_documents__document_id__download_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DownloadOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reindex_document_api_documents__document_id__reindex_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                document_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    events_api_events_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     discover_models_api_llm_models_discover_post: {
         parameters: {
             query?: never;
@@ -2564,6 +3371,248 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    search_api_search_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SearchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_spaces_api_spaces_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceOut"][];
+                };
+            };
+        };
+    };
+    create_space_api_spaces_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SpaceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpaceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_documents_api_spaces__space_id__documents_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_documents_api_spaces__space_id__documents_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_documents_api_spaces__space_id__documents_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    paste_document_api_spaces__space_id__documents_paste_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasteIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_url_api_spaces__space_id__documents_url_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UrlIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    selftest_api_system_selftest_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SelfTestOut"];
                 };
             };
         };

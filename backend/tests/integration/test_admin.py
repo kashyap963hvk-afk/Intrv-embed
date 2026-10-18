@@ -32,6 +32,7 @@ def _actions(api: ApiClient, target_id: str) -> list[str]:
     return [item["action"] for item in api.get("/api/admin/audit", params={"target_id": target_id}).json()["items"]]
 
 
+@pytest.mark.isolation
 def test_member_cannot_use_admin_api(settings: Settings) -> None:
     org = seed_org(settings)
     _, email = seed_user(settings, org)
@@ -94,6 +95,7 @@ def test_last_owner_is_protected(settings: Settings, owner_client: tuple[ApiClie
     assert api.put(f"/api/admin/users/{me}/role", json={"role": "MEMBER"}).status_code == 200
 
 
+@pytest.mark.isolation
 def test_owner_cannot_touch_another_org(settings: Settings, owner_client: tuple[ApiClient, object]) -> None:
     api, _ = owner_client
     other = seed_org(settings)

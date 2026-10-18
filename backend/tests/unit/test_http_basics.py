@@ -109,6 +109,14 @@ def test_cors_allows_configured_origin_with_credentials(test_client: TestClient)
     assert response.headers["access-control-allow-credentials"] == "true"
 
 
+def test_server_errors_keep_cors_headers(test_client: TestClient) -> None:
+    response = test_client.get("/test/boom", headers={"Origin": "http://localhost:3000"})
+    assert response.status_code == 500
+    assert response.headers["content-type"].startswith(PROBLEM)
+    assert response.headers["access-control-allow-origin"] == "http://localhost:3000"
+    assert response.headers["x-request-id"]
+
+
 def test_cors_rejects_unknown_origin(test_client: TestClient) -> None:
     response = test_client.get("/healthz", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in response.headers

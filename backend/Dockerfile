@@ -24,13 +24,13 @@ COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=secret,id=extra_ca,required=false \
     if [ -f /run/secrets/extra_ca ]; then export SSL_CERT_FILE=/run/secrets/extra_ca; fi; \
-    uv sync --frozen --no-dev --no-install-project
+    uv sync --frozen --no-dev --no-install-project --extra ocr
 
 FROM deps AS dev
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=secret,id=extra_ca,required=false \
     if [ -f /run/secrets/extra_ca ]; then export SSL_CERT_FILE=/run/secrets/extra_ca; fi; \
-    uv sync --frozen --no-install-project
+    uv sync --frozen --no-install-project --extra ocr
 COPY . .
 EXPOSE 8000
 CMD ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--reload"]
@@ -42,6 +42,8 @@ COPY app ./app
 COPY workers ./workers
 COPY migrations ./migrations
 COPY alembic.ini ./
+RUN mkdir -p /models && chown app:app /models
+ENV MODELS_CACHE_DIR=/models
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=3 \

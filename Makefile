@@ -6,7 +6,7 @@ COMPOSE := docker compose --profile core
 BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
-.PHONY: help env up down logs ps test test-unit test-integration lint fmt openapi \
+.PHONY: help env up down logs ps test test-unit test-integration test-isolation lint fmt openapi \
         migrate seed create-owner e2e selftest
 
 help: ## Show this help
@@ -37,6 +37,9 @@ test-unit: ## Fast tests, no Docker needed
 test-integration: ## Tests against real containers (needs Docker)
 	$(BACKEND) uv run pytest -m integration
 
+test-isolation: ## Tenant and space isolation suite only (needs Docker)
+	$(BACKEND) uv run pytest -m isolation
+
 lint: ## Ruff, mypy, ESLint, OpenAPI/type drift checks
 	$(BACKEND) uv run ruff check . && uv run ruff format --check . && uv run mypy
 	$(BACKEND) uv run python -m app.export_openapi | diff -q - openapi.json >/dev/null || \
@@ -63,5 +66,5 @@ create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.
 e2e: ## Playwright end-to-end tests (available from Phase 6)
 	@echo "make e2e: available from Phase 6"; exit 1
 
-selftest: ## Model load and dimension checks (available from Phase 3)
-	@echo "make selftest: available from Phase 3"; exit 1
+selftest: ## Model load, vector store and parser checks inside the running backend
+	$(COMPOSE) exec backend python -m app.cli selftest
