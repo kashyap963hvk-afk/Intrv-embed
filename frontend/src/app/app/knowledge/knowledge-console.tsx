@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 
 import { AddDocumentsDialog } from "./add-documents-dialog";
 import { DocumentsTable } from "./documents-table";
+import { SourcesPanel } from "./sources-panel";
 
 function NewSpaceDialog({ onCreated }: { onCreated: (space: Space) => void }) {
   const [open, setOpen] = useState(false);
@@ -205,6 +206,7 @@ function KnowledgeWorkspace() {
                 {selected.permission === "CONTRIBUTE" && <AddDocumentsDialog space={selected} />}
               </div>
               <DocumentsTable space={selected} />
+              <SourcesPanel space={selected} />
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">No spaces available.</p>

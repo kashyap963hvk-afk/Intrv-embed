@@ -1,5 +1,64 @@
 # Build progress
 
+## Phase 4: Enterprise connectors and sync ✅ (2026-10-18)
+
+### Delivered
+- **Accounts and sources** (migration `6ce88a15e833`, ADR 0006):
+  - Credentials are encrypted per org. Accounts are private to the member; org-level accounts are for owners
+    only.
+  - Sources import a selection into a space once or keep it in sync, and run as their creator.
+- **Connectors**:
+  - S3-compatible (AWS, R2, B2, Wasabi, Spaces, Ceph, GCS HMAC, SeaweedFS, MinIO) and Azure Blob, both
+    confined to a root prefix.
+  - Google Drive: per member through OAuth `drive.file` and the Picker; org-wide through the service
+    account, limited to shared root folders. Docs, Sheets and Slides are exported.
+  - OneDrive/SharePoint (Graph delta) and Dropbox (cursors).
+  - URL (SSRF-guarded, robots.txt).
+- **OAuth**: PKCE; single-use state bound to the user; tokens stored only encrypted and refreshed
+  automatically; provider host allow-list.
+- **Sync**:
+  - SHA-256 versioning with vector swap and old-original cleanup; remote deletions propagate.
+  - Per-file commits (one bad file fails alone); exponential backoff capped at 24 h; email to the creator on
+    the first failure; Valkey lock.
+  - Celery `sync.source`, plus a beat task (`sync.due`) every minute that reads due ids through a SECURITY
+    DEFINER function.
+- **API**: `/api/connectors/*` (kinds, accounts, test, browse, picker token, OAuth start/callback, service
+  account, org Drive) and `/api/spaces/{id}/sources`, `/api/sources/{id}` (update, sync now, delete with or
+  without its documents).
+- **Frontend**:
+  - The "+" dialog gains Google Drive (Picker), Org Drive, S3 / Cloud bucket, OneDrive / SharePoint, Azure
+    and Dropbox tabs, each with connect/test, a folder browser with multi-select and "import whole folder",
+    and a Keep-in-sync interval. The Link tab can keep a page in sync.
+  - A Sources panel per space shows status, last result, and Sync now / interval / delete.
+  - An OAuth popup landing page, and an admin Organization Google Drive card.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| S3 integration against SeaweedFS: import, modify (new version, old vectors gone), delete (vectors and objects gone) | ✅ `test_s3_import_modify_delete_cycle`; Azure Blob is checked the same way against Azurite |
+| Contract tests for Drive/Graph/Dropbox with recorded HTTP (respx) | ✅ 14 tests: Drive folders + exports + org-root confinement, Graph full listing → delta → expired link, Dropbox cursor → reset, token refresh, size caps, foreign pagination hosts refused |
+| Browse never returns items outside the configured root/prefix | ✅ API and unit tests (`../` refused, sub-folder ids open correctly, look-alike prefixes stay inside) |
+| Isolation | ✅ accounts and sources invisible and unusable to colleagues and owners; members cannot see or use org-level storage; OAuth state cannot be completed by another member |
+| Deployed path | ✅ API → Celery `sync.source` → ingest, and beat `sync.due` picking up an overdue source |
+| Browser walkthrough | ✅ connect an S3 bucket with Test/Save, browse into sub-folders, import the whole folder with Keep in sync, both documents READY, Sources panel shows the result; unconfigured providers explain which env vars they need; no console errors |
+
+Totals: backend 133 unit + 67 integration tests; frontend 56 Vitest tests. Lint, mypy --strict, eslint, tsc and
+prettier are clean.
+
+### Bugs found and fixed while testing
+- Azure ranged download needed an explicit offset (found by Azurite).
+- An unexpected error could leave a source stuck in SYNCING; it now always fails cleanly, and the due scan
+  re-picks runs that crashed.
+- Expired ORM objects after per-file rollbacks (async sessions cannot lazy-load); state is now reloaded.
+- Browsing a sub-folder of a bucket with a root prefix doubled the prefix (found by the frontend build).
+- The connector tab bar overflowed its container.
+
+### Known issues / notes
+- Live Google, Microsoft and Dropbox flows need real app credentials (DEPLOYMENT.md §4.3); they are covered by
+  recorded contract tests only.
+- SeaweedFS in the dev stack has few volume slots, so extra buckets may fail to allocate; use prefixes in the
+  existing bucket for demos.
+
 ## Phase 3: Knowledge spaces, ingestion, hybrid RAG, isolation suite ✅ (2026-10-18)
 
 ### Delivered

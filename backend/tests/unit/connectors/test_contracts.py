@@ -56,6 +56,17 @@ def test_confine_never_escapes_the_root() -> None:
     assert within("", "anything")
 
 
+def test_under_root_accepts_full_keys_and_relative_paths() -> None:
+    from app.connectors.base import under_root  # noqa: PLC0415
+
+    assert under_root("run/team-a", "run/team-a/sub/") == "run/team-a/sub/"  # id as returned by browse
+    assert under_root("run/team-a", "sub") == "run/team-a/sub/"
+    assert under_root("run/team-a", None) == "run/team-a/"
+    assert under_root("team-a", "team-ab/x") == "team-a/team-ab/x/"  # a look-alike prefix stays inside the root
+    with pytest.raises(ScopeError):
+        under_root("run/team-a", "run/team-a/../../team-b")
+
+
 def test_importable_filters_by_type() -> None:
     assert importable("cv.pdf")
     assert importable("Notes", "application/vnd.google-apps.document")

@@ -18,9 +18,9 @@ from app.connectors.base import (
     RemoteItem,
     ScopeError,
     Selection,
-    confine,
     diff_snapshot,
     importable,
+    under_root,
     within,
 )
 from app.connectors.net import check_endpoint
@@ -81,7 +81,7 @@ class AzureBlobConnector:
         return Health(True, f"Connected to container {container.container_name}")
 
     async def browse(self, path: str | None, cursor: str | None) -> Page:
-        prefix = confine(self.root, path)
+        prefix = under_root(self.root, path)
         container = await self._container()
 
         def run() -> Page:
@@ -119,7 +119,7 @@ class AzureBlobConnector:
         def run() -> list[RemoteItem]:
             listed: dict[str, RemoteItem] = {}
             for prefix in prefixes:
-                start = confine(self.root, prefix.removeprefix(self.root).lstrip("/"))
+                start = under_root(self.root, prefix)
                 for blob in container.list_blobs(name_starts_with=start or None):
                     if within(self.root, blob.name) and importable(blob.name):
                         listed[blob.name] = self._item(blob)

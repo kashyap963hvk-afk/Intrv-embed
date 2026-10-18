@@ -136,6 +136,9 @@ def test_s3_import_modify_delete_cycle(  # noqa: PLR0915 - one end-to-end story,
         f"{run}/team-a/notes/",
     ]
     assert a.get(f"/api/connectors/accounts/{account['id']}/browse", params={"path": "../team-b"}).status_code == 400
+    # Folder ids from a listing open that folder (they already include the root).
+    inside = a.get(f"/api/connectors/accounts/{account['id']}/browse", params={"path": f"{run}/team-a/notes/"}).json()
+    assert [i["path"] for i in inside["items"]] == [f"{run}/team-a/notes/buses.md"]
     outside = a.post(
         f"/api/spaces/{space}/sources",
         json={"kind": "S3_COMPATIBLE", "account_id": account["id"], "name": "x", "prefix": f"{run}/team-b/"},

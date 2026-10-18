@@ -29,6 +29,8 @@ export const knowledgeKeys = {
   all: ["knowledge"] as const,
   spaces: ["knowledge", "spaces"] as const,
   documents: (spaceId: string) => ["knowledge", "documents", spaceId] as const,
+  /** Connector sources of a space; under "knowledge" so document mutations refresh their counts too. */
+  sources: (spaceId: string) => ["knowledge", "sources", spaceId] as const,
   /** Under "admin" so the admin console's mutations refresh it too. */
   orgSpaces: ["admin", "spaces"] as const,
 };
@@ -250,6 +252,8 @@ export function useDocumentEvents() {
       if (needsRefetch(cached, event)) {
         void queryClient.invalidateQueries({ queryKey: key });
         void queryClient.invalidateQueries({ queryKey: knowledgeKeys.spaces });
+        // A synced source's document count and last result change as its documents arrive.
+        void queryClient.invalidateQueries({ queryKey: knowledgeKeys.sources(event.space_id) });
       }
     };
 
@@ -257,7 +261,10 @@ export function useDocumentEvents() {
       source = new EventSource(`${env.apiBaseUrl}/api/events`, { withCredentials: true });
       source.addEventListener("document.status", onStatus);
       source.onopen = () => {
-        if (failures > 0) void queryClient.invalidateQueries({ queryKey: ["knowledge", "documents"] });
+        if (failures > 0) {
+          void queryClient.invalidateQueries({ queryKey: ["knowledge", "documents"] });
+          void queryClient.invalidateQueries({ queryKey: ["knowledge", "sources"] });
+        }
         failures = 0;
       };
       source.onerror = () => {

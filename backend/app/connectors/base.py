@@ -154,6 +154,15 @@ def confine(root: str, path: str | None) -> str:
     return f"{joined}/" if joined else ""
 
 
+def under_root(root: str, path: str | None) -> str:
+    """Confine a path that may be given either as a full key (as browse returns ids) or relative to the root."""
+    base = root.strip("/")
+    value = (path or "").lstrip("/") if base else (path or "")
+    if base and (value == base or value.startswith(base + "/")):
+        value = value[len(base) :]
+    return confine(root, value)
+
+
 def within(root: str, key: str) -> bool:
     base = root.strip("/")
     return not base or key == base or key.startswith(base + "/")

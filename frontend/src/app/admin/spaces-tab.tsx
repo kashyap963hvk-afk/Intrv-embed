@@ -17,6 +17,7 @@ import {
   useUpdateOrgSpace,
 } from "@/lib/knowledge-api";
 
+import { OrgDriveCard } from "./org-drive-card";
 import { SelfTestCard } from "./selftest-card";
 
 interface Principals {
@@ -283,6 +284,7 @@ export function SpacesTab() {
           <OrgSpaceCard key={space.id} space={space} principals={principals} />
         ))}
       </div>
+      <OrgDriveCard />
       <SelfTestCard />
     </div>
   );

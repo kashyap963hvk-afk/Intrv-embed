@@ -10,12 +10,19 @@ const Dialog = DialogPrimitive.Root;
 const DialogTrigger = DialogPrimitive.Trigger;
 const DialogClose = DialogPrimitive.Close;
 
-function DialogContent({ className, children, ...props }: React.ComponentProps<typeof DialogPrimitive.Content>) {
+/** `forceMount` keeps the content (and its state) mounted while the dialog is closed. */
+function DialogContent({
+  className,
+  children,
+  forceMount,
+  ...props
+}: React.ComponentProps<typeof DialogPrimitive.Content>) {
   return (
-    <DialogPrimitive.Portal>
+    <DialogPrimitive.Portal forceMount={forceMount}>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/50" />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        forceMount={forceMount}
         className={cn(
           "fixed top-[50%] left-[50%] z-50 grid max-h-[90vh] w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 overflow-y-auto rounded-lg border bg-background p-6 shadow-lg sm:max-w-lg",
           className,

@@ -22,9 +22,9 @@ from app.connectors.base import (
     RemoteItem,
     ScopeError,
     Selection,
-    confine,
     diff_snapshot,
     importable,
+    under_root,
     within,
 )
 from app.connectors.net import check_endpoint
@@ -92,7 +92,7 @@ class S3Connector:
         client = await self._s3()
         try:
             await anyio.to_thread.run_sync(
-                lambda: client.list_objects_v2(Bucket=self.bucket, Prefix=confine(self.root, None), MaxKeys=1)
+                lambda: client.list_objects_v2(Bucket=self.bucket, Prefix=under_root(self.root, None), MaxKeys=1)
             )
         except (ClientError, BotoCoreError) as exc:
             raise _error(exc) from exc
@@ -100,7 +100,7 @@ class S3Connector:
         return Health(True, f"Connected to {where}")
 
     async def browse(self, path: str | None, cursor: str | None) -> Page:
-        prefix = confine(self.root, path)
+        prefix = under_root(self.root, path)
         client = await self._s3()
         kwargs: dict[str, Any] = {"Bucket": self.bucket, "Prefix": prefix, "Delimiter": "/", "MaxKeys": 500}
         if cursor:
@@ -153,7 +153,7 @@ class S3Connector:
         files = [str(i["id"]) for i in selection.items if not i.get("is_folder")]
         listed: dict[str, RemoteItem] = {}
         for prefix in prefixes:
-            for item in await self._list_all(confine(self.root, prefix.removeprefix(self.root).lstrip("/"))):
+            for item in await self._list_all(under_root(self.root, prefix)):
                 listed[item.id] = item
         client = await self._s3()
         for key in files:

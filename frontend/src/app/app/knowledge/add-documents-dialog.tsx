@@ -17,11 +17,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { isOwner, useMe } from "@/lib/auth";
+import { buildUrlSourceIn, connectorTabs, DEFAULT_INTERVAL_MINUTES } from "@/lib/connectors";
+import { useConnectorKinds, useCreateSource } from "@/lib/connectors-api";
 import { formatBytes, mergeFiles, type DocTypeChoice, type Space } from "@/lib/knowledge";
 import { useAddUrl, usePasteDocument, useUploadDocuments, type UploadResult } from "@/lib/knowledge-api";
 import { cn } from "@/lib/utils";
 
+import { ConnectorIcon } from "./connector-icon";
+import { ConnectorTab } from "./connector-tab";
 import { DocTypeSelect } from "./doc-type-select";
+import { SyncControls } from "./sync-controls";
 
 const ACCEPTED_HINT =
   "PDF, Word, PowerPoint, Excel, HTML, Markdown, text, CSV, JSON/YAML, C/C++/Python/Rust code, images, or a .zip of them.";
@@ -209,13 +215,22 @@ function LinkTab({ spaceId, onDone }: { spaceId: string; onDone: () => void }) {
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [docType, setDocType] = useState<DocTypeChoice>("AUTO");
+  const [keepInSync, setKeepInSync] = useState(false);
+  const [intervalMinutes, setIntervalMinutes] = useState(DEFAULT_INTERVAL_MINUTES);
   const add = useAddUrl(spaceId);
+  const createSource = useCreateSource(spaceId);
+  const pending = add.isPending || createSource.isPending;
   return (
     <form
       className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
-        add.mutate({ url: url.trim(), title: title.trim() || null, doc_type: docType }, { onSuccess: onDone });
+        if (keepInSync) {
+          // A URL source fetches the page now and again on schedule, replacing the indexed copy when it changes.
+          createSource.mutate(buildUrlSourceIn({ url, title, docType, intervalMinutes }), { onSuccess: onDone });
+        } else {
+          add.mutate({ url: url.trim(), title: title.trim() || null, doc_type: docType }, { onSuccess: onDone });
+        }
       }}
     >
       <div className="flex flex-col gap-2">
@@ -229,7 +244,8 @@ function LinkTab({ spaceId, onDone }: { spaceId: string; onDone: () => void }) {
           required
         />
         <p className="text-xs text-muted-foreground">
-          Fetched once by the server. Only public addresses are allowed; files up to 25 MB.
+          {keepInSync ? "Fetched by the server now and on schedule." : "Fetched once by the server."} Only public
+          addresses are allowed; files up to 25 MB.
         </p>
       </div>
       <div className="flex flex-col gap-2">
@@ -237,27 +253,49 @@ function LinkTab({ spaceId, onDone }: { spaceId: string; onDone: () => void }) {
         <Input id="kn-url-title" value={title} maxLength={300} onChange={(e) => setTitle(e.target.value)} />
       </div>
       <DocTypeSelect id="kn-url-type" value={docType} onChange={setDocType} />
+      <SyncControls
+        idPrefix="kn-url"
+        enabled={keepInSync}
+        onEnabledChange={setKeepInSync}
+        intervalMinutes={intervalMinutes}
+        onIntervalChange={setIntervalMinutes}
+        help="Checks the page again on a schedule and re-indexes it when it changes."
+      />
       <DialogFooter>
-        <Button type="submit" disabled={url.trim().length < 8 || add.isPending}>
-          {add.isPending ? "Adding…" : "Add link"}
+        <Button type="submit" disabled={url.trim().length < 8 || pending}>
+          {pending ? "Adding…" : keepInSync ? "Add and keep in sync" : "Add link"}
         </Button>
       </DialogFooter>
     </form>
   );
 }
 
-/** The "+ Add" button of a space: upload files, paste text or add a link. */
+/** The "+ Add" button of a space: upload files, paste text, add a link, or import from connected storage. */
 export function AddDocumentsDialog({ space }: { space: Space }) {
   // The dialog content unmounts when closed, so every open starts with empty forms.
   const [open, setOpen] = useState(false);
+  // While the Google Picker is up, the dialog stays mounted but closed (hidden, with its focus trap released) so the
+  // picker's frame can take focus and clicks; it reopens with the selection when the picker closes.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const me = useMe();
+  const owner = isOwner(me.data);
+  const kinds = useConnectorKinds(open);
+  const tabs = connectorTabs(kinds.data ?? [], owner);
+  const close = () => setOpen(false);
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open && !pickerOpen}
+      onOpenChange={(next) => {
+        if (!pickerOpen) setOpen(next);
+      }}
+    >
       <DialogTrigger asChild>
         <Button>
           <Plus /> Add
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent forceMount={open ? true : undefined} className={cn("sm:max-w-3xl", pickerOpen && "invisible")}>
         <DialogHeader>
           <DialogTitle>Add to {space.name}</DialogTitle>
           <DialogDescription>
@@ -265,27 +303,40 @@ export function AddDocumentsDialog({ space }: { space: Space }) {
           </DialogDescription>
         </DialogHeader>
         <Tabs defaultValue="upload">
-          <TabsList>
-            <TabsTrigger value="upload">
+          <TabsList className="h-auto flex-wrap justify-start">
+            <TabsTrigger value="upload" className="h-8 flex-none">
               <Upload /> Upload
             </TabsTrigger>
-            <TabsTrigger value="paste">
+            <TabsTrigger value="paste" className="h-8 flex-none">
               <FileText /> Paste
             </TabsTrigger>
-            <TabsTrigger value="link">
+            <TabsTrigger value="link" className="h-8 flex-none">
               <LinkIcon /> Link
             </TabsTrigger>
+            {tabs.map(({ info, tab }) => (
+              <TabsTrigger key={info.kind} value={info.kind} className="h-8 flex-none">
+                <ConnectorIcon kind={info.kind} /> {tab}
+              </TabsTrigger>
+            ))}
           </TabsList>
           <TabsContent value="upload">
             <UploadTab spaceId={space.id} />
           </TabsContent>
           <TabsContent value="paste">
-            <PasteTab spaceId={space.id} onDone={() => setOpen(false)} />
+            <PasteTab spaceId={space.id} onDone={close} />
           </TabsContent>
           <TabsContent value="link">
-            <LinkTab spaceId={space.id} onDone={() => setOpen(false)} />
+            <LinkTab spaceId={space.id} onDone={close} />
           </TabsContent>
+          {tabs.map(({ info }) => (
+            <TabsContent key={info.kind} value={info.kind}>
+              <ConnectorTab info={info} space={space} owner={owner} onDone={close} onPickerOpenChange={setPickerOpen} />
+            </TabsContent>
+          ))}
         </Tabs>
+        {kinds.isError && (
+          <p className="text-xs text-destructive">Cloud storage options could not be loaded: {kinds.error.message}</p>
+        )}
       </DialogContent>
     </Dialog>
   );
