@@ -12,7 +12,11 @@ from mypy_boto3_s3 import S3Client
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.connectors.dispatch import CelerySyncDispatcher, InlineSyncDispatcher, SyncDispatcher
+from app.connectors.registry import ConnectorClients
+from app.connectors.sync import SyncDeps
 from app.core.config import Settings
+from app.core.email import EmailSender
 from app.core.keyring import Keyring
 from app.core.ssrf import create_http_client
 from app.db.session import create_engine, create_session_factory
@@ -60,6 +64,8 @@ class Resources:
     storage: ObjectStorage
     rag: RagEngine
     dispatcher: IngestDispatcher
+    connector_clients: ConnectorClients
+    sync_dispatcher: SyncDispatcher
 
     @classmethod
     def create(cls, settings: Settings) -> Resources:
@@ -73,27 +79,45 @@ class Resources:
         s3 = create_s3_client(settings)
         storage = ObjectStorage(s3, settings.s3_bucket, presign_client=create_s3_client(settings, public=True))
         rag = RagEngine(settings, httpx.AsyncClient(timeout=httpx.Timeout(120.0, connect=5.0)))
-        dispatcher: IngestDispatcher = (
-            InlineDispatcher(
-                IngestDeps(
-                    settings=settings,
-                    session_factory=session_factory,
-                    valkey=valkey,
-                    storage=storage,
-                    rag=rag,
-                    public_http=private_http if settings.allow_private_llm_endpoints else public_http,
+        web_http = private_http if settings.allow_private_llm_endpoints else public_http
+        ingest = IngestDeps(
+            settings=settings,
+            session_factory=session_factory,
+            valkey=valkey,
+            storage=storage,
+            rag=rag,
+            public_http=web_http,
+        )
+        keyring = Keyring(settings.master_key)
+        connector_clients = ConnectorClients(
+            settings=settings,
+            provider_http=httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)),
+            web_http=web_http,
+        )
+        dispatcher: IngestDispatcher
+        sync_dispatcher: SyncDispatcher
+        if settings.ingest_inline:
+            dispatcher = InlineDispatcher(ingest)
+            sync_dispatcher = InlineSyncDispatcher(
+                SyncDeps(
+                    ingest=ingest,
+                    clients=connector_clients,
+                    keyring=keyring,
+                    dispatcher=dispatcher,
+                    mailer=EmailSender(settings),
                 )
             )
-            if settings.ingest_inline
-            else CeleryDispatcher(create_celery(settings))
-        )
+        else:
+            celery = create_celery(settings)
+            dispatcher = CeleryDispatcher(celery)
+            sync_dispatcher = CelerySyncDispatcher(celery)
         return cls(
             engine=engine,
             session_factory=session_factory,
             valkey=valkey,
             http=http,
             s3=s3,
-            keyring=Keyring(settings.master_key),
+            keyring=keyring,
             public_http=public_http,
             private_http=private_http,
             provider_factory=provider_factory,
@@ -101,9 +125,12 @@ class Resources:
             storage=storage,
             rag=rag,
             dispatcher=dispatcher,
+            connector_clients=connector_clients,
+            sync_dispatcher=sync_dispatcher,
         )
 
     async def close(self) -> None:
+        await self.connector_clients.provider_http.aclose()
         await self.rag.close()
         await self.public_http.aclose()
         await self.private_http.aclose()

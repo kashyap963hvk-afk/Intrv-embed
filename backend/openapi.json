@@ -29,6 +29,83 @@
         "title": "AcceptInviteRequest",
         "type": "object"
       },
+      "AccountOut": {
+        "properties": {
+          "config": {
+            "additionalProperties": true,
+            "title": "Config",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConnectorKind"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_validated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Validated At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "org_level": {
+            "title": "Org Level",
+            "type": "boolean"
+          },
+          "status": {
+            "$ref": "#/components/schemas/AccountStatus"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "config",
+          "status",
+          "last_error",
+          "org_level",
+          "last_validated_at",
+          "created_at"
+        ],
+        "title": "AccountOut",
+        "type": "object"
+      },
+      "AccountStatus": {
+        "enum": [
+          "OK",
+          "ERROR"
+        ],
+        "title": "AccountStatus",
+        "type": "string"
+      },
       "AdminUserOut": {
         "properties": {
           "created_at": {
@@ -214,6 +291,75 @@
         "title": "AuditPage",
         "type": "object"
       },
+      "AzureAccountIn": {
+        "properties": {
+          "connection_string": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connection String"
+          },
+          "container": {
+            "anyOf": [
+              {
+                "maxLength": 63,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Needed with a connection string",
+            "title": "Container"
+          },
+          "container_sas_url": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Container Sas Url"
+          },
+          "kind": {
+            "const": "AZURE_BLOB",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "org_level": {
+            "default": false,
+            "title": "Org Level",
+            "type": "boolean"
+          },
+          "root_prefix": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Root Prefix",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "title": "AzureAccountIn",
+        "type": "object"
+      },
       "Body_upload_documents_api_spaces__space_id__documents_post": {
         "properties": {
           "doc_type": {
@@ -243,6 +389,34 @@
           "files"
         ],
         "title": "Body_upload_documents_api_spaces__space_id__documents_post",
+        "type": "object"
+      },
+      "BrowseOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RemoteItemOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "BrowseOut",
         "type": "object"
       },
       "ChangePasswordRequest": {
@@ -315,6 +489,69 @@
           "page_to"
         ],
         "title": "CitationOut",
+        "type": "object"
+      },
+      "ConnectorKind": {
+        "enum": [
+          "GOOGLE_DRIVE",
+          "GOOGLE_DRIVE_ORG",
+          "S3_COMPATIBLE",
+          "AZURE_BLOB",
+          "MS_GRAPH",
+          "DROPBOX",
+          "URL"
+        ],
+        "title": "ConnectorKind",
+        "type": "string"
+      },
+      "ConnectorKindOut": {
+        "properties": {
+          "auth": {
+            "enum": [
+              "oauth",
+              "credentials",
+              "service_account",
+              "none"
+            ],
+            "title": "Auth",
+            "type": "string"
+          },
+          "available": {
+            "title": "Available",
+            "type": "boolean"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConnectorKind"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "owners_only": {
+            "title": "Owners Only",
+            "type": "boolean"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          }
+        },
+        "required": [
+          "kind",
+          "label",
+          "auth",
+          "available",
+          "reason",
+          "owners_only"
+        ],
+        "title": "ConnectorKindOut",
         "type": "object"
       },
       "CsrfResponse": {
@@ -608,6 +845,35 @@
           }
         },
         "title": "GenerationParams",
+        "type": "object"
+      },
+      "GoogleOrgAccountIn": {
+        "properties": {
+          "name": {
+            "default": "Organization Google Drive",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "root_folder_ids": {
+            "description": "Folders shared with the service account",
+            "items": {
+              "maxLength": 200,
+              "minLength": 5,
+              "pattern": "^[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Root Folder Ids",
+            "type": "array"
+          }
+        },
+        "required": [
+          "root_folder_ids"
+        ],
+        "title": "GoogleOrgAccountIn",
         "type": "object"
       },
       "GrantIn": {
@@ -985,6 +1251,19 @@
         "title": "ModelList",
         "type": "object"
       },
+      "OAuthStartOut": {
+        "properties": {
+          "authorize_url": {
+            "title": "Authorize Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "authorize_url"
+        ],
+        "title": "OAuthStartOut",
+        "type": "object"
+      },
       "OrgOut": {
         "properties": {
           "id": {
@@ -1167,6 +1446,43 @@
         ],
         "title": "Permission",
         "type": "string"
+      },
+      "PickerTokenOut": {
+        "properties": {
+          "access_token": {
+            "title": "Access Token",
+            "type": "string"
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "developer_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Developer Key"
+          }
+        },
+        "required": [
+          "access_token",
+          "developer_key",
+          "client_id"
+        ],
+        "title": "PickerTokenOut",
+        "type": "object"
       },
       "PolicyOut": {
         "properties": {
@@ -1962,6 +2278,59 @@
         "title": "RejectedFile",
         "type": "object"
       },
+      "RemoteItemOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "is_folder": {
+            "title": "Is Folder",
+            "type": "boolean"
+          },
+          "modified": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Modified"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "size": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Size"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "path",
+          "is_folder",
+          "size",
+          "modified"
+        ],
+        "title": "RemoteItemOut",
+        "type": "object"
+      },
       "Role": {
         "enum": [
           "OWNER",
@@ -2051,6 +2420,94 @@
           "routes"
         ],
         "title": "RoutesUpdate",
+        "type": "object"
+      },
+      "S3AccountIn": {
+        "properties": {
+          "access_key": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Access Key"
+          },
+          "bucket": {
+            "maxLength": 255,
+            "minLength": 3,
+            "title": "Bucket",
+            "type": "string"
+          },
+          "endpoint_url": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Empty for AWS S3",
+            "title": "Endpoint Url"
+          },
+          "force_path_style": {
+            "default": true,
+            "title": "Force Path Style",
+            "type": "boolean"
+          },
+          "kind": {
+            "const": "S3_COMPATIBLE",
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "org_level": {
+            "default": false,
+            "title": "Org Level",
+            "type": "boolean"
+          },
+          "region": {
+            "default": "us-east-1",
+            "maxLength": 40,
+            "title": "Region",
+            "type": "string"
+          },
+          "root_prefix": {
+            "default": "",
+            "description": "Only this prefix is ever listed or read",
+            "maxLength": 500,
+            "title": "Root Prefix",
+            "type": "string"
+          },
+          "secret_key": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secret Key"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "bucket"
+        ],
+        "title": "S3AccountIn",
         "type": "object"
       },
       "SearchHit": {
@@ -2178,6 +2635,38 @@
         "title": "SearchOut",
         "type": "object"
       },
+      "SelectedItem": {
+        "properties": {
+          "id": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "is_folder": {
+            "default": false,
+            "title": "Is Folder",
+            "type": "boolean"
+          },
+          "name": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Name",
+            "type": "string"
+          },
+          "path": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "SelectedItem",
+        "type": "object"
+      },
       "SelfTestCheck": {
         "properties": {
           "detail": {
@@ -2220,6 +2709,31 @@
           "checks"
         ],
         "title": "SelfTestOut",
+        "type": "object"
+      },
+      "ServiceAccountInfo": {
+        "properties": {
+          "configured": {
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          }
+        },
+        "required": [
+          "email",
+          "configured"
+        ],
+        "title": "ServiceAccountInfo",
         "type": "object"
       },
       "SignupAccepted": {
@@ -2271,6 +2785,284 @@
           "password"
         ],
         "title": "SignupRequest",
+        "type": "object"
+      },
+      "SourceIn": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocType"
+              },
+              {
+                "const": "AUTO",
+                "type": "string"
+              }
+            ],
+            "default": "AUTO",
+            "title": "Doc Type"
+          },
+          "interval_minutes": {
+            "default": 360,
+            "maximum": 10080.0,
+            "minimum": 15.0,
+            "title": "Interval Minutes",
+            "type": "integer"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SelectedItem"
+            },
+            "maxItems": 200,
+            "title": "Items",
+            "type": "array"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConnectorKind"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "prefix": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prefix"
+          },
+          "sync_enabled": {
+            "default": false,
+            "title": "Sync Enabled",
+            "type": "boolean"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          }
+        },
+        "required": [
+          "kind",
+          "name"
+        ],
+        "title": "SourceIn",
+        "type": "object"
+      },
+      "SourceOut": {
+        "properties": {
+          "account_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "created_by_me": {
+            "title": "Created By Me",
+            "type": "boolean"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocType"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "document_count": {
+            "title": "Document Count",
+            "type": "integer"
+          },
+          "failure_count": {
+            "title": "Failure Count",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "interval_minutes": {
+            "title": "Interval Minutes",
+            "type": "integer"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ConnectorKind"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_result": {
+            "additionalProperties": true,
+            "title": "Last Result",
+            "type": "object"
+          },
+          "last_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Sync At"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "next_sync_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Sync At"
+          },
+          "selection": {
+            "additionalProperties": true,
+            "title": "Selection",
+            "type": "object"
+          },
+          "space_id": {
+            "format": "uuid",
+            "title": "Space Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SourceStatus"
+          },
+          "sync_enabled": {
+            "title": "Sync Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "space_id",
+          "account_id",
+          "kind",
+          "name",
+          "selection",
+          "doc_type",
+          "sync_enabled",
+          "interval_minutes",
+          "status",
+          "last_sync_at",
+          "next_sync_at",
+          "last_error",
+          "failure_count",
+          "last_result",
+          "document_count",
+          "created_by_me",
+          "created_at"
+        ],
+        "title": "SourceOut",
+        "type": "object"
+      },
+      "SourceStatus": {
+        "enum": [
+          "IDLE",
+          "SYNCING",
+          "ERROR"
+        ],
+        "title": "SourceStatus",
+        "type": "string"
+      },
+      "SourceUpdate": {
+        "properties": {
+          "interval_minutes": {
+            "anyOf": [
+              {
+                "maximum": 10080.0,
+                "minimum": 15.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interval Minutes"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "sync_enabled": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sync Enabled"
+          }
+        },
+        "title": "SourceUpdate",
         "type": "object"
       },
       "SpaceIn": {
@@ -2342,6 +3134,24 @@
           "is_mine"
         ],
         "title": "SpaceOut",
+        "type": "object"
+      },
+      "TestResult": {
+        "properties": {
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "ok": {
+            "title": "Ok",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "ok",
+          "detail"
+        ],
+        "title": "TestResult",
         "type": "object"
       },
       "TryRequest": {
@@ -4111,6 +4921,471 @@
         ]
       }
     },
+    "/api/connectors/accounts": {
+      "get": {
+        "operationId": "list_accounts_api_connectors_accounts_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AccountOut"
+                  },
+                  "title": "Response List Accounts Api Connectors Accounts Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Accounts",
+        "tags": [
+          "connectors"
+        ]
+      },
+      "post": {
+        "operationId": "create_account_api_connectors_accounts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "AZURE_BLOB": "#/components/schemas/AzureAccountIn",
+                    "S3_COMPATIBLE": "#/components/schemas/S3AccountIn"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/S3AccountIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AzureAccountIn"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Account",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/accounts/google-org": {
+      "post": {
+        "operationId": "create_google_org_account_api_connectors_accounts_google_org_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleOrgAccountIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Google Org Account",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/accounts/test": {
+      "post": {
+        "operationId": "try_new_account_api_connectors_accounts_test_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "discriminator": {
+                  "mapping": {
+                    "AZURE_BLOB": "#/components/schemas/AzureAccountIn",
+                    "S3_COMPATIBLE": "#/components/schemas/S3AccountIn"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/S3AccountIn"
+                  },
+                  {
+                    "$ref": "#/components/schemas/AzureAccountIn"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Try credentials without saving",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/accounts/{account_id}": {
+      "delete": {
+        "operationId": "delete_account_api_connectors_accounts__account_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Account",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/accounts/{account_id}/browse": {
+      "get": {
+        "operationId": "browse_api_connectors_accounts__account_id__browse_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "path",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 1000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Path"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 4000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BrowseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Browse",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/accounts/{account_id}/picker-token": {
+      "get": {
+        "description": "A short-lived access token for the Google Picker (drive.file scope, the user's own account only).",
+        "operationId": "picker_token_api_connectors_accounts__account_id__picker_token_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PickerTokenOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Picker Token",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/accounts/{account_id}/test": {
+      "post": {
+        "operationId": "check_account_api_connectors_accounts__account_id__test_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Account Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check Account",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/kinds": {
+      "get": {
+        "operationId": "list_kinds_api_connectors_kinds_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ConnectorKindOut"
+                  },
+                  "title": "Response List Kinds Api Connectors Kinds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Kinds",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/oauth/{provider}/start": {
+      "post": {
+        "operationId": "oauth_start_api_connectors_oauth__provider__start_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OAuthStartOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Oauth Start",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/connectors/service-account": {
+      "get": {
+        "description": "The email owners share Drive folders with for organization-wide sync.",
+        "operationId": "service_account_api_connectors_service_account_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceAccountInfo"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Service Account",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
     "/api/documents/{document_id}": {
       "delete": {
         "operationId": "delete_document_api_documents__document_id__delete",
@@ -4750,6 +6025,187 @@
         ]
       }
     },
+    "/api/sources/{source_id}": {
+      "delete": {
+        "operationId": "delete_source_api_sources__source_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "delete_documents",
+            "required": false,
+            "schema": {
+              "default": false,
+              "title": "Delete Documents",
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Source",
+        "tags": [
+          "connectors"
+        ]
+      },
+      "get": {
+        "operationId": "get_source_api_sources__source_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Source",
+        "tags": [
+          "connectors"
+        ]
+      },
+      "patch": {
+        "operationId": "update_source_api_sources__source_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Source",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
+    "/api/sources/{source_id}/sync": {
+      "post": {
+        "operationId": "sync_now_api_sources__source_id__sync_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "source_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Source Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Sync now",
+        "tags": [
+          "connectors"
+        ]
+      }
+    },
     "/api/spaces": {
       "get": {
         "operationId": "list_spaces_api_spaces_get",
@@ -5015,6 +6471,104 @@
         "summary": "Add Url",
         "tags": [
           "knowledge"
+        ]
+      }
+    },
+    "/api/spaces/{space_id}/sources": {
+      "get": {
+        "operationId": "list_sources_api_spaces__space_id__sources_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceOut"
+                  },
+                  "title": "Response List Sources Api Spaces  Space Id  Sources Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List Sources",
+        "tags": [
+          "connectors"
+        ]
+      },
+      "post": {
+        "operationId": "create_source_api_spaces__space_id__sources_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "space_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Space Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Source",
+        "tags": [
+          "connectors"
         ]
       }
     },

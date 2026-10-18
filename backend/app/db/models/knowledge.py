@@ -85,8 +85,10 @@ class Document(IdMixin, TimestampMixin, Base):
     org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
     space_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("knowledge_spaces.id", ondelete="CASCADE"))
     uploader_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
-    source_id: Mapped[uuid.UUID | None]
     source_url: Mapped[str | None] = mapped_column(String(2000))
+    source_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("connector_sources.id", ondelete="SET NULL"), index=True
+    )
     external_id: Mapped[str | None] = mapped_column(String(500))
     external_etag: Mapped[str | None] = mapped_column(String(200))
     title: Mapped[str] = mapped_column(String(300))

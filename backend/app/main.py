@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.admin import router as admin_router
 from app.api import health
 from app.auth import router as auth_router
+from app.connectors import router as connectors_router
 from app.core.config import Settings, get_settings
 from app.core.email import EmailSender
 from app.core.errors import register_exception_handlers
@@ -85,6 +86,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(llm_router.router)
     app.include_router(knowledge_router.router)
     app.include_router(knowledge_admin_router.router)
+    app.include_router(connectors_router.router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

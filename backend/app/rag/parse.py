@@ -92,6 +92,7 @@ _EXTENSIONS = {
     "webp": "image/webp",
 }
 SUPPORTED_MIME = frozenset(_EXTENSIONS.values())
+SUPPORTED_EXTENSIONS = frozenset(_EXTENSIONS)
 
 
 def detect_mime(data: bytes, filename: str | None) -> str:

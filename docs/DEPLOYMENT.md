@@ -80,10 +80,11 @@ role has it; on others, use the provider's admin role to `ALTER ROLE app_owner B
 | `S3_ENDPOINT_URL`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`, `S3_REGION` | Cloudflare R2 → API token with Object Read & Write (region `auto`) | Yes |
 | `OWNER_BOOTSTRAP_EMAIL` | Your email | Yes (first run) |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Any SMTP (e.g. a transactional email provider's free tier) | For invites and approvals |
+| `GOOGLE_PICKER_API_KEY` | Google Cloud → Credentials → API key restricted to the Picker API and your app's HTTP referrer (same value as `NEXT_PUBLIC_GOOGLE_PICKER_API_KEY`) | Google Drive Picker |
 | `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` | Google Cloud Console → APIs & Services → Credentials → OAuth client (Web). Enable **Google Drive API** and **Google Picker API**. Redirect URI `https://api.example.com/api/connectors/oauth/google/callback` (and `/api/auth/oidc/google/callback` for SSO). Scope: `drive.file` | Google Drive / SSO |
-| `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` | Google Cloud → IAM → Service accounts → key (JSON), base64-encoded; share the owner's Drive folder with the SA email | Owner org-wide Drive sync |
-| `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_TENANT` | Microsoft Entra → App registrations; redirect `https://api.example.com/api/connectors/oauth/msgraph/callback` | OneDrive/SharePoint |
-| `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` | Dropbox App Console | Dropbox |
+| `GOOGLE_SERVICE_ACCOUNT_JSON_BASE64` | Google Cloud → IAM → Service accounts → key (JSON), base64-encoded. In the app, Admin → Spaces → *Organization Google Drive* shows the SA email: share the folders with it (Viewer) and register their folder ids | Owner org-wide Drive sync |
+| `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `MS_TENANT` | Microsoft Entra → App registrations; redirect `https://api.example.com/api/connectors/oauth/microsoft/callback`; delegated permissions `Files.Read.All`, `Sites.Read.All`, `User.Read`, `offline_access` | OneDrive/SharePoint |
+| `DROPBOX_APP_KEY`, `DROPBOX_APP_SECRET` | Dropbox App Console (scoped app; permissions `account_info.read`, `files.metadata.read`, `files.content.read`); redirect `https://api.example.com/api/connectors/oauth/dropbox/callback` | Dropbox |
 | `TURN_URLS`, `TURN_USERNAME`, `TURN_CREDENTIAL` (or `TURN_SHARED_SECRET` for coturn REST auth) | Self-host coturn on a VM with a public IP (UDP 3478 + relay ports), or a managed TURN provider | Voice behind corporate NATs |
 | `GROQ_API_KEY` | console.groq.com | Only if STT uses Groq |
 | `LANGFUSE_*`, `OTEL_EXPORTER_OTLP_ENDPOINT` | Self-hosted or cloud | Optional |

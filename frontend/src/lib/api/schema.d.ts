@@ -509,6 +509,183 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/connectors/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Accounts */
+        get: operations["list_accounts_api_connectors_accounts_get"];
+        put?: never;
+        /** Create Account */
+        post: operations["create_account_api_connectors_accounts_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/accounts/google-org": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Create Google Org Account */
+        post: operations["create_google_org_account_api_connectors_accounts_google_org_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/accounts/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Try credentials without saving */
+        post: operations["try_new_account_api_connectors_accounts_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/accounts/{account_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Account */
+        delete: operations["delete_account_api_connectors_accounts__account_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/accounts/{account_id}/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Browse */
+        get: operations["browse_api_connectors_accounts__account_id__browse_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/accounts/{account_id}/picker-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Picker Token
+         * @description A short-lived access token for the Google Picker (drive.file scope, the user's own account only).
+         */
+        get: operations["picker_token_api_connectors_accounts__account_id__picker_token_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/accounts/{account_id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Check Account */
+        post: operations["check_account_api_connectors_accounts__account_id__test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/kinds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Kinds */
+        get: operations["list_kinds_api_connectors_kinds_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/oauth/{provider}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Oauth Start */
+        post: operations["oauth_start_api_connectors_oauth__provider__start_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/connectors/service-account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Service Account
+         * @description The email owners share Drive folders with for organization-wide sync.
+         */
+        get: operations["service_account_api_connectors_service_account_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -734,6 +911,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sources/{source_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Source */
+        get: operations["get_source_api_sources__source_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Source */
+        delete: operations["delete_source_api_sources__source_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Source */
+        patch: operations["update_source_api_sources__source_id__patch"];
+        trace?: never;
+    };
+    "/api/sources/{source_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync now */
+        post: operations["sync_now_api_sources__source_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/spaces": {
         parameters: {
             query?: never;
@@ -804,6 +1017,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/spaces/{space_id}/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sources */
+        get: operations["list_sources_api_spaces__space_id__sources_get"];
+        put?: never;
+        /** Create Source */
+        post: operations["create_source_api_spaces__space_id__sources_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/system/selftest": {
         parameters: {
             query?: never;
@@ -868,6 +1099,38 @@ export interface components {
             /** Token */
             token: string;
         };
+        /** AccountOut */
+        AccountOut: {
+            /** Config */
+            config: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ConnectorKind"];
+            /** Last Error */
+            last_error: string | null;
+            /** Last Validated At */
+            last_validated_at: string | null;
+            /** Name */
+            name: string;
+            /** Org Level */
+            org_level: boolean;
+            status: components["schemas"]["AccountStatus"];
+        };
+        /**
+         * AccountStatus
+         * @enum {string}
+         */
+        AccountStatus: "OK" | "ERROR";
         /** AdminUserOut */
         AdminUserOut: {
             /**
@@ -931,6 +1194,35 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** AzureAccountIn */
+        AzureAccountIn: {
+            /** Connection String */
+            connection_string?: string | null;
+            /**
+             * Container
+             * @description Needed with a connection string
+             */
+            container?: string | null;
+            /** Container Sas Url */
+            container_sas_url?: string | null;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "AZURE_BLOB";
+            /** Name */
+            name: string;
+            /**
+             * Org Level
+             * @default false
+             */
+            org_level?: boolean;
+            /**
+             * Root Prefix
+             * @default
+             */
+            root_prefix?: string;
+        };
         /** Body_upload_documents_api_spaces__space_id__documents_post */
         Body_upload_documents_api_spaces__space_id__documents_post: {
             /**
@@ -943,6 +1235,13 @@ export interface components {
              * @description One or more files (zip archives are unpacked)
              */
             files: string[];
+        };
+        /** BrowseOut */
+        BrowseOut: {
+            /** Items */
+            items: components["schemas"]["RemoteItemOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
         };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
@@ -966,6 +1265,28 @@ export interface components {
             section_path: string[];
             /** Title */
             title: string;
+        };
+        /**
+         * ConnectorKind
+         * @enum {string}
+         */
+        ConnectorKind: "GOOGLE_DRIVE" | "GOOGLE_DRIVE_ORG" | "S3_COMPATIBLE" | "AZURE_BLOB" | "MS_GRAPH" | "DROPBOX" | "URL";
+        /** ConnectorKindOut */
+        ConnectorKindOut: {
+            /**
+             * Auth
+             * @enum {string}
+             */
+            auth: "oauth" | "credentials" | "service_account" | "none";
+            /** Available */
+            available: boolean;
+            kind: components["schemas"]["ConnectorKind"];
+            /** Label */
+            label: string;
+            /** Owners Only */
+            owners_only: boolean;
+            /** Reason */
+            reason: string | null;
         };
         /** CsrfResponse */
         CsrfResponse: {
@@ -1065,6 +1386,19 @@ export interface components {
             max_tokens?: number | null;
             /** Temperature */
             temperature?: number | null;
+        };
+        /** GoogleOrgAccountIn */
+        GoogleOrgAccountIn: {
+            /**
+             * Name
+             * @default Organization Google Drive
+             */
+            name?: string;
+            /**
+             * Root Folder Ids
+             * @description Folders shared with the service account
+             */
+            root_folder_ids: string[];
         };
         /** GrantIn */
         GrantIn: {
@@ -1225,6 +1559,11 @@ export interface components {
             /** Models */
             models: string[];
         };
+        /** OAuthStartOut */
+        OAuthStartOut: {
+            /** Authorize Url */
+            authorize_url: string;
+        };
         /** OrgOut */
         OrgOut: {
             /**
@@ -1309,6 +1648,15 @@ export interface components {
          * @enum {string}
          */
         Permission: "READ" | "CONTRIBUTE";
+        /** PickerTokenOut */
+        PickerTokenOut: {
+            /** Access Token */
+            access_token: string;
+            /** Client Id */
+            client_id: string | null;
+            /** Developer Key */
+            developer_key: string | null;
+        };
         /** PolicyOut */
         PolicyOut: {
             /** Allowed Llm Profile Ids */
@@ -1566,6 +1914,21 @@ export interface components {
             /** Reason */
             reason: string;
         };
+        /** RemoteItemOut */
+        RemoteItemOut: {
+            /** Id */
+            id: string;
+            /** Is Folder */
+            is_folder: boolean;
+            /** Modified */
+            modified: string | null;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Size */
+            size: number | null;
+        };
         /**
          * Role
          * @enum {string}
@@ -1600,6 +1963,48 @@ export interface components {
              * @enum {string}
              */
             scope: "personal" | "org";
+        };
+        /** S3AccountIn */
+        S3AccountIn: {
+            /** Access Key */
+            access_key?: string | null;
+            /** Bucket */
+            bucket: string;
+            /**
+             * Endpoint Url
+             * @description Empty for AWS S3
+             */
+            endpoint_url?: string | null;
+            /**
+             * Force Path Style
+             * @default true
+             */
+            force_path_style?: boolean;
+            /**
+             * @description discriminator enum property added by openapi-typescript
+             * @enum {string}
+             */
+            kind: "S3_COMPATIBLE";
+            /** Name */
+            name: string;
+            /**
+             * Org Level
+             * @default false
+             */
+            org_level?: boolean;
+            /**
+             * Region
+             * @default us-east-1
+             */
+            region?: string;
+            /**
+             * Root Prefix
+             * @description Only this prefix is ever listed or read
+             * @default
+             */
+            root_prefix?: string;
+            /** Secret Key */
+            secret_key?: string | null;
         };
         /** SearchHit */
         SearchHit: {
@@ -1642,6 +2047,26 @@ export interface components {
             /** Searched Spaces */
             searched_spaces: number;
         };
+        /** SelectedItem */
+        SelectedItem: {
+            /** Id */
+            id: string;
+            /**
+             * Is Folder
+             * @default false
+             */
+            is_folder?: boolean;
+            /**
+             * Name
+             * @default
+             */
+            name?: string;
+            /**
+             * Path
+             * @default
+             */
+            path?: string;
+        };
         /** SelfTestCheck */
         SelfTestCheck: {
             /** Detail */
@@ -1657,6 +2082,13 @@ export interface components {
             checks: components["schemas"]["SelfTestCheck"][];
             /** Ok */
             ok: boolean;
+        };
+        /** ServiceAccountInfo */
+        ServiceAccountInfo: {
+            /** Configured */
+            configured: boolean;
+            /** Email */
+            email: string | null;
         };
         /** SignupAccepted */
         SignupAccepted: {
@@ -1682,6 +2114,98 @@ export interface components {
             org_slug: string;
             /** Password */
             password: string;
+        };
+        /** SourceIn */
+        SourceIn: {
+            /** Account Id */
+            account_id?: string | null;
+            /**
+             * Doc Type
+             * @default AUTO
+             */
+            doc_type?: components["schemas"]["DocType"] | "AUTO";
+            /**
+             * Interval Minutes
+             * @default 360
+             */
+            interval_minutes?: number;
+            /** Items */
+            items?: components["schemas"]["SelectedItem"][];
+            kind: components["schemas"]["ConnectorKind"];
+            /** Name */
+            name: string;
+            /** Prefix */
+            prefix?: string | null;
+            /**
+             * Sync Enabled
+             * @default false
+             */
+            sync_enabled?: boolean;
+            /** Url */
+            url?: string | null;
+        };
+        /** SourceOut */
+        SourceOut: {
+            /** Account Id */
+            account_id: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By Me */
+            created_by_me: boolean;
+            doc_type: components["schemas"]["DocType"] | null;
+            /** Document Count */
+            document_count: number;
+            /** Failure Count */
+            failure_count: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Interval Minutes */
+            interval_minutes: number;
+            kind: components["schemas"]["ConnectorKind"];
+            /** Last Error */
+            last_error: string | null;
+            /** Last Result */
+            last_result: {
+                [key: string]: unknown;
+            };
+            /** Last Sync At */
+            last_sync_at: string | null;
+            /** Name */
+            name: string;
+            /** Next Sync At */
+            next_sync_at: string | null;
+            /** Selection */
+            selection: {
+                [key: string]: unknown;
+            };
+            /**
+             * Space Id
+             * Format: uuid
+             */
+            space_id: string;
+            status: components["schemas"]["SourceStatus"];
+            /** Sync Enabled */
+            sync_enabled: boolean;
+        };
+        /**
+         * SourceStatus
+         * @enum {string}
+         */
+        SourceStatus: "IDLE" | "SYNCING" | "ERROR";
+        /** SourceUpdate */
+        SourceUpdate: {
+            /** Interval Minutes */
+            interval_minutes?: number | null;
+            /** Name */
+            name?: string | null;
+            /** Sync Enabled */
+            sync_enabled?: boolean | null;
         };
         /** SpaceIn */
         SpaceIn: {
@@ -1715,6 +2239,13 @@ export interface components {
             /** Name */
             name: string;
             permission: components["schemas"]["Permission"];
+        };
+        /** TestResult */
+        TestResult: {
+            /** Detail */
+            detail: string;
+            /** Ok */
+            ok: boolean;
         };
         /** TryRequest */
         TryRequest: {
@@ -2913,6 +3444,321 @@ export interface operations {
             };
         };
     };
+    list_accounts_api_connectors_accounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOut"][];
+                };
+            };
+        };
+    };
+    create_account_api_connectors_accounts_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["S3AccountIn"] | components["schemas"]["AzureAccountIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_google_org_account_api_connectors_accounts_google_org_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GoogleOrgAccountIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    try_new_account_api_connectors_accounts_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["S3AccountIn"] | components["schemas"]["AzureAccountIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_account_api_connectors_accounts__account_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    browse_api_connectors_accounts__account_id__browse_get: {
+        parameters: {
+            query?: {
+                path?: string | null;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrowseOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    picker_token_api_connectors_accounts__account_id__picker_token_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PickerTokenOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_account_api_connectors_accounts__account_id__test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                account_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_kinds_api_connectors_kinds_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ConnectorKindOut"][];
+                };
+            };
+        };
+    };
+    oauth_start_api_connectors_oauth__provider__start_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OAuthStartOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    service_account_api_connectors_service_account_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServiceAccountInfo"];
+                };
+            };
+        };
+    };
     get_document_api_documents__document_id__get: {
         parameters: {
             query?: never;
@@ -3408,6 +4254,134 @@ export interface operations {
             };
         };
     };
+    get_source_api_sources__source_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_source_api_sources__source_id__delete: {
+        parameters: {
+            query?: {
+                delete_documents?: boolean;
+            };
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_source_api_sources__source_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_now_api_sources__source_id__sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                source_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_spaces_api_spaces_get: {
         parameters: {
             query?: never;
@@ -3584,6 +4558,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DocumentOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sources_api_spaces__space_id__sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_source_api_spaces__space_id__sources_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                space_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"];
                 };
             };
             /** @description Validation Error */

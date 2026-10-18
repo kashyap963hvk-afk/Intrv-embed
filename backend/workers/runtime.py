@@ -13,16 +13,21 @@ from typing import Any
 
 import httpx
 
+from app.connectors.sync import SyncDeps, connector_clients_for
 from app.core.config import get_settings
+from app.core.email import EmailSender
+from app.core.keyring import Keyring
 from app.core.resources import create_s3_client
 from app.core.ssrf import create_http_client
 from app.db.session import create_engine, create_session_factory
+from app.knowledge.dispatch import CeleryDispatcher
 from app.knowledge.ingest import IngestDeps
 from app.knowledge.storage import ObjectStorage
 from app.rag.engine import RagEngine
 
 _loop: asyncio.AbstractEventLoop | None = None
 _deps: IngestDeps | None = None
+_sync: SyncDeps | None = None
 
 
 def _event_loop() -> asyncio.AbstractEventLoop:
@@ -53,3 +58,20 @@ def ingest_deps() -> IngestDeps:
             public_http=create_http_client(allow_private=settings.allow_private_llm_endpoints),
         )
     return _deps
+
+
+def sync_deps() -> SyncDeps:
+    global _sync  # noqa: PLW0603 - process-wide, like ingest_deps()
+    if _sync is None:
+        from celery import current_app  # noqa: PLC0415
+
+        ingest = ingest_deps()
+        settings = ingest.settings
+        _sync = SyncDeps(
+            ingest=ingest,
+            clients=connector_clients_for(settings, ingest.public_http),
+            keyring=Keyring(settings.master_key),
+            dispatcher=CeleryDispatcher(current_app),
+            mailer=EmailSender(settings),
+        )
+    return _sync

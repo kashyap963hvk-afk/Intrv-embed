@@ -54,12 +54,14 @@ class ObjectStorage:
             )
         )
 
-    async def delete_prefix(self, prefix: str) -> int:
+    async def delete_prefix(self, prefix: str, *, keep: frozenset[str] = frozenset()) -> int:
+        """Delete every object under `prefix` except the keys in `keep`."""
+
         def run() -> int:
             deleted = 0
             paginator = self._client.get_paginator("list_objects_v2")
             for page in paginator.paginate(Bucket=self._bucket, Prefix=prefix):
-                keys = [{"Key": obj["Key"]} for obj in page.get("Contents", [])]
+                keys = [{"Key": obj["Key"]} for obj in page.get("Contents", []) if obj["Key"] not in keep]
                 if keys:
                     self._client.delete_objects(Bucket=self._bucket, Delete={"Objects": keys})  # type: ignore[typeddict-item]
                     deleted += len(keys)

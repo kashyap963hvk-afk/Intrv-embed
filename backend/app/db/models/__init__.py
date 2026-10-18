@@ -1,6 +1,13 @@
 """All ORM models; importing this package registers every table on `Base.metadata`."""
 
 from app.db.models.audit import AuditLog
+from app.db.models.connectors import (
+    AccountStatus,
+    ConnectorAccount,
+    ConnectorKind,
+    ConnectorSource,
+    SourceStatus,
+)
 from app.db.models.identity import (
     Group,
     GroupMember,
@@ -36,9 +43,13 @@ from app.db.models.llm import (
 )
 
 __all__ = [
+    "AccountStatus",
     "AgentRole",
     "AuditLog",
     "ChunkKind",
+    "ConnectorAccount",
+    "ConnectorKind",
+    "ConnectorSource",
     "DocStatus",
     "DocType",
     "Document",
@@ -57,6 +68,7 @@ __all__ = [
     "QualityTier",
     "RefreshToken",
     "Role",
+    "SourceStatus",
     "SpaceGrant",
     "SpaceKind",
     "UsageEvent",

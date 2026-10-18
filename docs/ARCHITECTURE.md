@@ -617,9 +617,12 @@ Owner       GET/PATCH /api/admin/users ; POST /api/admin/users/{id}/approve|susp
 Spaces      GET /api/spaces (mine + granted) ; GET /api/spaces/{id}/documents
 Documents   POST /api/spaces/{id}/documents (multipart) ; POST /api/spaces/{id}/documents/url ; POST .../paste
             GET/DELETE /api/documents/{id} ; GET /api/documents/{id}/download (presigned) ; POST /api/documents/{id}/reindex
-Connectors  GET /api/connectors/kinds ; POST /api/connectors/accounts ; GET /api/connectors/oauth/{kind}/start|callback
-            GET /api/connectors/accounts/{id}/browse?path=&cursor= ; POST /api/connectors/accounts/{id}/import
-            CRUD /api/connectors/sources ; POST /api/connectors/sources/{id}/sync
+Connectors  GET /api/connectors/kinds ; GET/POST /api/connectors/accounts ; POST /api/connectors/accounts/test
+            POST /api/connectors/accounts/{id}/test ; DELETE /api/connectors/accounts/{id}
+            GET /api/connectors/accounts/{id}/browse?path=&cursor= ; GET /api/connectors/accounts/{id}/picker-token
+            POST /api/connectors/oauth/{google|microsoft|dropbox}/start ; GET .../callback
+            GET /api/connectors/service-account ; POST /api/connectors/accounts/google-org (owner)
+            GET/POST /api/spaces/{id}/sources ; GET/PATCH/DELETE /api/sources/{id} ; POST /api/sources/{id}/sync
 Search      POST /api/search (debug/RAG playground; ACL enforced)
 LLM         GET /api/llm/presets ; CRUD /api/llm/profiles ; POST /api/llm/profiles/{id}/probe ; GET /api/llm/profiles/{id}/models
             GET/PUT /api/llm/routes ; POST /api/bridge/pair ; WS /api/bridge/connect ; GET /api/bridge/devices

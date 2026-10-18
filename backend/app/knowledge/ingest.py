@@ -16,13 +16,14 @@ from redis.asyncio import Redis
 from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
+from app.connectors.base import ConnectorError
+from app.connectors.url import download_url
 from app.core.config import Settings
 from app.core.logging import get_logger
-from app.core.ssrf import UnsafeURLError
 from app.db.models import ChunkKind, DocStatus, Document, DocumentChunk, User
 from app.db.tenant import TenantContext, set_tenant_context
 from app.knowledge.events import publish_document_status
-from app.knowledge.storage import ObjectStorage, object_key
+from app.knowledge.storage import ObjectStorage, document_prefix, object_key
 from app.rag.chunk import chunk_document, embedding_text
 from app.rag.engine import RagEngine
 from app.rag.parse import ParseError, detect_mime, parse_document
@@ -30,8 +31,6 @@ from app.rag.sparse import encode_document
 from app.rag.store import ChunkPoint
 
 log = get_logger("app.ingest")
-
-MAX_URL_BYTES = 25 * 1024 * 1024
 
 
 @dataclass
@@ -61,23 +60,9 @@ async def _set_status(
 
 async def _fetch_url(deps: IngestDeps, url: str) -> tuple[bytes, str | None]:
     try:
-        async with deps.public_http.stream("GET", url, follow_redirects=False, timeout=30) as response:
-            if response.status_code in {301, 302, 303, 307, 308}:
-                raise IngestError("The URL redirects; paste the final address instead.")
-            if response.status_code >= 400:  # noqa: PLR2004
-                raise IngestError(f"The URL returned HTTP {response.status_code}.")
-            chunks: list[bytes] = []
-            size = 0
-            async for chunk in response.aiter_bytes():
-                size += len(chunk)
-                if size > MAX_URL_BYTES:
-                    raise IngestError("The page is larger than 25 MB.")
-                chunks.append(chunk)
-            return b"".join(chunks), response.headers.get("content-type")
-    except UnsafeURLError as exc:
-        raise IngestError(exc.detail or "This URL is not allowed.") from exc
-    except httpx2.HTTPError as exc:
-        raise IngestError(f"Could not download the URL ({type(exc).__name__}).") from exc
+        return await download_url(deps.public_http, url)
+    except ConnectorError as exc:
+        raise IngestError(exc.detail or "The URL could not be downloaded.") from exc
 
 
 async def _load_bytes(deps: IngestDeps, db: AsyncSession, doc: Document) -> bytes:
@@ -204,6 +189,11 @@ async def ingest_document(
             data = await _load_bytes(deps, db, doc)
             await _index(deps, db, doc, data)
             await _set_status(deps, db, doc, DocStatus.READY)
+            if doc.version > 1 and doc.storage_key:
+                # A synced file changed: the new version is live, so earlier versions' originals can go.
+                await deps.storage.delete_prefix(
+                    document_prefix(doc.org_id, doc.space_id, doc.id), keep=frozenset({doc.storage_key})
+                )
             log.info("ingest.ready", document_id=str(doc.id), chunks=doc.chunk_count, pages=doc.page_count)
         except IngestError as exc:
             await db.rollback()
