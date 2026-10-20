@@ -1,12 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { api, type Schemas } from "@/lib/api/client";
 import { unwrap } from "@/lib/api/problem";
-import { env } from "@/lib/env";
+import { useEventStream, type EventStreamHandlers } from "@/lib/event-stream";
 import {
   applyStatusEvent,
   buildUploadForm,
@@ -225,68 +224,35 @@ export function useSelfTest() {
 
 // --- live document status --------------------------------------------------------------------------------------
 
-const RECONNECT_DELAYS_MS = [2_000, 5_000, 15_000, 30_000];
-
 /**
- * Subscribe to `/api/events` while mounted and fold `document.status` events into the documents cache of the
- * event's space. The server only sends events for spaces this user can read. When the stream fails for good
- * (for example an expired session), the session is refreshed through the API client and the stream reopened,
- * and documents are refetched to pick up anything missed meanwhile.
+ * Fold `document.status` events into the documents cache of the event's space. The server only sends events for
+ * spaces this user can read. After a dropped stream, documents and sources are refetched.
  */
-export function useDocumentEvents() {
-  const queryClient = useQueryClient();
-
-  useEffect(() => {
-    if (typeof EventSource === "undefined") return;
-    let source: EventSource | null = null;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let failures = 0;
-    let closed = false;
-
-    const onStatus = (message: MessageEvent<string>) => {
-      const event = parseDocumentStatusEvent(message.data);
-      if (!event) return;
-      const key = knowledgeKeys.documents(event.space_id);
-      const cached = queryClient.getQueryData<KnowledgeDocument[]>(key);
-      queryClient.setQueryData<KnowledgeDocument[]>(key, (docs) => applyStatusEvent(docs, event));
-      if (needsRefetch(cached, event)) {
-        void queryClient.invalidateQueries({ queryKey: key });
-        void queryClient.invalidateQueries({ queryKey: knowledgeKeys.spaces });
-        // A synced source's document count and last result change as its documents arrive.
-        void queryClient.invalidateQueries({ queryKey: knowledgeKeys.sources(event.space_id) });
-      }
-    };
-
-    const connect = () => {
-      source = new EventSource(`${env.apiBaseUrl}/api/events`, { withCredentials: true });
-      source.addEventListener("document.status", onStatus);
-      source.onopen = () => {
-        if (failures > 0) {
-          void queryClient.invalidateQueries({ queryKey: ["knowledge", "documents"] });
-          void queryClient.invalidateQueries({ queryKey: ["knowledge", "sources"] });
+function documentEventHandlers(queryClient: QueryClient): EventStreamHandlers {
+  return {
+    listeners: {
+      "document.status": (data) => {
+        const event = parseDocumentStatusEvent(data);
+        if (!event) return;
+        const key = knowledgeKeys.documents(event.space_id);
+        const cached = queryClient.getQueryData<KnowledgeDocument[]>(key);
+        queryClient.setQueryData<KnowledgeDocument[]>(key, (docs) => applyStatusEvent(docs, event));
+        if (needsRefetch(cached, event)) {
+          void queryClient.invalidateQueries({ queryKey: key });
+          void queryClient.invalidateQueries({ queryKey: knowledgeKeys.spaces });
+          // A synced source's document count and last result change as its documents arrive.
+          void queryClient.invalidateQueries({ queryKey: knowledgeKeys.sources(event.space_id) });
         }
-        failures = 0;
-      };
-      source.onerror = () => {
-        // The browser retries transient drops itself; CLOSED means it gave up (e.g. HTTP 401).
-        if (!source || source.readyState !== EventSource.CLOSED || closed) return;
-        source.close();
-        const delay = RECONNECT_DELAYS_MS[Math.min(failures, RECONNECT_DELAYS_MS.length - 1)];
-        failures += 1;
-        timer = setTimeout(() => {
-          // Any authenticated call refreshes an expired session before the stream reconnects.
-          void api.GET("/api/auth/me").finally(() => {
-            if (!closed) connect();
-          });
-        }, delay);
-      };
-    };
+      },
+    },
+    resync: () => {
+      void queryClient.invalidateQueries({ queryKey: ["knowledge", "documents"] });
+      void queryClient.invalidateQueries({ queryKey: ["knowledge", "sources"] });
+    },
+  };
+}
 
-    connect();
-    return () => {
-      closed = true;
-      if (timer) clearTimeout(timer);
-      source?.close();
-    };
-  }, [queryClient]);
+/** Live document status over `/api/events` while mounted. */
+export function useDocumentEvents() {
+  useEventStream(documentEventHandlers);
 }

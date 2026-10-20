@@ -7,6 +7,7 @@ import { api, type Schemas } from "@/lib/api/client";
 import { unwrap } from "@/lib/api/problem";
 
 export type Preset = Schemas["PresetOut"];
+// Two backend models are named ProfileOut, so the generated schema qualifies them by module.
 export type Profile = Schemas["ProfileOut"];
 export type AgentRole = Schemas["AgentRole"];
 export type Routes = Schemas["RoutesOut"];

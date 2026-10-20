@@ -35,7 +35,7 @@ class ContactOut(BaseModel):
     links: list[str] = []
 
 
-class ProfileOut(BaseModel):
+class CandidateProfileOut(BaseModel):
     id: uuid.UUID
     document_id: uuid.UUID
     document_version: int
@@ -53,9 +53,9 @@ class MatchIn(BaseModel):
     role_pack_id: uuid.UUID
 
 
-async def _out(resources: ResourcesDep, db: DbSession, profile: CandidateProfile) -> ProfileOut:
+async def _out(resources: ResourcesDep, db: DbSession, profile: CandidateProfile) -> CandidateProfileOut:
     pii = await service.decrypt_pii(resources.agent_deps, db, profile)
-    return ProfileOut(
+    return CandidateProfileOut(
         id=profile.id,
         document_id=profile.document_id,
         document_version=profile.document_version,
@@ -75,8 +75,8 @@ async def _profile(db: DbSession, principal: Principal, profile_id: uuid.UUID) -
     return profile
 
 
-@router.post("/analyze", response_model=ProfileOut, summary="Extract a structured, blind-scorable profile from a CV")
-async def analyze(body: AnalyzeIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> ProfileOut:
+@router.post("/analyze", response_model=CandidateProfileOut, summary="Extract a structured, blind-scorable profile from a CV")
+async def analyze(body: AnalyzeIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> CandidateProfileOut:
     profile = await service.analyze_cv(
         resources.agent_deps,
         db,
@@ -88,10 +88,10 @@ async def analyze(body: AnalyzeIn, principal: ActiveMember, db: DbSession, resou
     return await _out(resources, db, profile)
 
 
-@router.get("/profiles", response_model=list[ProfileOut])
+@router.get("/profiles", response_model=list[CandidateProfileOut])
 async def list_profiles(
     principal: ActiveMember, db: DbSession, resources: ResourcesDep, document_id: uuid.UUID | None = None
-) -> list[ProfileOut]:
+) -> list[CandidateProfileOut]:
     query = select(CandidateProfile).where(CandidateProfile.owner_user_id == principal.user_id)
     if document_id is not None:
         query = query.where(CandidateProfile.document_id == document_id)
@@ -99,10 +99,10 @@ async def list_profiles(
     return [await _out(resources, db, p) for p in profiles]
 
 
-@router.get("/profiles/{profile_id}", response_model=ProfileOut)
+@router.get("/profiles/{profile_id}", response_model=CandidateProfileOut)
 async def get_profile(
     profile_id: uuid.UUID, principal: ActiveMember, db: DbSession, resources: ResourcesDep
-) -> ProfileOut:
+) -> CandidateProfileOut:
     return await _out(resources, db, await _profile(db, principal, profile_id))
 
 

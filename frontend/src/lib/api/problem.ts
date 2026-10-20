@@ -6,7 +6,8 @@ export interface Problem {
   detail?: string;
   request_id?: string | null;
   errors?: { loc: (string | number)[]; msg: string }[];
-  problems?: string[];
+  /** Weak-password reasons (strings) or role pack spec problems ({path, message}). */
+  problems?: (string | { path: string; message: string })[];
   organizations?: { slug: string; name: string }[];
   [key: string]: unknown;
 }

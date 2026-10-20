@@ -1610,6 +1610,39 @@ export interface components {
             /** Yaml */
             yaml: string | null;
         };
+        /** CandidateProfileOut */
+        CandidateProfileOut: {
+            /** Blind Summary */
+            blind_summary: string;
+            contact: components["schemas"]["ContactOut"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Document Version */
+            document_version: number;
+            /** Domain Tags */
+            domain_tags: string[];
+            /** Evidence Index */
+            evidence_index: {
+                [key: string]: string;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Structured */
+            structured: {
+                [key: string]: unknown;
+            };
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
@@ -2097,6 +2130,44 @@ export interface components {
              * @default true
              */
             block_training_providers_for_pii?: boolean;
+            /**
+             * Company Facts
+             * @description Facts the interviewer may share when candidates ask about the company or role.
+             * @default
+             */
+            company_facts?: string;
+            /**
+             * Consent Contact
+             * @description Who candidates contact about their data or to request a human.
+             * @default
+             */
+            consent_contact?: string;
+            /** Forbidden Topics */
+            forbidden_topics?: string[];
+            /**
+             * Integrity Mode
+             * @description Default interview integrity monitoring (templates may override).
+             * @default STANDARD
+             * @enum {string}
+             */
+            integrity_mode?: "OFF" | "STANDARD" | "STRICT";
+            /**
+             * Integrity Reminder
+             * @description Neutral reminder the interviewer may give once per section when signals appear.
+             * @default Please keep this window in focus and answer from your own experience.
+             */
+            integrity_reminder?: string;
+            /**
+             * Interview Tone
+             * @description Org-wide tone guidance for the AI interviewer (L1).
+             * @default
+             */
+            interview_tone?: string;
+            /**
+             * Retention Days
+             * @default 180
+             */
+            retention_days?: number;
         };
         /** OrgSettingsOut */
         OrgSettingsOut: {
@@ -2328,6 +2399,59 @@ export interface components {
              * @description Owners only: override the preset (e.g. a paid tier with a no-training agreement).
              */
             trains_on_data?: boolean | null;
+        };
+        /** ProfileOut */
+        ProfileOut: {
+            /** Api Key Last4 */
+            api_key_last4: string | null;
+            /** Base Url */
+            base_url: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Has Api Key */
+            has_api_key: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ProviderKind"];
+            /** Last Error */
+            last_error: string | null;
+            /** Last Probe At */
+            last_probe_at: string | null;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /** Owned By Me */
+            owned_by_me: boolean;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Preset Key */
+            preset_key: string | null;
+            quality_tier: components["schemas"]["QualityTier"] | null;
+            /** Rpd Limit */
+            rpd_limit: number | null;
+            /** Rpm Limit */
+            rpm_limit: number | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "personal" | "org";
+            status: components["schemas"]["ProfileStatus"];
+            /** Trains On Data */
+            trains_on_data: boolean | null;
         };
         /**
          * ProfileStatus
@@ -3057,92 +3181,6 @@ export interface components {
             created_by: string | null;
             /** Version */
             version: number;
-        };
-        /** ProfileOut */
-        app__cv__router__ProfileOut: {
-            /** Blind Summary */
-            blind_summary: string;
-            contact: components["schemas"]["ContactOut"];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /**
-             * Document Id
-             * Format: uuid
-             */
-            document_id: string;
-            /** Document Version */
-            document_version: number;
-            /** Domain Tags */
-            domain_tags: string[];
-            /** Evidence Index */
-            evidence_index: {
-                [key: string]: string;
-            };
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            /** Structured */
-            structured: {
-                [key: string]: unknown;
-            };
-        };
-        /** ProfileOut */
-        app__llm__schemas__ProfileOut: {
-            /** Api Key Last4 */
-            api_key_last4: string | null;
-            /** Base Url */
-            base_url: string | null;
-            /** Capabilities */
-            capabilities: {
-                [key: string]: unknown;
-            };
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Has Api Key */
-            has_api_key: boolean;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            kind: components["schemas"]["ProviderKind"];
-            /** Last Error */
-            last_error: string | null;
-            /** Last Probe At */
-            last_probe_at: string | null;
-            /** Model */
-            model: string;
-            /** Name */
-            name: string;
-            /** Owned By Me */
-            owned_by_me: boolean;
-            /** Params */
-            params: {
-                [key: string]: unknown;
-            };
-            /** Preset Key */
-            preset_key: string | null;
-            quality_tier: components["schemas"]["QualityTier"] | null;
-            /** Rpd Limit */
-            rpd_limit: number | null;
-            /** Rpm Limit */
-            rpm_limit: number | null;
-            /**
-             * Scope
-             * @enum {string}
-             */
-            scope: "personal" | "org";
-            status: components["schemas"]["ProfileStatus"];
-            /** Trains On Data */
-            trains_on_data: boolean | null;
         };
     };
     responses: never;
@@ -4597,7 +4635,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__cv__router__ProfileOut"];
+                    "application/json": components["schemas"]["CandidateProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -4661,7 +4699,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__cv__router__ProfileOut"][];
+                    "application/json": components["schemas"]["CandidateProfileOut"][];
                 };
             };
             /** @description Validation Error */
@@ -4692,7 +4730,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__cv__router__ProfileOut"];
+                    "application/json": components["schemas"]["CandidateProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -4945,7 +4983,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"][];
+                    "application/json": components["schemas"]["ProfileOut"][];
                 };
             };
         };
@@ -4969,7 +5007,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"];
+                    "application/json": components["schemas"]["ProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -5033,7 +5071,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"];
+                    "application/json": components["schemas"]["ProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -5095,7 +5133,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"];
+                    "application/json": components["schemas"]["ProfileOut"];
                 };
             };
             /** @description Validation Error */

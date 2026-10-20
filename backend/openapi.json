@@ -530,6 +530,68 @@
         "title": "BuildOut",
         "type": "object"
       },
+      "CandidateProfileOut": {
+        "properties": {
+          "blind_summary": {
+            "title": "Blind Summary",
+            "type": "string"
+          },
+          "contact": {
+            "$ref": "#/components/schemas/ContactOut"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "document_id": {
+            "format": "uuid",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "document_version": {
+            "title": "Document Version",
+            "type": "integer"
+          },
+          "domain_tags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domain Tags",
+            "type": "array"
+          },
+          "evidence_index": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Evidence Index",
+            "type": "object"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "structured": {
+            "additionalProperties": true,
+            "title": "Structured",
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "document_id",
+          "document_version",
+          "structured",
+          "blind_summary",
+          "domain_tags",
+          "evidence_index",
+          "contact",
+          "created_at"
+        ],
+        "title": "CandidateProfileOut",
+        "type": "object"
+      },
       "ChangePasswordRequest": {
         "properties": {
           "current_password": {
@@ -1841,6 +1903,60 @@
             "description": "Never send candidate data (CVs, transcripts) to providers that may train on it or whose policy is unknown.",
             "title": "Block Training Providers For Pii",
             "type": "boolean"
+          },
+          "company_facts": {
+            "default": "",
+            "description": "Facts the interviewer may share when candidates ask about the company or role.",
+            "maxLength": 4000,
+            "title": "Company Facts",
+            "type": "string"
+          },
+          "consent_contact": {
+            "default": "",
+            "description": "Who candidates contact about their data or to request a human.",
+            "maxLength": 300,
+            "title": "Consent Contact",
+            "type": "string"
+          },
+          "forbidden_topics": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 30,
+            "title": "Forbidden Topics",
+            "type": "array"
+          },
+          "integrity_mode": {
+            "default": "STANDARD",
+            "description": "Default interview integrity monitoring (templates may override).",
+            "enum": [
+              "OFF",
+              "STANDARD",
+              "STRICT"
+            ],
+            "title": "Integrity Mode",
+            "type": "string"
+          },
+          "integrity_reminder": {
+            "default": "Please keep this window in focus and answer from your own experience.",
+            "description": "Neutral reminder the interviewer may give once per section when signals appear.",
+            "maxLength": 300,
+            "title": "Integrity Reminder",
+            "type": "string"
+          },
+          "interview_tone": {
+            "default": "",
+            "description": "Org-wide tone guidance for the AI interviewer (L1).",
+            "maxLength": 1000,
+            "title": "Interview Tone",
+            "type": "string"
+          },
+          "retention_days": {
+            "default": 180,
+            "maximum": 3650.0,
+            "minimum": 7.0,
+            "title": "Retention Days",
+            "type": "integer"
           }
         },
         "title": "OrgPolicy",
@@ -2523,6 +2639,183 @@
           "model"
         ],
         "title": "ProfileCreate",
+        "type": "object"
+      },
+      "ProfileOut": {
+        "properties": {
+          "api_key_last4": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key Last4"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "capabilities": {
+            "additionalProperties": true,
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "has_api_key": {
+            "title": "Has Api Key",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ProviderKind"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "last_probe_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Probe At"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "owned_by_me": {
+            "title": "Owned By Me",
+            "type": "boolean"
+          },
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "preset_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preset Key"
+          },
+          "quality_tier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/QualityTier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "rpd_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpd Limit"
+          },
+          "rpm_limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rpm Limit"
+          },
+          "scope": {
+            "enum": [
+              "personal",
+              "org"
+            ],
+            "title": "Scope",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProfileStatus"
+          },
+          "trains_on_data": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trains On Data"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "scope",
+          "owned_by_me",
+          "kind",
+          "preset_key",
+          "base_url",
+          "has_api_key",
+          "api_key_last4",
+          "model",
+          "params",
+          "capabilities",
+          "quality_tier",
+          "trains_on_data",
+          "rpm_limit",
+          "rpd_limit",
+          "status",
+          "last_probe_at",
+          "last_error",
+          "created_at"
+        ],
+        "title": "ProfileOut",
         "type": "object"
       },
       "ProfileStatus": {
@@ -4538,245 +4831,6 @@
           "created_by"
         ],
         "title": "VersionOut",
-        "type": "object"
-      },
-      "app__cv__router__ProfileOut": {
-        "properties": {
-          "blind_summary": {
-            "title": "Blind Summary",
-            "type": "string"
-          },
-          "contact": {
-            "$ref": "#/components/schemas/ContactOut"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "document_id": {
-            "format": "uuid",
-            "title": "Document Id",
-            "type": "string"
-          },
-          "document_version": {
-            "title": "Document Version",
-            "type": "integer"
-          },
-          "domain_tags": {
-            "items": {
-              "type": "string"
-            },
-            "title": "Domain Tags",
-            "type": "array"
-          },
-          "evidence_index": {
-            "additionalProperties": {
-              "type": "string"
-            },
-            "title": "Evidence Index",
-            "type": "object"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "structured": {
-            "additionalProperties": true,
-            "title": "Structured",
-            "type": "object"
-          }
-        },
-        "required": [
-          "id",
-          "document_id",
-          "document_version",
-          "structured",
-          "blind_summary",
-          "domain_tags",
-          "evidence_index",
-          "contact",
-          "created_at"
-        ],
-        "title": "ProfileOut",
-        "type": "object"
-      },
-      "app__llm__schemas__ProfileOut": {
-        "properties": {
-          "api_key_last4": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Api Key Last4"
-          },
-          "base_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Base Url"
-          },
-          "capabilities": {
-            "additionalProperties": true,
-            "title": "Capabilities",
-            "type": "object"
-          },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
-            "type": "string"
-          },
-          "has_api_key": {
-            "title": "Has Api Key",
-            "type": "boolean"
-          },
-          "id": {
-            "format": "uuid",
-            "title": "Id",
-            "type": "string"
-          },
-          "kind": {
-            "$ref": "#/components/schemas/ProviderKind"
-          },
-          "last_error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Error"
-          },
-          "last_probe_at": {
-            "anyOf": [
-              {
-                "format": "date-time",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Probe At"
-          },
-          "model": {
-            "title": "Model",
-            "type": "string"
-          },
-          "name": {
-            "title": "Name",
-            "type": "string"
-          },
-          "owned_by_me": {
-            "title": "Owned By Me",
-            "type": "boolean"
-          },
-          "params": {
-            "additionalProperties": true,
-            "title": "Params",
-            "type": "object"
-          },
-          "preset_key": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Preset Key"
-          },
-          "quality_tier": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/QualityTier"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "rpd_limit": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rpd Limit"
-          },
-          "rpm_limit": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Rpm Limit"
-          },
-          "scope": {
-            "enum": [
-              "personal",
-              "org"
-            ],
-            "title": "Scope",
-            "type": "string"
-          },
-          "status": {
-            "$ref": "#/components/schemas/ProfileStatus"
-          },
-          "trains_on_data": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trains On Data"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "scope",
-          "owned_by_me",
-          "kind",
-          "preset_key",
-          "base_url",
-          "has_api_key",
-          "api_key_last4",
-          "model",
-          "params",
-          "capabilities",
-          "quality_tier",
-          "trains_on_data",
-          "rpm_limit",
-          "rpd_limit",
-          "status",
-          "last_probe_at",
-          "last_error",
-          "created_at"
-        ],
-        "title": "ProfileOut",
         "type": "object"
       }
     }
@@ -6795,7 +6849,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__cv__router__ProfileOut"
+                  "$ref": "#/components/schemas/CandidateProfileOut"
                 }
               }
             },
@@ -6887,7 +6941,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/app__cv__router__ProfileOut"
+                    "$ref": "#/components/schemas/CandidateProfileOut"
                   },
                   "title": "Response List Profiles Api Cv Profiles Get",
                   "type": "array"
@@ -6967,7 +7021,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__cv__router__ProfileOut"
+                  "$ref": "#/components/schemas/CandidateProfileOut"
                 }
               }
             },
@@ -7247,7 +7301,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/app__llm__schemas__ProfileOut"
+                    "$ref": "#/components/schemas/ProfileOut"
                   },
                   "title": "Response List Profiles Api Llm Profiles Get",
                   "type": "array"
@@ -7279,7 +7333,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__llm__schemas__ProfileOut"
+                  "$ref": "#/components/schemas/ProfileOut"
                 }
               }
             },
@@ -7366,7 +7420,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__llm__schemas__ProfileOut"
+                  "$ref": "#/components/schemas/ProfileOut"
                 }
               }
             },
@@ -7452,7 +7506,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/app__llm__schemas__ProfileOut"
+                  "$ref": "#/components/schemas/ProfileOut"
                 }
               }
             },

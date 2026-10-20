@@ -1,5 +1,35 @@
 # Build progress
 
+## Phase 5: Role packs, CV intelligence, question generation ✅ (2026-10-20)
+
+### Delivered
+- **Role packs** (migration `b2f6fa44ead6`): versioned YAML packs with anchored competencies, weights per
+  role variant, seed questions, practical tasks and behavioral questions. Built-in packs are seeded per org,
+  read only, and can be forked. Org packs are owner-managed; private packs belong to their creator.
+- **Role Builder agent**: drafts a pack from a role description (optionally grounded in knowledge spaces),
+  repairs weights, validates the spec and diffs it against another pack.
+- **CV intelligence**: structured profile with contact details encrypted, a blind summary scrubbed of name and
+  contact details, and an evidence index the question generator must cite. Optional JD gap matrix.
+- **Question generation** (LangGraph): plan from weights × JD gaps × CV evidence → parallel grounded generation
+  per competency → critic → dedupe → top-up from the question bank. Model output is re-checked in code.
+  Runs in the background with live progress; edit, pin, reorder, regenerate one question; Markdown/PDF/DOCX export.
+- **Frontend**: `/app/role-packs` (list, form + YAML editor with live validation, weight sliders with normalise,
+  Role Builder dialog, draft editor) and `/app/questions` (new-set form, live progress, set detail with blind
+  profile, generation notes, editable question cards, exports).
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| Unit + contract tests | ✅ 151 unit tests; 4 question integration tests with FakeLLM scripts; isolation suite 21/21 |
+| Frontend checks | ✅ eslint, tsc, Vitest (105), prettier, `next build` |
+| Browser walkthrough | ✅ Headless Chromium: packs list, built-in pack editor (read only, Form/YAML tabs), questions list and the new-set dialog render with no console errors |
+
+### Notes
+- Self-healing: the critic is skipped and the set topped up from the question bank when a model call fails; a
+  failed set keeps a readable reason and can be retried.
+- In this sandbox the backend image must be built with `--network host` and the proxy CA as the `extra_ca`
+  build secret (see the Dockerfile header).
+
 ## Phase 4: Enterprise connectors and sync ✅ (2026-10-18)
 
 ### Delivered
