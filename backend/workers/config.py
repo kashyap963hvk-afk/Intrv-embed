@@ -34,7 +34,16 @@ def create_celery(settings: Settings) -> Celery:
         broker_connection_retry_on_startup=True,
         timezone="UTC",
         enable_utc=True,
-        imports=("app.tasks.system", "app.tasks.ingest", "app.tasks.sync", "app.tasks.questions"),
-        beat_schedule={"connector-sync-due": {"task": "sync.due", "schedule": 60.0, "options": {"queue": "sync"}}},
+        imports=(
+            "app.tasks.system",
+            "app.tasks.ingest",
+            "app.tasks.sync",
+            "app.tasks.questions",
+            "app.tasks.interviews",
+        ),
+        beat_schedule={
+            "connector-sync-due": {"task": "sync.due", "schedule": 60.0, "options": {"queue": "sync"}},
+            "heal-stuck-work": {"task": "system.heal", "schedule": 300.0, "options": {"queue": "default"}},
+        },
     )
     return app

@@ -75,8 +75,12 @@ async def _profile(db: DbSession, principal: Principal, profile_id: uuid.UUID) -
     return profile
 
 
-@router.post("/analyze", response_model=CandidateProfileOut, summary="Extract a structured, blind-scorable profile from a CV")
-async def analyze(body: AnalyzeIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> CandidateProfileOut:
+@router.post(
+    "/analyze", response_model=CandidateProfileOut, summary="Extract a structured, blind-scorable profile from a CV"
+)
+async def analyze(
+    body: AnalyzeIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep
+) -> CandidateProfileOut:
     profile = await service.analyze_cv(
         resources.agent_deps,
         db,

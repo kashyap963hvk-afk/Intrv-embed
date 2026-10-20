@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
 
 import boto3
@@ -19,10 +19,11 @@ from app.connectors.registry import ConnectorClients
 from app.connectors.sync import SyncDeps
 from app.core.config import Settings
 from app.core.email import EmailSender
-from app.core.jobs import CeleryJobs, InlineJobs, JobDispatcher
+from app.core.jobs import CeleryJobs, InlineJobs, JobDispatcher, JobHandler
 from app.core.keyring import Keyring
 from app.core.ssrf import create_http_client
 from app.db.session import create_engine, create_session_factory
+from app.interviews.engine import EngineDeps, InterviewEngine
 from app.knowledge.dispatch import CeleryDispatcher, IngestDispatcher, InlineDispatcher
 from app.knowledge.ingest import IngestDeps
 from app.knowledge.storage import ObjectStorage
@@ -51,6 +52,30 @@ def create_s3_client(settings: Settings, *, public: bool = False) -> S3Client:
     )
 
 
+def inline_job_handlers(
+    agent_deps: AgentDeps, session_factory: async_sessionmaker[AsyncSession]
+) -> dict[str, JobHandler]:
+    """Background jobs run in-process when INGEST_INLINE is set (tests, single-container demos)."""
+    from app.interviews import grading  # noqa: PLC0415 - avoids an import cycle
+    from app.interviews import service as interviews  # noqa: PLC0415
+    from app.interviews.engine import FINALIZE_JOB, GRADE_JOB  # noqa: PLC0415
+    from app.questions.service import JOB as QUESTIONS_JOB  # noqa: PLC0415
+    from app.questions.service import run_generation  # noqa: PLC0415
+
+    def bind(handler: Callable[..., Awaitable[None]]) -> JobHandler:
+        async def run(args: Mapping[str, str]) -> None:
+            await handler(agent_deps, session_factory, args)
+
+        return run
+
+    return {
+        QUESTIONS_JOB: bind(run_generation),
+        interviews.PREPARE_JOB: bind(interviews.run_prepare),
+        GRADE_JOB: bind(grading.run_grade_topic),
+        FINALIZE_JOB: bind(grading.run_finalize),
+    }
+
+
 @dataclass(slots=True)
 class Resources:
     engine: AsyncEngine
@@ -71,6 +96,7 @@ class Resources:
     sync_dispatcher: SyncDispatcher
     agent_deps: AgentDeps
     jobs: JobDispatcher
+    interviews: InterviewEngine
 
     @classmethod
     def create(cls, settings: Settings) -> Resources:
@@ -105,13 +131,7 @@ class Resources:
         sync_dispatcher: SyncDispatcher
         jobs: JobDispatcher
         if settings.ingest_inline:
-            from app.questions.service import JOB as QUESTIONS_JOB  # noqa: PLC0415 - avoids an import cycle
-            from app.questions.service import run_generation  # noqa: PLC0415
-
-            async def generate(args: Mapping[str, str]) -> None:
-                await run_generation(agent_deps, session_factory, args)
-
-            jobs = InlineJobs({QUESTIONS_JOB: generate})
+            jobs = InlineJobs(inline_job_handlers(agent_deps, session_factory))
             dispatcher = InlineDispatcher(ingest)
             sync_dispatcher = InlineSyncDispatcher(
                 SyncDeps(
@@ -145,6 +165,7 @@ class Resources:
             sync_dispatcher=sync_dispatcher,
             agent_deps=agent_deps,
             jobs=jobs,
+            interviews=InterviewEngine(EngineDeps(agent_deps, session_factory, jobs)),
         )
 
     async def close(self) -> None:

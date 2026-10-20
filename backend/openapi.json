@@ -438,6 +438,52 @@
         "title": "BrowseOut",
         "type": "object"
       },
+      "BrowserEvent": {
+        "properties": {
+          "detail": {
+            "additionalProperties": true,
+            "title": "Detail",
+            "type": "object"
+          },
+          "duration_ms": {
+            "anyOf": [
+              {
+                "maximum": 3600000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Ms"
+          },
+          "kind": {
+            "enum": [
+              "tab_hidden",
+              "window_blur",
+              "fullscreen_exit",
+              "paste",
+              "copy",
+              "extended_display",
+              "devtools",
+              "split_screen",
+              "screen_share_stopped",
+              "camera_face_absent",
+              "camera_multiple_faces",
+              "camera_gaze_away",
+              "virtual_camera"
+            ],
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "BrowserEvent",
+        "type": "object"
+      },
       "BuildIn": {
         "properties": {
           "base_pack_id": {
@@ -727,6 +773,25 @@
         "title": "ConnectorKindOut",
         "type": "object"
       },
+      "ConsentIn": {
+        "properties": {
+          "accepted": {
+            "const": true,
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "camera": {
+            "default": false,
+            "title": "Camera",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "accepted"
+        ],
+        "title": "ConsentIn",
+        "type": "object"
+      },
       "ContactOut": {
         "properties": {
           "email": {
@@ -772,6 +837,155 @@
           }
         },
         "title": "ContactOut",
+        "type": "object"
+      },
+      "CreateInterviewIn": {
+        "properties": {
+          "candidate_label": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "How the interviewer greets them",
+            "title": "Candidate Label"
+          },
+          "cv_document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cv Document Id"
+          },
+          "jd_document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Jd Document Id"
+          },
+          "question_set_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Set Id"
+          },
+          "role_pack_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Pack Id"
+          },
+          "role_variant": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Variant"
+          },
+          "seniority": {
+            "anyOf": [
+              {
+                "enum": [
+                  "JUNIOR",
+                  "MID",
+                  "SENIOR",
+                  "STAFF"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seniority"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Overrides of the template's settings",
+            "title": "Settings"
+          },
+          "space_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Reference material for the interviewer",
+            "title": "Space Ids"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          }
+        },
+        "title": "CreateInterviewIn",
         "type": "object"
       },
       "CreatePackIn": {
@@ -958,6 +1172,30 @@
           "csrf_token"
         ],
         "title": "CsrfResponse",
+        "type": "object"
+      },
+      "DecisionIn": {
+        "properties": {
+          "decision": {
+            "enum": [
+              "advance",
+              "hold",
+              "reject"
+            ],
+            "title": "Decision",
+            "type": "string"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Notes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision"
+        ],
+        "title": "DecisionIn",
         "type": "object"
       },
       "DependencyStatus": {
@@ -1478,6 +1716,597 @@
           "status"
         ],
         "title": "HealthResponse",
+        "type": "object"
+      },
+      "IntegrityIn": {
+        "properties": {
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/BrowserEvent"
+            },
+            "maxItems": 50,
+            "title": "Events",
+            "type": "array"
+          }
+        },
+        "required": [
+          "events"
+        ],
+        "title": "IntegrityIn",
+        "type": "object"
+      },
+      "InterviewDetail": {
+        "properties": {
+          "candidate_label": {
+            "title": "Candidate Label",
+            "type": "string"
+          },
+          "consent_given": {
+            "title": "Consent Given",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cv_document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cv Document Id"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "human_decision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Decision"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invite_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Expires At"
+          },
+          "live": {
+            "additionalProperties": true,
+            "title": "Live",
+            "type": "object"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "persona": {
+            "additionalProperties": true,
+            "title": "Persona",
+            "type": "object"
+          },
+          "plan": {
+            "additionalProperties": true,
+            "title": "Plan",
+            "type": "object"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "string"
+          },
+          "question_set_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Set Id"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "role_pack_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Pack Id"
+          },
+          "scorecard_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scorecard Status"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "candidate_label",
+          "status",
+          "progress",
+          "error",
+          "mode",
+          "role",
+          "role_pack_id",
+          "template_id",
+          "cv_document_id",
+          "question_set_id",
+          "consent_given",
+          "invite_expires_at",
+          "started_at",
+          "ended_at",
+          "created_at",
+          "settings",
+          "persona",
+          "plan",
+          "live"
+        ],
+        "title": "InterviewDetail",
+        "type": "object"
+      },
+      "InterviewInviteIn": {
+        "properties": {
+          "expires_in_hours": {
+            "default": 168,
+            "maximum": 720.0,
+            "minimum": 1.0,
+            "title": "Expires In Hours",
+            "type": "integer"
+          }
+        },
+        "title": "InterviewInviteIn",
+        "type": "object"
+      },
+      "InterviewInviteOut": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "title": "InterviewInviteOut",
+        "type": "object"
+      },
+      "InterviewOut": {
+        "properties": {
+          "candidate_label": {
+            "title": "Candidate Label",
+            "type": "string"
+          },
+          "consent_given": {
+            "title": "Consent Given",
+            "type": "boolean"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "cv_document_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cv Document Id"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "human_decision": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Human Decision"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "invite_expires_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invite Expires At"
+          },
+          "mode": {
+            "title": "Mode",
+            "type": "string"
+          },
+          "progress": {
+            "title": "Progress",
+            "type": "string"
+          },
+          "question_set_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question Set Id"
+          },
+          "recommendation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recommendation"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "role_pack_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Pack Id"
+          },
+          "scorecard_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scorecard Status"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SessionStatus"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "candidate_label",
+          "status",
+          "progress",
+          "error",
+          "mode",
+          "role",
+          "role_pack_id",
+          "template_id",
+          "cv_document_id",
+          "question_set_id",
+          "consent_given",
+          "invite_expires_at",
+          "started_at",
+          "ended_at",
+          "created_at"
+        ],
+        "title": "InterviewOut",
+        "type": "object"
+      },
+      "InterviewPlan": {
+        "properties": {
+          "topics": {
+            "items": {
+              "$ref": "#/components/schemas/PlanTopic"
+            },
+            "maxItems": 30,
+            "minItems": 1,
+            "title": "Topics",
+            "type": "array"
+          }
+        },
+        "required": [
+          "topics"
+        ],
+        "title": "InterviewPlan",
+        "type": "object"
+      },
+      "InterviewSettings": {
+        "description": "Frozen into each session at creation (template defaults + overrides).",
+        "properties": {
+          "blind_grading": {
+            "default": true,
+            "title": "Blind Grading",
+            "type": "boolean"
+          },
+          "camera_monitoring": {
+            "default": "off",
+            "enum": [
+              "off",
+              "optional",
+              "required"
+            ],
+            "title": "Camera Monitoring",
+            "type": "string"
+          },
+          "duration_minutes": {
+            "default": 45,
+            "maximum": 120.0,
+            "minimum": 10.0,
+            "title": "Duration Minutes",
+            "type": "integer"
+          },
+          "follow_up_depth": {
+            "default": 3,
+            "maximum": 6.0,
+            "minimum": 0.0,
+            "title": "Follow Up Depth",
+            "type": "integer"
+          },
+          "grading_runs": {
+            "default": 3,
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Grading Runs",
+            "type": "integer"
+          },
+          "hints_allowed": {
+            "default": true,
+            "title": "Hints Allowed",
+            "type": "boolean"
+          },
+          "integrity_mode": {
+            "default": "STANDARD",
+            "enum": [
+              "OFF",
+              "STANDARD",
+              "STRICT"
+            ],
+            "title": "Integrity Mode",
+            "type": "string"
+          },
+          "interviewer_name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewer Name"
+          },
+          "language": {
+            "default": "English",
+            "maxLength": 40,
+            "title": "Language",
+            "type": "string"
+          },
+          "strictness": {
+            "default": "balanced",
+            "enum": [
+              "lenient",
+              "balanced",
+              "strict"
+            ],
+            "title": "Strictness",
+            "type": "string"
+          },
+          "structure": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": {
+                    "anyOf": [
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Structure"
+          },
+          "turn_mode": {
+            "default": "auto",
+            "enum": [
+              "auto",
+              "single_call",
+              "two_call"
+            ],
+            "title": "Turn Mode",
+            "type": "string"
+          }
+        },
+        "title": "InterviewSettings",
         "type": "object"
       },
       "InviteCreated": {
@@ -2240,6 +3069,100 @@
         "title": "PickerTokenOut",
         "type": "object"
       },
+      "PlanIn": {
+        "properties": {
+          "topics": {
+            "$ref": "#/components/schemas/InterviewPlan"
+          }
+        },
+        "required": [
+          "topics"
+        ],
+        "title": "PlanIn",
+        "type": "object"
+      },
+      "PlanTopic": {
+        "properties": {
+          "competencies": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Competencies",
+            "type": "array"
+          },
+          "expected_signals": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Expected Signals",
+            "type": "array"
+          },
+          "id": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Id",
+            "type": "string"
+          },
+          "planned_minutes": {
+            "default": 5,
+            "maximum": 40.0,
+            "minimum": 1.0,
+            "title": "Planned Minutes",
+            "type": "number"
+          },
+          "probe_angles": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Probe Angles",
+            "type": "array"
+          },
+          "rationale": {
+            "default": "",
+            "title": "Rationale",
+            "type": "string"
+          },
+          "red_flags": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Red Flags",
+            "type": "array"
+          },
+          "section": {
+            "default": "TECHNICAL",
+            "enum": [
+              "CV_WALKTHROUGH",
+              "TECHNICAL",
+              "PRACTICAL",
+              "BEHAVIORAL"
+            ],
+            "title": "Section",
+            "type": "string"
+          },
+          "seed_question": {
+            "maxLength": 1200,
+            "minLength": 5,
+            "title": "Seed Question",
+            "type": "string"
+          },
+          "source": {
+            "$ref": "#/components/schemas/TopicSource"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 2,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "seed_question"
+        ],
+        "title": "PlanTopic",
+        "type": "object"
+      },
       "PolicyOut": {
         "properties": {
           "allowed_llm_profile_ids": {
@@ -2929,6 +3852,66 @@
           }
         },
         "title": "ProfileUpdate",
+        "type": "object"
+      },
+      "PromptLayer": {
+        "properties": {
+          "editable": {
+            "title": "Editable",
+            "type": "boolean"
+          },
+          "layer": {
+            "title": "Layer",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "layer",
+          "name",
+          "editable",
+          "text"
+        ],
+        "title": "PromptLayer",
+        "type": "object"
+      },
+      "PromptPreview": {
+        "properties": {
+          "layers": {
+            "items": {
+              "$ref": "#/components/schemas/PromptLayer"
+            },
+            "title": "Layers",
+            "type": "array"
+          },
+          "variables": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Variables",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "layers",
+          "warnings",
+          "variables"
+        ],
+        "title": "PromptPreview",
         "type": "object"
       },
       "ProviderKind": {
@@ -3773,6 +4756,18 @@
         "title": "ServiceAccountInfo",
         "type": "object"
       },
+      "SessionStatus": {
+        "enum": [
+          "PREPARING",
+          "PLANNED",
+          "LIVE",
+          "COMPLETED",
+          "ABORTED",
+          "FAILED"
+        ],
+        "title": "SessionStatus",
+        "type": "string"
+      },
       "SetDetail": {
         "properties": {
           "analysis": {
@@ -4128,6 +5123,70 @@
           "password"
         ],
         "title": "SignupRequest",
+        "type": "object"
+      },
+      "SimulateIn": {
+        "properties": {
+          "answers": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Answers",
+            "type": "array"
+          }
+        },
+        "title": "SimulateIn",
+        "type": "object"
+      },
+      "SimulateOut": {
+        "properties": {
+          "opening_question": {
+            "title": "Opening Question",
+            "type": "string"
+          },
+          "turns": {
+            "items": {
+              "$ref": "#/components/schemas/SimulatedTurn"
+            },
+            "title": "Turns",
+            "type": "array"
+          }
+        },
+        "required": [
+          "opening_question",
+          "turns"
+        ],
+        "title": "SimulateOut",
+        "type": "object"
+      },
+      "SimulatedTurn": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "answer_quality": {
+            "title": "Answer Quality",
+            "type": "string"
+          },
+          "candidate": {
+            "title": "Candidate",
+            "type": "string"
+          },
+          "interviewer": {
+            "title": "Interviewer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "candidate",
+          "answer_quality",
+          "action",
+          "interviewer"
+        ],
+        "title": "SimulatedTurn",
         "type": "object"
       },
       "SourceIn": {
@@ -4497,6 +5556,228 @@
         "title": "SpecProblem",
         "type": "object"
       },
+      "TemplateIn": {
+        "properties": {
+          "interviewer_name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewer Name"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "persona_prompt": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Persona Prompt",
+            "type": "string"
+          },
+          "role_pack_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Pack Id"
+          },
+          "role_variant": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Variant"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/InterviewSettings"
+          },
+          "shared": {
+            "default": false,
+            "description": "Share with the whole organization (owners only)",
+            "title": "Shared",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "TemplateIn",
+        "type": "object"
+      },
+      "TemplateOut": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "mine": {
+            "title": "Mine",
+            "type": "boolean"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "persona_prompt": {
+            "title": "Persona Prompt",
+            "type": "string"
+          },
+          "role_pack_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Pack Id"
+          },
+          "role_variant": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Variant"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "title": "Settings",
+            "type": "object"
+          },
+          "shared": {
+            "title": "Shared",
+            "type": "boolean"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "shared",
+          "mine",
+          "role_pack_id",
+          "role_variant",
+          "persona_prompt",
+          "settings",
+          "warnings",
+          "updated_at"
+        ],
+        "title": "TemplateOut",
+        "type": "object"
+      },
+      "TemplatePatch": {
+        "properties": {
+          "interviewer_name": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interviewer Name"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "persona_prompt": {
+            "anyOf": [
+              {
+                "maxLength": 6000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Persona Prompt"
+          },
+          "role_pack_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Pack Id"
+          },
+          "role_variant": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Role Variant"
+          },
+          "settings": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewSettings"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "TemplatePatch",
+        "type": "object"
+      },
       "TestResult": {
         "properties": {
           "detail": {
@@ -4513,6 +5794,28 @@
           "detail"
         ],
         "title": "TestResult",
+        "type": "object"
+      },
+      "TopicSource": {
+        "properties": {
+          "ref": {
+            "default": "",
+            "title": "Ref",
+            "type": "string"
+          },
+          "type": {
+            "default": "rubric",
+            "enum": [
+              "cv_claim",
+              "jd_gap",
+              "rubric",
+              "question_set"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "TopicSource",
         "type": "object"
       },
       "TryRequest": {
@@ -7226,6 +8529,689 @@
         ]
       }
     },
+    "/api/interviews": {
+      "get": {
+        "operationId": "list_interviews_api_interviews_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/InterviewOut"
+                  },
+                  "title": "Response List Interviews Api Interviews Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Interviews",
+        "tags": [
+          "interviews"
+        ]
+      },
+      "post": {
+        "operationId": "create_interview_api_interviews_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInterviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Interview",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}": {
+      "delete": {
+        "operationId": "delete_interview_api_interviews__session_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Interview",
+        "tags": [
+          "interviews"
+        ]
+      },
+      "get": {
+        "operationId": "get_interview_api_interviews__session_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Interview",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/decision": {
+      "post": {
+        "operationId": "record_decision_api_interviews__session_id__decision_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Record Decision Api Interviews  Session Id  Decision Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Record Decision",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/end": {
+      "post": {
+        "operationId": "end_interview_api_interviews__session_id__end_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "End Interview",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/export": {
+      "get": {
+        "operationId": "export_report_api_interviews__session_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "pdf",
+              "enum": [
+                "json",
+                "pdf"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download the report (JSON or PDF)",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/invite": {
+      "post": {
+        "operationId": "invite_api_interviews__session_id__invite_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewInviteIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewInviteOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create (or rotate) the candidate's link",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/plan": {
+      "patch": {
+        "operationId": "update_plan_api_interviews__session_id__plan_patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Plan",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/prepare": {
+      "post": {
+        "operationId": "prepare_again_api_interviews__session_id__prepare_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Prepare Again",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/regrade": {
+      "post": {
+        "operationId": "regrade_api_interviews__session_id__regrade_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Grade the interview again",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/interviews/{session_id}/report": {
+      "get": {
+        "operationId": "get_report_api_interviews__session_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Report Api Interviews  Session Id  Report Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Report",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/join/{token}": {
+      "get": {
+        "operationId": "join_info_api_join__token__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Join Info Api Join  Token  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "What the candidate sees before joining",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
+    "/api/join/{token}/consent": {
+      "post": {
+        "operationId": "consent_api_join__token__consent_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Consent Api Join  Token  Consent Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Consent",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
+    "/api/join/{token}/integrity": {
+      "post": {
+        "operationId": "integrity_events_api_join__token__integrity_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntegrityIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Integrity Events Api Join  Token  Integrity Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Browser integrity signals (batched)",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
     "/api/llm/models/discover": {
       "post": {
         "operationId": "discover_models_api_llm_models_discover_post",
@@ -9244,6 +11230,294 @@
         "summary": "Check models, vector store and parsers",
         "tags": [
           "knowledge"
+        ]
+      }
+    },
+    "/api/templates": {
+      "get": {
+        "operationId": "list_templates_api_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TemplateOut"
+                  },
+                  "title": "Response List Templates Api Templates Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "List Templates",
+        "tags": [
+          "interviews"
+        ]
+      },
+      "post": {
+        "operationId": "create_template_api_templates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Template",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/templates/{template_id}": {
+      "delete": {
+        "operationId": "delete_template_api_templates__template_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Template",
+        "tags": [
+          "interviews"
+        ]
+      },
+      "get": {
+        "operationId": "get_template_api_templates__template_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Get Template",
+        "tags": [
+          "interviews"
+        ]
+      },
+      "patch": {
+        "operationId": "update_template_api_templates__template_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplatePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update Template",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/templates/{template_id}/preview-prompt": {
+      "post": {
+        "operationId": "preview_prompt_api_templates__template_id__preview_prompt_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PromptPreview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview Prompt",
+        "tags": [
+          "interviews"
+        ]
+      }
+    },
+    "/api/templates/{template_id}/simulate": {
+      "post": {
+        "operationId": "simulate_template_api_templates__template_id__simulate_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimulateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimulateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run a few turns with a scripted candidate",
+        "tags": [
+          "interviews"
         ]
       }
     },

@@ -24,6 +24,7 @@ from app.core.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.readiness import build_checks
 from app.core.resources import Resources
 from app.cv import router as cv_router
+from app.interviews import router as interviews_router
 from app.knowledge import admin_router as knowledge_admin_router
 from app.knowledge import router as knowledge_router
 from app.llm import router as llm_router
@@ -93,6 +94,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(rolepacks_router.router)
     app.include_router(cv_router.router)
     app.include_router(questions_router.router)
+    app.include_router(interviews_router.templates_router)
+    app.include_router(interviews_router.router)
+    app.include_router(interviews_router.join_router)
+    app.include_router(interviews_router.ws_router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

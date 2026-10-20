@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import asyncio
+import functools
 import secrets
 import uuid
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TypeVar
 
 import httpx
 from fastapi import FastAPI
@@ -22,6 +24,8 @@ from app.db.tenant import TenantContext, set_tenant_context
 from app.main import create_app
 from app.orgs.service import add_active_owner, create_org
 from tests.conftest import make_settings
+
+T = TypeVar("T")
 
 PASSWORD = "correct-horse-battery-9"
 
@@ -94,6 +98,13 @@ class ApiClient:
 
     def delete(self, url: str, **kwargs: Any) -> httpx.Response:
         return self.request("DELETE", url, **kwargs)
+
+    def call(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
+        """Run a coroutine on the app's own event loop (its DB pool and clients live there)."""
+        return self._client.portal.call(functools.partial(func, *args, **kwargs))  # type: ignore[union-attr]
+
+    def websocket(self, url: str, **kwargs: Any) -> Any:
+        return self._client.websocket_connect(url, **kwargs)
 
     def login(self, email: str, password: str = PASSWORD, org_slug: str | None = None) -> httpx.Response:
         body: dict[str, Any] = {"email": email, "password": password}

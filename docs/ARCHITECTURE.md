@@ -516,7 +516,7 @@ When a topic closes, enqueue `grade_topic(session_id, topic_id)`. The `grader` r
 
 ### 13.6 Scorecard (finalize)
 
-- Wait up to 60 s for pending topic grades.
+- Grade any topic whose background grade has not finished (ADR 0007; duplicates keep the latest run).
 - **Variance control**: re-grade each competency 3× (temperature 0.3) and take the median. If the spread is ≥ 2 points, add `variance_flags` and "needs human review".
 - Synthesize: overall summary, per-competency scores with evidence quotes, **CV claims verified / contradicted / untested**, strengths, concerns, knowledge gaps with model answers (cited), integrity signals (informational), a suggested focus for the next human round, and a recommendation (`strong_no | no | lean_no | lean_yes | yes | strong_yes`) labeled **"Advisory — requires human decision"**.
 - The human reviewer records `human_decision` and notes, and that is audit-logged.
@@ -594,7 +594,7 @@ Goal: make cheating hard and visible to the human reviewer without automated ver
 
 | Layer | Signals | Computed |
 |---|---|---|
-| Browser | tab hidden / blur (count, duration), fullscreen exit, extended display, copy/paste (size, timing), burst-typed text (paste-like cadence), split-screen resize, devtools key combos | browser, batched to `POST /api/interviews/{id}/integrity` with the session token |
+| Browser | tab hidden / blur (count, duration), fullscreen exit, extended display, copy/paste (size, timing), burst-typed text (paste-like cadence), split-screen resize, devtools key combos | browser, batched to `POST /api/join/{token}/integrity` (or over the interview socket) |
 | Screen | STRICT: full-monitor share required (`displaySurface === "monitor"`), share-stopped events, periodic low-res frames for the reviewer | browser |
 | Answers | latency outliers, long silence then fluent textbook answer, near-verbatim overlap with model answers / KB text, style shift | backend |
 | Prompt attacks | instructions aimed at the AI | controller |
@@ -627,17 +627,20 @@ Search      POST /api/search (debug/RAG playground; ACL enforced)
 LLM         GET /api/llm/presets ; CRUD /api/llm/profiles ; POST /api/llm/profiles/{id}/probe ; GET /api/llm/profiles/{id}/models
             GET/PUT /api/llm/routes ; POST /api/bridge/pair ; WS /api/bridge/connect ; GET /api/bridge/devices
 Role packs  CRUD /api/role-packs ; POST /api/role-packs/build (Role Builder agent) ; POST /api/role-packs/{id}/fork
-Templates   CRUD /api/templates ; POST /api/templates/{id}/preview-prompt ; POST /api/templates/{id}/simulate
+Templates   CRUD /api/templates ; POST /api/templates/{id}/preview-prompt (L0–L4, lint) ; POST /api/templates/{id}/simulate
 Questions   POST /api/question-sets (generate) ; GET/PATCH /api/question-sets/{id} ; POST /api/question-sets/{id}/items/{iid}/regenerate
             GET /api/question-sets/{id}/export?format=md|pdf|docx
-Interviews  POST /api/interviews ; POST /api/interviews/{id}/prepare ; GET/PATCH /api/interviews/{id}/plan ; POST /api/interviews/{id}/invite
-            POST /api/interviews/{id}/start|pause|end ; WS /ws/interview/{id} (text) ; POST /api/voice/{id}/offer (WebRTC)
-            POST /api/interviews/{id}/whiteboard ; POST /api/interviews/{id}/code/run ; POST /api/interviews/{id}/integrity
-            GET /api/interviews/{id}/report ; POST /api/interviews/{id}/decision ; GET /api/interviews/{id}/export
-Candidate   GET /api/join/{token} ; POST /api/join/{token}/consent
+Interviews  GET/POST /api/interviews ; GET/DELETE /api/interviews/{id} ; POST /api/interviews/{id}/prepare (retry/re-plan)
+            PATCH /api/interviews/{id}/plan ; POST /api/interviews/{id}/invite ; POST /api/interviews/{id}/end
+            WS /ws/interview/{id} (text; start is a socket message, the clock pauses while disconnected; ADR 0007)
+            POST /api/voice/{id}/offer (WebRTC) ; POST /api/interviews/{id}/whiteboard ; POST /api/interviews/{id}/code/run
+            GET /api/interviews/{id}/report ; POST /api/interviews/{id}/regrade ; POST /api/interviews/{id}/decision
+            GET /api/interviews/{id}/export?format=pdf|json
+Candidate   GET /api/join/{token} ; POST /api/join/{token}/consent ; POST /api/join/{token}/integrity (batched signals)
 Events      GET /api/events (SSE: ingestion progress, grading progress, notifications)
 Privacy     POST /api/privacy/erase (subject) ; GET /api/privacy/export
 Ops         GET /healthz ; GET /readyz (deps) ; GET /metrics ; GET /api/system/selftest (owner-only: models load, dims match)
+            beat `system.heal` every 5 min: re-dispatches or closes work left behind by dead workers (ADR 0007 §4)
 ```
 
 Every mutating endpoint writes an `audit_logs` row. Errors use RFC 7807 `application/problem+json`.

@@ -85,3 +85,13 @@ def task_messages(
     """System = L0 + task prompt; the user turn only asks for the result (data stays inside the wrappers)."""
     system = f"{render(L0, trusted={'org_name': org_name})}\n\n{render(name, trusted=trusted, untrusted=untrusted)}"
     return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+
+Layer = tuple[str, dict[str, Any], dict[str, Any]]  # (prompt name, trusted values, untrusted values)
+
+
+def layered_system(*, org_name: str, layers: list[Layer]) -> str:
+    """L0 platform rules first, then each layer in the given order (L1 org policy … L4 directive)."""
+    parts = [render(L0, trusted={"org_name": org_name})]
+    parts += [render(name, trusted=trusted, untrusted=untrusted) for name, trusted, untrusted in layers]
+    return "\n\n".join(parts)

@@ -43,7 +43,7 @@ that someone cheated and never feeds the score.
 
 | Layer | Signal | Where computed | Phase |
 |---|---|---|---|
-| Browser | tab hidden / window blur (count, duration), fullscreen exit, second monitor (`screen.isExtended`), copy and paste (size, source field, timing), typed text arriving in bursts (paste-like cadence), right-click or devtools key combos, browser resize to a split screen | browser → `POST /api/interviews/{id}/integrity` (batched, signed with the session token) | 6 |
+| Browser | tab hidden / window blur (count, duration), fullscreen exit, second monitor (`screen.isExtended`), copy and paste (size, source field, timing), typed text arriving in bursts (paste-like cadence), right-click or devtools key combos, browser resize to a split screen | browser → `POST /api/join/{token}/integrity` or the interview socket (batched; the invite token is the authority, ADR 0007) | 6 |
 | Screen | full-screen share required in STRICT: `displaySurface === "monitor"` verified, share stopped events; periodic low-res frames kept for the human reviewer only | browser; frames to S3 under the session prefix | 8 |
 | Answers | answer latency outliers, long silence then a fluent textbook answer, near-verbatim overlap with model reference answers or retrieved KB text, style shift between answers | backend (deterministic and grader agent) | 6 |
 | Prompt attacks | instructions aimed at the AI ("ignore previous…") | controller (already specified) | 6 |
