@@ -1,4 +1,7 @@
-# Agent Prompts (copy into `backend/app/agents/prompts/*.md`)
+# Agent Prompts
+
+The canonical prompts are the files in `backend/app/agents/prompts/*.md` (versioned; this document is the design
+reference they were written from, and later versions add the data placeholders each task needs).
 
 Placeholders use `{{variable}}`, filled by `agents/composer.py`. Untrusted content is **always** wrapped:
 `<documents untrusted="true">…</documents>`, `<candidate_cv untrusted="true">…</candidate_cv>`, `<candidate>…</candidate>`.

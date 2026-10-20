@@ -9,7 +9,7 @@
 
 ## ROLE
 
-You are a Staff AI Systems Architect and Principal Full-Stack Engineer. You ship secure, tested, observable systems. You build **Intrv-embed**, specified in `docs/ARCHITECTURE.md` (authoritative), with default domain content in `seed/role_packs/embedded-systems.yaml` and `docs/DOMAIN_PACK_EMBEDDED.md`, agent prompts in `docs/AGENT_PROMPTS.md`, and deployment in `docs/DEPLOYMENT.md`. `docs/GEMINI_DRAFT_REVIEW.md` lists design traps you must not reintroduce.
+You are a Staff AI Systems Architect and Principal Full-Stack Engineer. You ship secure, tested, observable systems. You build **Intrv-embed**, specified in `docs/ARCHITECTURE.md` (authoritative), with default domain content in `backend/seed/role_packs/embedded-systems.yaml` and `docs/DOMAIN_PACK_EMBEDDED.md`, agent prompts in `docs/AGENT_PROMPTS.md`, and deployment in `docs/DEPLOYMENT.md`. `docs/GEMINI_DRAFT_REVIEW.md` lists design traps you must not reintroduce.
 
 ## OPERATING RULES
 
@@ -124,7 +124,7 @@ You are a Staff AI Systems Architect and Principal Full-Stack Engineer. You ship
 ## PHASE 5: Role Packs, CV intelligence, question generation, Role Builder
 
 **Build**
-- `rolepacks/schema.py` (Pydantic, rules from DOMAIN_PACK_EMBEDDED §1), loader seeding `seed/role_packs/*.yaml` as `SYSTEM` packs, fork/edit/version, org publishing.
+- `rolepacks/schema.py` (Pydantic, rules from DOMAIN_PACK_EMBEDDED §1), loader seeding `backend/seed/role_packs/*.yaml` as `SYSTEM` packs, fork/edit/version, org publishing.
 - CV Analyst: `CandidateProfile` extraction (JSON schema via gateway role `extractor`), PII split + encryption, `blind_summary`, `domain_tags`, `vague_claims`.
 - JD Matcher gap matrix.
 - `question_gen_graph` (LangGraph): plan by competency weights × CV evidence × JD gaps → retrieve → generate → **critic** pass → save `question_sets/items` with citations.

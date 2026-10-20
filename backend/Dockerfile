@@ -41,6 +41,7 @@ COPY --from=deps /opt/venv /opt/venv
 COPY app ./app
 COPY workers ./workers
 COPY migrations ./migrations
+COPY seed ./seed
 COPY alembic.ini ./
 RUN mkdir -p /models && chown app:app /models
 ENV MODELS_CACHE_DIR=/models

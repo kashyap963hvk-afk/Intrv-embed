@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 
+from app.agents.runtime import AgentDeps
 from app.connectors.sync import SyncDeps, connector_clients_for
 from app.core.config import get_settings
 from app.core.email import EmailSender
@@ -28,6 +29,7 @@ from app.rag.engine import RagEngine
 _loop: asyncio.AbstractEventLoop | None = None
 _deps: IngestDeps | None = None
 _sync: SyncDeps | None = None
+_agents: AgentDeps | None = None
 
 
 def _event_loop() -> asyncio.AbstractEventLoop:
@@ -75,3 +77,25 @@ def sync_deps() -> SyncDeps:
             mailer=EmailSender(settings),
         )
     return _sync
+
+
+def agent_deps() -> AgentDeps:
+    global _agents  # noqa: PLW0603 - process-wide, like ingest_deps()
+    if _agents is None:
+        from app.llm.factory import make_provider_factory  # noqa: PLC0415
+        from app.llm.gateway import LLMGateway  # noqa: PLC0415
+        from app.llm.limits import ProfileLimiter  # noqa: PLC0415
+
+        ingest = ingest_deps()
+        settings = ingest.settings
+        factory = make_provider_factory(
+            settings, create_http_client(allow_private=False), create_http_client(allow_private=True)
+        )
+        _agents = AgentDeps(
+            settings=settings,
+            keyring=Keyring(settings.master_key),
+            gateway=LLMGateway(factory, ProfileLimiter(ingest.valkey)),
+            rag=ingest.rag,
+            valkey=ingest.valkey,
+        )
+    return _agents

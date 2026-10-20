@@ -10,6 +10,7 @@ import base64
 import binascii
 import os
 from functools import lru_cache
+from pathlib import Path
 from typing import Annotated, Literal
 from urllib.parse import urlparse
 
@@ -112,6 +113,10 @@ class Settings(BaseSettings):
     ingest_timeout_s: int = Field(default=900, ge=30)
     # inline: process uploads inside the API process (tests, single-process demos); otherwise Celery workers.
     ingest_inline: bool = False
+
+    # --- Role packs ----------------------------------------------------------------------------
+    # Directory of shipped (SYSTEM) role packs; each org gets read-only copies it can fork.
+    role_packs_dir: str = str(Path(__file__).resolve().parents[2] / "seed" / "role_packs")
 
     # --- Speech ------------------------------------------------------------------------------
     stt_backend: Literal["faster_whisper", "groq"] = "faster_whisper"

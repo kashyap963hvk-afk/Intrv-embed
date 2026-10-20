@@ -301,6 +301,14 @@ async def _readable_now(resources: Resources, principal: Principal) -> set[uuid.
         return readable(perms)
 
 
+def _deliverable(event: dict[str, object], principal: Principal, allowed: set[uuid.UUID]) -> bool:
+    """Personal events go only to their user; document events only to readers of the space."""
+    if "user_id" in event:
+        return str(event["user_id"]) == str(principal.user_id)
+    space = event.get("space_id")
+    return space is not None and uuid.UUID(str(space)) in allowed
+
+
 @router.get("/api/events", summary="Server-sent events: live document status for spaces you can read")
 async def events(request: Request, principal: ActiveMember, resources: ResourcesDep) -> StreamingResponse:
     async def stream() -> AsyncIterator[str]:
@@ -323,7 +331,7 @@ async def events(request: Request, principal: ActiveMember, resources: Resources
                     yield ": keep-alive\n\n"
                     continue
                 event = json.loads(message["data"])
-                if uuid.UUID(str(event.get("space_id"))) in allowed:
+                if _deliverable(event, principal, allowed):
                     yield f"event: {event['type']}\ndata: {json.dumps(event)}\n\n"
         finally:
             await pubsub.unsubscribe()

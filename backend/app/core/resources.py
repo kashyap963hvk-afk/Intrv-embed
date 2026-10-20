@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 
 import boto3
@@ -12,11 +13,13 @@ from mypy_boto3_s3 import S3Client
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
+from app.agents.runtime import AgentDeps
 from app.connectors.dispatch import CelerySyncDispatcher, InlineSyncDispatcher, SyncDispatcher
 from app.connectors.registry import ConnectorClients
 from app.connectors.sync import SyncDeps
 from app.core.config import Settings
 from app.core.email import EmailSender
+from app.core.jobs import CeleryJobs, InlineJobs, JobDispatcher
 from app.core.keyring import Keyring
 from app.core.ssrf import create_http_client
 from app.db.session import create_engine, create_session_factory
@@ -66,6 +69,8 @@ class Resources:
     dispatcher: IngestDispatcher
     connector_clients: ConnectorClients
     sync_dispatcher: SyncDispatcher
+    agent_deps: AgentDeps
+    jobs: JobDispatcher
 
     @classmethod
     def create(cls, settings: Settings) -> Resources:
@@ -94,9 +99,19 @@ class Resources:
             provider_http=httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0)),
             web_http=web_http,
         )
+        gateway = LLMGateway(provider_factory, ProfileLimiter(valkey))
+        agent_deps = AgentDeps(settings=settings, keyring=keyring, gateway=gateway, rag=rag, valkey=valkey)
         dispatcher: IngestDispatcher
         sync_dispatcher: SyncDispatcher
+        jobs: JobDispatcher
         if settings.ingest_inline:
+            from app.questions.service import JOB as QUESTIONS_JOB  # noqa: PLC0415 - avoids an import cycle
+            from app.questions.service import run_generation  # noqa: PLC0415
+
+            async def generate(args: Mapping[str, str]) -> None:
+                await run_generation(agent_deps, session_factory, args)
+
+            jobs = InlineJobs({QUESTIONS_JOB: generate})
             dispatcher = InlineDispatcher(ingest)
             sync_dispatcher = InlineSyncDispatcher(
                 SyncDeps(
@@ -111,6 +126,7 @@ class Resources:
             celery = create_celery(settings)
             dispatcher = CeleryDispatcher(celery)
             sync_dispatcher = CelerySyncDispatcher(celery)
+            jobs = CeleryJobs(celery)
         return cls(
             engine=engine,
             session_factory=session_factory,
@@ -121,12 +137,14 @@ class Resources:
             public_http=public_http,
             private_http=private_http,
             provider_factory=provider_factory,
-            gateway=LLMGateway(provider_factory, ProfileLimiter(valkey)),
+            gateway=gateway,
             storage=storage,
             rag=rag,
             dispatcher=dispatcher,
             connector_clients=connector_clients,
             sync_dispatcher=sync_dispatcher,
+            agent_deps=agent_deps,
+            jobs=jobs,
         )
 
     async def close(self) -> None:

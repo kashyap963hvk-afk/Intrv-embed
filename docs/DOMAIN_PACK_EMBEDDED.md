@@ -1,6 +1,6 @@
 # Role Packs and the default Embedded Systems domain pack
 
-A **Role Pack** is versioned data (YAML in `seed/role_packs/`, rows in `role_packs`) that tells every agent *what good looks like* for a role. Users can edit, fork and create role packs (or let the Role Builder agent draft one), so the same engine interviews a firmware engineer today and a data engineer, product manager or nurse tomorrow. **The engine does not hardcode any domain knowledge.**
+A **Role Pack** is versioned data (YAML in `backend/seed/role_packs/`, rows in `role_packs`) that tells every agent *what good looks like* for a role. Users can edit, fork and create role packs (or let the Role Builder agent draft one), so the same engine interviews a firmware engineer today and a data engineer, product manager or nurse tomorrow. **The engine does not hardcode any domain knowledge.**
 
 ## 1. Role Pack schema (validated by `backend/app/rolepacks/schema.py`)
 
@@ -53,7 +53,7 @@ The schema is validated on save. Weights must sum to 1.0 (±0.01), every `rubric
 
 ## 2. The Embedded Systems pack (default)
 
-The full file is `seed/role_packs/embedded-systems.yaml`. Overview:
+The full file is `backend/seed/role_packs/embedded-systems.yaml`. Overview:
 
 | Competency | What we test | Why it separates real engineers from CV padding |
 |---|---|---|

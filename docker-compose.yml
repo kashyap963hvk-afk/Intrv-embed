@@ -25,6 +25,7 @@ x-backend: &backend
     - ./backend/app:/app/app
     - ./backend/workers:/app/workers
     - ./backend/migrations:/app/migrations
+    - ./backend/seed:/app/seed:ro
     - models:/models
   depends_on:
     migrate:

@@ -2,7 +2,7 @@
 
 > Status: **authoritative spec.** `PROMPT.md` tells Claude Code how to build it phase by phase.
 > `docs/GEMINI_DRAFT_REVIEW.md` explains why this spec departs from the earlier Gemini draft.
-> `docs/DOMAIN_PACK_EMBEDDED.md` and `seed/role_packs/*.yaml` hold the default Embedded Systems content.
+> `docs/DOMAIN_PACK_EMBEDDED.md` and `backend/seed/role_packs/*.yaml` hold the default Embedded Systems content.
 > `docs/DEPLOYMENT.md` covers Vercel, the backend hosting it needs, and every API key.
 
 ---
@@ -663,7 +663,7 @@ Intrv-embed/
 ├── CLAUDE.md                     # rules Claude Code follows every session
 ├── PROMPT.md                     # master build prompt (phases + acceptance gates)
 ├── docs/                         # ARCHITECTURE.md, DOMAIN_PACK_EMBEDDED.md, DEPLOYMENT.md, GEMINI_DRAFT_REVIEW.md, ADRs/
-├── seed/role_packs/              # embedded-firmware.yaml, embedded-linux.yaml, ... (data)
+├── backend/seed/role_packs/              # embedded-firmware.yaml, embedded-linux.yaml, ... (data)
 ├── docker-compose.yml            # profiles: core, gpu, voice, coding, observability
 ├── .env.example
 ├── Makefile                      # up, down, migrate, seed, test, lint, e2e, create-owner, selftest

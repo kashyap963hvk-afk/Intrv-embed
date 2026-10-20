@@ -686,6 +686,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cv/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Extract a structured, blind-scorable profile from a CV */
+        post: operations["analyze_api_cv_analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cv/match-jd": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Gap matrix: job requirements vs CV evidence */
+        post: operations["match_jd_api_cv_match_jd_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cv/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Profiles */
+        get: operations["list_profiles_api_cv_profiles_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cv/profiles/{profile_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_api_cv_profiles__profile_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Profile */
+        delete: operations["delete_profile_api_cv_profiles__profile_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/documents/{document_id}": {
         parameters: {
             query?: never;
@@ -887,6 +956,268 @@ export interface paths {
         get: operations["get_routes_api_llm_routes_get"];
         /** Put Routes */
         put: operations["put_routes_api_llm_routes_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/question-sets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Sets */
+        get: operations["list_sets_api_question_sets_get"];
+        put?: never;
+        /** Generate a question set */
+        post: operations["create_set_api_question_sets_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/question-sets/{set_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Set */
+        get: operations["get_set_api_question_sets__set_id__get"];
+        put?: never;
+        post?: never;
+        /** Delete Set */
+        delete: operations["delete_set_api_question_sets__set_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename Set */
+        patch: operations["rename_set_api_question_sets__set_id__patch"];
+        trace?: never;
+    };
+    "/api/question-sets/{set_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the set (interviewer copy with model answers) */
+        get: operations["export_set_api_question_sets__set_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/question-sets/{set_id}/items/reorder": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reorder Items */
+        post: operations["reorder_items_api_question_sets__set_id__items_reorder_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/question-sets/{set_id}/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Item */
+        delete: operations["delete_item_api_question_sets__set_id__items__item_id__delete"];
+        options?: never;
+        head?: never;
+        /** Update Item */
+        patch: operations["update_item_api_question_sets__set_id__items__item_id__patch"];
+        trace?: never;
+    };
+    "/api/question-sets/{set_id}/items/{item_id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Regenerate Item */
+        post: operations["regenerate_item_api_question_sets__set_id__items__item_id__regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/question-sets/{set_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Set */
+        post: operations["retry_set_api_question_sets__set_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Packs */
+        get: operations["list_packs_api_role_packs_get"];
+        put?: never;
+        /** Create Pack */
+        post: operations["create_pack_api_role_packs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/build": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Role Builder: draft a pack from a plain-language description */
+        post: operations["build_api_role_packs_build_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/validate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validate a pack without saving (live editor) */
+        post: operations["validate_api_role_packs_validate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/{pack_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Pack */
+        get: operations["get_pack_api_role_packs__pack_id__get"];
+        /** Update Pack */
+        put: operations["update_pack_api_role_packs__pack_id__put"];
+        post?: never;
+        /** Archive Pack */
+        delete: operations["archive_pack_api_role_packs__pack_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/{pack_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the pack as YAML */
+        get: operations["export_pack_api_role_packs__pack_id__export_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/{pack_id}/fork": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fork Pack */
+        post: operations["fork_pack_api_role_packs__pack_id__fork_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/{pack_id}/publish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Publish Pack */
+        post: operations["publish_pack_api_role_packs__pack_id__publish_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/role-packs/{pack_id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Versions */
+        get: operations["list_versions_api_role_packs__pack_id__versions_get"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -1160,6 +1491,19 @@ export interface components {
          * @enum {string}
          */
         AgentRole: "interviewer" | "controller" | "grader" | "planner" | "question_gen" | "extractor" | "vision" | "role_builder";
+        /** AnalyzeIn */
+        AnalyzeIn: {
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /**
+             * Force
+             * @default false
+             */
+            force?: boolean;
+        };
         /** AuditOut */
         AuditOut: {
             /** Action */
@@ -1243,6 +1587,29 @@ export interface components {
             /** Next Cursor */
             next_cursor: string | null;
         };
+        /** BuildIn */
+        BuildIn: {
+            /** Base Pack Id */
+            base_pack_id?: string | null;
+            /** Description */
+            description: string;
+            /** Space Ids */
+            space_ids?: string[] | null;
+        };
+        /** BuildOut */
+        BuildOut: {
+            diff: components["schemas"]["PackDiff"] | null;
+            /** Problems */
+            problems: components["schemas"]["SpecProblem"][];
+            /** Spec */
+            spec: {
+                [key: string]: unknown;
+            };
+            /** Valid */
+            valid: boolean;
+            /** Yaml */
+            yaml: string | null;
+        };
         /** ChangePasswordRequest */
         ChangePasswordRequest: {
             /** Current Password */
@@ -1287,6 +1654,78 @@ export interface components {
             owners_only: boolean;
             /** Reason */
             reason: string | null;
+        };
+        /** ContactOut */
+        ContactOut: {
+            /** Email */
+            email?: string | null;
+            /**
+             * Links
+             * @default []
+             */
+            links?: string[];
+            /** Name */
+            name?: string | null;
+            /** Phone */
+            phone?: string | null;
+        };
+        /** CreatePackIn */
+        CreatePackIn: {
+            /** Spec */
+            spec?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Visibility
+             * @default PRIVATE
+             * @enum {string}
+             */
+            visibility?: "PRIVATE" | "ORG";
+            /** Yaml */
+            yaml?: string | null;
+        };
+        /** CreateSetIn */
+        CreateSetIn: {
+            /**
+             * Count
+             * @default 20
+             */
+            count?: number;
+            /**
+             * Cv Document Id
+             * Format: uuid
+             */
+            cv_document_id: string;
+            /**
+             * Difficulty
+             * @description Fixed difficulty; default follows seniority
+             */
+            difficulty?: number | null;
+            /** Jd Document Id */
+            jd_document_id?: string | null;
+            /**
+             * Mix
+             * @description Category shares, e.g. {'technical': 0.5}
+             */
+            mix?: {
+                [key: string]: number;
+            } | null;
+            /**
+             * Role Pack Id
+             * Format: uuid
+             */
+            role_pack_id: string;
+            /** Role Variant */
+            role_variant?: string | null;
+            /** Seniority */
+            seniority?: ("JUNIOR" | "MID" | "SENIOR" | "STAFF") | null;
+            /**
+             * Space Ids
+             * @description Ground answers in these spaces only
+             */
+            space_ids?: string[] | null;
+            /** Title */
+            title?: string | null;
         };
         /** CsrfResponse */
         CsrfResponse: {
@@ -1379,6 +1818,16 @@ export interface components {
             expires_in_s: number;
             /** Url */
             url: string;
+        };
+        /** ForkIn */
+        ForkIn: {
+            /** Name */
+            name?: string | null;
+        };
+        /** GapMatrix */
+        GapMatrix: {
+            /** Requirements */
+            requirements?: components["schemas"]["Requirement"][];
         };
         /** GenerationParams */
         GenerationParams: {
@@ -1536,6 +1985,39 @@ export interface components {
             /** Usable */
             usable: boolean;
         };
+        /** ItemOut */
+        ItemOut: {
+            /** Data */
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Ord */
+            ord: number;
+            /** Pinned */
+            pinned: boolean;
+        };
+        /** ItemUpdate */
+        ItemUpdate: {
+            /** Difficulty */
+            difficulty?: number | null;
+            /** Expected Signals */
+            expected_signals?: string[] | null;
+            /** Follow Ups */
+            follow_ups?: string[] | null;
+            /** Ideal Answer */
+            ideal_answer?: string | null;
+            /** Pinned */
+            pinned?: boolean | null;
+            /** Red Flags */
+            red_flags?: string[] | null;
+            /** Text */
+            text?: string | null;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -1547,6 +2029,24 @@ export interface components {
             org_slug?: string | null;
             /** Password */
             password: string;
+        };
+        /** MatchIn */
+        MatchIn: {
+            /**
+             * Jd Document Id
+             * Format: uuid
+             */
+            jd_document_id: string;
+            /**
+             * Profile Id
+             * Format: uuid
+             */
+            profile_id: string;
+            /**
+             * Role Pack Id
+             * Format: uuid
+             */
+            role_pack_id: string;
         };
         /** MeResponse */
         MeResponse: {
@@ -1631,6 +2131,42 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** PackDiff */
+        PackDiff: {
+            /** Added Competencies */
+            added_competencies: string[];
+            /** Added Roles */
+            added_roles: string[];
+            /** Changed Competencies */
+            changed_competencies: string[];
+            /** Removed Competencies */
+            removed_competencies: string[];
+            /** Removed Roles */
+            removed_roles: string[];
+            /** Weight Changes */
+            weight_changes: {
+                [key: string]: {
+                    [key: string]: [
+                        number | null,
+                        number | null
+                    ];
+                };
+            };
+        };
+        /** PackIn */
+        PackIn: {
+            /** Spec */
+            spec?: {
+                [key: string]: unknown;
+            } | null;
+            /** Yaml */
+            yaml?: string | null;
+        };
+        /**
+         * PackVisibility
+         * @enum {string}
+         */
+        PackVisibility: "SYSTEM" | "ORG" | "PRIVATE";
         /** PasteIn */
         PasteIn: {
             /**
@@ -1793,59 +2329,6 @@ export interface components {
              */
             trains_on_data?: boolean | null;
         };
-        /** ProfileOut */
-        ProfileOut: {
-            /** Api Key Last4 */
-            api_key_last4: string | null;
-            /** Base Url */
-            base_url: string | null;
-            /** Capabilities */
-            capabilities: {
-                [key: string]: unknown;
-            };
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at: string;
-            /** Has Api Key */
-            has_api_key: boolean;
-            /**
-             * Id
-             * Format: uuid
-             */
-            id: string;
-            kind: components["schemas"]["ProviderKind"];
-            /** Last Error */
-            last_error: string | null;
-            /** Last Probe At */
-            last_probe_at: string | null;
-            /** Model */
-            model: string;
-            /** Name */
-            name: string;
-            /** Owned By Me */
-            owned_by_me: boolean;
-            /** Params */
-            params: {
-                [key: string]: unknown;
-            };
-            /** Preset Key */
-            preset_key: string | null;
-            quality_tier: components["schemas"]["QualityTier"] | null;
-            /** Rpd Limit */
-            rpd_limit: number | null;
-            /** Rpm Limit */
-            rpm_limit: number | null;
-            /**
-             * Scope
-             * @enum {string}
-             */
-            scope: "personal" | "org";
-            status: components["schemas"]["ProfileStatus"];
-            /** Trains On Data */
-            trains_on_data: boolean | null;
-        };
         /**
          * ProfileStatus
          * @enum {string}
@@ -1891,6 +2374,11 @@ export interface components {
              */
             status: "ok" | "degraded";
         };
+        /** RegenerateIn */
+        RegenerateIn: {
+            /** Hint */
+            hint?: string | null;
+        };
         /** RegisterOrgRequest */
         RegisterOrgRequest: {
             /**
@@ -1929,11 +2417,113 @@ export interface components {
             /** Size */
             size: number | null;
         };
+        /** ReorderIn */
+        ReorderIn: {
+            /** Item Ids */
+            item_ids: string[];
+        };
+        /** Requirement */
+        Requirement: {
+            /** Competency Id */
+            competency_id?: string | null;
+            /** Evidence Refs */
+            evidence_refs?: string[];
+            /**
+             * Note
+             * @default
+             */
+            note?: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "met" | "partial" | "missing" | "unclear";
+            /** Text */
+            text: string;
+        };
         /**
          * Role
          * @enum {string}
          */
         Role: "OWNER" | "MEMBER";
+        /** RolePackDetail */
+        RolePackDetail: {
+            /** Archived */
+            archived: boolean;
+            /** Competency Count */
+            competency_count: number;
+            /** Description */
+            description: string;
+            /** Domain Tags */
+            domain_tags: string[];
+            /** Editable */
+            editable: boolean;
+            /** Forked From Id */
+            forked_from_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Mine */
+            is_mine: boolean;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /** Spec */
+            spec: {
+                [key: string]: unknown;
+            };
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Variants */
+            variants: components["schemas"]["VariantOut"][];
+            /** Version */
+            version: number;
+            visibility: components["schemas"]["PackVisibility"];
+            /** Yaml */
+            yaml: string;
+        };
+        /** RolePackOut */
+        RolePackOut: {
+            /** Archived */
+            archived: boolean;
+            /** Competency Count */
+            competency_count: number;
+            /** Description */
+            description: string;
+            /** Domain Tags */
+            domain_tags: string[];
+            /** Editable */
+            editable: boolean;
+            /** Forked From Id */
+            forked_from_id: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Is Mine */
+            is_mine: boolean;
+            /** Name */
+            name: string;
+            /** Slug */
+            slug: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Variants */
+            variants: components["schemas"]["VariantOut"][];
+            /** Version */
+            version: number;
+            visibility: components["schemas"]["PackVisibility"];
+        };
         /** RoleUpdate */
         RoleUpdate: {
             role: components["schemas"]["Role"];
@@ -2090,6 +2680,112 @@ export interface components {
             /** Email */
             email: string | null;
         };
+        /** SetDetail */
+        SetDetail: {
+            /** Analysis */
+            analysis: {
+                [key: string]: unknown;
+            };
+            /** Citation Titles */
+            citation_titles: {
+                [key: string]: string;
+            };
+            /** Competency Names */
+            competency_names: {
+                [key: string]: string;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Cv Document Id */
+            cv_document_id: string | null;
+            /** Error */
+            error: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Items */
+            items: components["schemas"]["ItemOut"][];
+            /** Jd Document Id */
+            jd_document_id: string | null;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Progress */
+            progress: string;
+            /** Role Pack Id */
+            role_pack_id: string | null;
+            /** Role Pack Version */
+            role_pack_version: number | null;
+            /** Role Variant */
+            role_variant: string | null;
+            status: components["schemas"]["SetStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** SetOut */
+        SetOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Cv Document Id */
+            cv_document_id: string | null;
+            /** Error */
+            error: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Item Count */
+            item_count: number;
+            /** Jd Document Id */
+            jd_document_id: string | null;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Progress */
+            progress: string;
+            /** Role Pack Id */
+            role_pack_id: string | null;
+            /** Role Pack Version */
+            role_pack_version: number | null;
+            /** Role Variant */
+            role_variant: string | null;
+            status: components["schemas"]["SetStatus"];
+            /** Title */
+            title: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /**
+         * SetStatus
+         * @enum {string}
+         */
+        SetStatus: "GENERATING" | "READY" | "FAILED";
+        /** SetUpdate */
+        SetUpdate: {
+            /** Title */
+            title: string;
+        };
         /** SignupAccepted */
         SignupAccepted: {
             /** Message */
@@ -2240,6 +2936,13 @@ export interface components {
             name: string;
             permission: components["schemas"]["Permission"];
         };
+        /** SpecProblem */
+        SpecProblem: {
+            /** Message */
+            message: string;
+            /** Path */
+            path: string;
+        };
         /** TestResult */
         TestResult: {
             /** Detail */
@@ -2324,6 +3027,122 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** ValidationOut */
+        ValidationOut: {
+            /** Problems */
+            problems: components["schemas"]["SpecProblem"][];
+            /** Spec */
+            spec: {
+                [key: string]: unknown;
+            } | null;
+            /** Valid */
+            valid: boolean;
+        };
+        /** VariantOut */
+        VariantOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+        };
+        /** VersionOut */
+        VersionOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Created By */
+            created_by: string | null;
+            /** Version */
+            version: number;
+        };
+        /** ProfileOut */
+        app__cv__router__ProfileOut: {
+            /** Blind Summary */
+            blind_summary: string;
+            contact: components["schemas"]["ContactOut"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Document Id
+             * Format: uuid
+             */
+            document_id: string;
+            /** Document Version */
+            document_version: number;
+            /** Domain Tags */
+            domain_tags: string[];
+            /** Evidence Index */
+            evidence_index: {
+                [key: string]: string;
+            };
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Structured */
+            structured: {
+                [key: string]: unknown;
+            };
+        };
+        /** ProfileOut */
+        app__llm__schemas__ProfileOut: {
+            /** Api Key Last4 */
+            api_key_last4: string | null;
+            /** Base Url */
+            base_url: string | null;
+            /** Capabilities */
+            capabilities: {
+                [key: string]: unknown;
+            };
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Has Api Key */
+            has_api_key: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            kind: components["schemas"]["ProviderKind"];
+            /** Last Error */
+            last_error: string | null;
+            /** Last Probe At */
+            last_probe_at: string | null;
+            /** Model */
+            model: string;
+            /** Name */
+            name: string;
+            /** Owned By Me */
+            owned_by_me: boolean;
+            /** Params */
+            params: {
+                [key: string]: unknown;
+            };
+            /** Preset Key */
+            preset_key: string | null;
+            quality_tier: components["schemas"]["QualityTier"] | null;
+            /** Rpd Limit */
+            rpd_limit: number | null;
+            /** Rpm Limit */
+            rpm_limit: number | null;
+            /**
+             * Scope
+             * @enum {string}
+             */
+            scope: "personal" | "org";
+            status: components["schemas"]["ProfileStatus"];
+            /** Trains On Data */
+            trains_on_data: boolean | null;
         };
     };
     responses: never;
@@ -3759,6 +4578,163 @@ export interface operations {
             };
         };
     };
+    analyze_api_cv_analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__cv__router__ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    match_jd_api_cv_match_jd_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GapMatrix"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_profiles_api_cv_profiles_get: {
+        parameters: {
+            query?: {
+                document_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__cv__router__ProfileOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_api_cv_profiles__profile_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["app__cv__router__ProfileOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_profile_api_cv_profiles__profile_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                profile_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_document_api_documents__document_id__get: {
         parameters: {
             query?: never;
@@ -3969,7 +4945,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileOut"][];
+                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"][];
                 };
             };
         };
@@ -3993,7 +4969,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileOut"];
+                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -4057,7 +5033,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileOut"];
+                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -4119,7 +5095,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ProfileOut"];
+                    "application/json": components["schemas"]["app__llm__schemas__ProfileOut"];
                 };
             };
             /** @description Validation Error */
@@ -4208,6 +5184,708 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoutesOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sets_api_question_sets_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetOut"][];
+                };
+            };
+        };
+    };
+    create_set_api_question_sets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSetIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_set_api_question_sets__set_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_set_api_question_sets__set_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_set_api_question_sets__set_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_set_api_question_sets__set_id__export_get: {
+        parameters: {
+            query?: {
+                format?: "md" | "pdf" | "docx";
+            };
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reorder_items_api_question_sets__set_id__items_reorder_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReorderIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_item_api_question_sets__set_id__items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_item_api_question_sets__set_id__items__item_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    regenerate_item_api_question_sets__set_id__items__item_id__regenerate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegenerateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_set_api_question_sets__set_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                set_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_packs_api_role_packs_get: {
+        parameters: {
+            query?: {
+                include_archived?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePackOut"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_pack_api_role_packs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePackDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    build_api_role_packs_build_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BuildIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BuildOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    validate_api_role_packs_validate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pack_api_role_packs__pack_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePackDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_pack_api_role_packs__pack_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePackDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_pack_api_role_packs__pack_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_pack_api_role_packs__pack_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    fork_pack_api_role_packs__pack_id__fork_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForkIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePackDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    publish_pack_api_role_packs__pack_id__publish_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RolePackDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_versions_api_role_packs__pack_id__versions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pack_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VersionOut"][];
                 };
             };
             /** @description Validation Error */

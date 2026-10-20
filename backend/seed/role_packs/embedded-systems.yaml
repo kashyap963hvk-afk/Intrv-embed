@@ -1,6 +1,6 @@
 # Default Role Pack: Embedded Systems.
 # Data, not code. Users fork/edit this in the UI; the engine has no hardcoded domain knowledge.
-# Schema: docs/DOMAIN_PACK_EMBEDDED.md §1. Validated by backend/app/rolepacks/schema.py.
+# Schema: docs/DOMAIN_PACK_EMBEDDED.md §1. Validated by app/rolepacks/schema.py.
 
 slug: embedded-systems
 version: 1.0.0

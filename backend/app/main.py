@@ -23,10 +23,13 @@ from app.core.logging import configure_logging, get_logger
 from app.core.middleware import REQUEST_ID_HEADER, RequestContextMiddleware
 from app.core.readiness import build_checks
 from app.core.resources import Resources
+from app.cv import router as cv_router
 from app.knowledge import admin_router as knowledge_admin_router
 from app.knowledge import router as knowledge_router
 from app.llm import router as llm_router
 from app.orgs.service import bootstrap_first_owner
+from app.questions import router as questions_router
+from app.rolepacks import router as rolepacks_router
 
 log = get_logger("app")
 
@@ -87,6 +90,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(knowledge_router.router)
     app.include_router(knowledge_admin_router.router)
     app.include_router(connectors_router.router)
+    app.include_router(rolepacks_router.router)
+    app.include_router(cv_router.router)
+    app.include_router(questions_router.router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

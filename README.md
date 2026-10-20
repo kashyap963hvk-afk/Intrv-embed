@@ -22,7 +22,7 @@ make lint test  # ruff, mypy, eslint, tsc, pytest (integration tests need Docker
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Authoritative system spec: tenancy, RAG, LLM gateway, agents, voice, compliance, API, data model. |
 | [`docs/AGENT_PROMPTS.md`](docs/AGENT_PROMPTS.md) | Production prompts for every agent (integrity layer, interviewer, controller, planner, grader...). |
 | [`docs/DOMAIN_PACK_EMBEDDED.md`](docs/DOMAIN_PACK_EMBEDDED.md) | Role Pack schema + the Embedded Systems pack, and how to adapt it to any role. |
-| [`seed/role_packs/embedded-systems.yaml`](seed/role_packs/embedded-systems.yaml) | The default pack: 16 competencies, 6 role variants, practical tasks. |
+| [`backend/seed/role_packs/embedded-systems.yaml`](backend/seed/role_packs/embedded-systems.yaml) | The default pack: 16 competencies, 6 role variants, practical tasks. |
 | [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Vercel + backend hosting + every API key and where to get it. |
 | [`docs/GEMINI_DRAFT_REVIEW.md`](docs/GEMINI_DRAFT_REVIEW.md) | 24 problems in the earlier Gemini architecture, and how this design fixes them. |
 
