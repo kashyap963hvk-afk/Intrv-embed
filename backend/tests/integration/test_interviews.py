@@ -623,3 +623,63 @@ def test_interview_isolation(pg: Postgres, settings: Settings, team: dict[str, A
         assert conn.execute("SELECT count(*) FROM interview_sessions").fetchone() == (0,)
         # The invite lookup only returns ids, and only for a valid token.
         assert conn.execute("SELECT * FROM app_session_by_invite('nope')").fetchall() == []
+
+
+def test_voice_mode_spoken_nudge_and_continuation(pg: Postgres, team: dict[str, Any]) -> None:
+    owner = team["owner"]
+    script = [
+        {"on": "system", "match": "minute interview for the role", "reply": json.dumps(PLAN)},
+        {"on": "system", "match": "You are the turn controller", "reply": control("adequate", "probe")},
+        {"on": "system", "match": "Rephrase your last question", "reply": "Put simply: what did you build yourself?"},
+        {"match": "<candidate>I built the bootloader and", "reply": "Right. Which part was hardest?"},
+        {"match": "<candidate>I built the bootloader", "reply": "Okay. How did you test the swap?"},
+    ]
+    _profile(owner, script)
+    created = owner.post(
+        "/api/interviews",
+        json={"role_pack_id": pack_id(owner), "mode": "VOICE", "settings": {"turn_mode": "two_call"}},
+    )
+    session_id = created.json()["id"]
+    assert created.json()["mode"] == "VOICE"
+    voice = owner.get(f"/api/interviews/{session_id}").json()
+    assert voice["live"]["mode"] == "VOICE"
+    with owner.websocket(f"/ws/interview/{session_id}", headers={"origin": "http://localhost:3000"}) as ws:
+        ws.receive_json()
+        ws.send_json({"type": "start"})
+        until_turn_end(ws)
+        ws.receive_json()
+        # Long silence: the interviewer rephrases; nothing is graded and the clock keeps the original question.
+        ws.send_json({"type": "nudge"})
+        end, _ = until_turn_end(ws)
+        assert end["text"] == "Put simply: what did you build yourself?"
+        # The candidate paused, we answered, they kept talking over a reply they never heard.
+        first = say(ws, "I built the bootloader")
+        assert first == "Okay. How did you test the swap?"
+        ws.send_json({"type": "spoken", "seq": 4, "text": "", "interrupted": True})
+        ws.send_json(
+            {
+                "type": "answer",
+                "text": "and the CRC check, end to end, myself.",
+                "client_id": "c2",
+                "meta": {"continuation": True},
+            }
+        )
+        merged, _ = until_turn_end(ws)
+        ws.receive_json()
+        assert merged["seq"] == 4  # the unheard reply was replaced
+        assert merged["text"] == "Right. Which part was hardest?"
+        ws.send_json({"type": "spoken", "seq": 4, "text": merged["text"], "interrupted": False})
+        ws.send_json({"type": "mode", "mode": "TEXT"})
+        assert ws.receive_json()["mode"] == "TEXT"
+        ws.send_json({"type": "ping"})
+        assert ws.receive_json() == {"type": "pong"}
+    with psycopg.connect(pg.dsn("postgres")) as conn:
+        rows = conn.execute(
+            "SELECT seq, speaker, text, meta FROM interview_turns WHERE session_id = %s ORDER BY seq", (session_id,)
+        ).fetchall()
+    texts = [r[2] for r in rows]
+    assert "I built the bootloader and the CRC check, end to end, myself." in texts
+    assert "Okay. How did you test the swap?" not in texts
+    assert rows[1][3]["action"] == "rephrase"
+    assert rows[-1][3]["spoken_text"] == merged["text"]
+    assert rows[-1][3]["interrupted"] is False

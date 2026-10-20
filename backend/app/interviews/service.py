@@ -274,7 +274,7 @@ async def create_session(
         cv_document_id=cv_doc.id if cv_doc else None,
         jd_document_id=body.get("jd_document_id"),
         question_set_id=body.get("question_set_id"),
-        mode="TEXT",
+        mode=body.get("mode") or "TEXT",
         status=SessionStatus.PREPARING,
         progress="Queued",
         settings=settings,

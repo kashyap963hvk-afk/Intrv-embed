@@ -638,6 +638,8 @@ Interviews  GET/POST /api/interviews ; GET/DELETE /api/interviews/{id} ; POST /a
             GET /api/interviews/{id}/report ; POST /api/interviews/{id}/regrade ; POST /api/interviews/{id}/decision
             GET /api/interviews/{id}/export?format=pdf|json
 Candidate   GET /api/join/{token} ; POST /api/join/{token}/consent ; POST /api/join/{token}/integrity (batched signals)
+            GET /api/join/{token}/voice (voice offer URL + STUN/short-lived TURN)
+Voice       (voice worker) POST|PATCH /voice/{id}/offer (SDP + trickle ICE; Bearer invite token) — ADR 0009
 Events      GET /api/events (SSE: ingestion progress, grading progress, notifications)
 Privacy     POST /api/privacy/search | /export | /erase (owners; subject by CV email or ids; erase needs confirm=true)
             beat `privacy.purge` nightly 03:17 UTC: candidate data past the org's retention_days

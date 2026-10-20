@@ -33,6 +33,7 @@ test: test-unit test-integration ## Backend unit + integration tests, frontend t
 test-unit: ## Fast tests, no Docker needed
 	$(BACKEND) uv run pytest -m "not integration and not live"
 	cd bridge && uv run pytest -q
+	cd voice && uv run pytest -q
 	$(FRONTEND) npm run typecheck
 
 test-integration: ## Tests against real containers (needs Docker)
@@ -66,6 +67,9 @@ create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.
 
 e2e: ## Playwright end-to-end tests (available from Phase 6)
 	@echo "make e2e: available from Phase 6"; exit 1
+
+voice-bench: ## Voice pipeline latency per stage (p50/p95); start the TTS container first for ARGS="--tts http"
+	cd voice && uv run python -m intrv_voice.bench --rounds 5 $(ARGS)
 
 selftest: ## Model load, vector store and parser checks inside the running backend
 	$(COMPOSE) exec backend python -m app.cli selftest

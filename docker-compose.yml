@@ -3,7 +3,7 @@
 # Profiles (docs/ARCHITECTURE.md §21):
 #   core          data stores + backend + worker + beat + frontend (dev mode); fastembed models in-process
 #   models        Text Embeddings Inference (CPU): bge-m3 + bge-reranker-v2-m3 (set EMBED_BACKEND=tei, see .env.example)
-#   gpu           CUDA TEI images (override TEI_IMAGE)          voice   Phase 7: voice worker + coturn
+#   gpu           CUDA TEI images (override TEI_IMAGE)          voice   voice worker + Kokoro TTS + coturn
 #   coding        Phase 8: Piston (+ optional Renode)          prod    Phase 10: Caddy + production images
 #   observability Phase 10: OpenTelemetry collector
 # Profiles listed for later phases are added together with the code that needs them.
@@ -239,6 +239,51 @@ services:
       interval: 15s
       timeout: 5s
       retries: 60
+    restart: unless-stopped
+
+  # --- voice (Phase 7) -------------------------------------------------------------------------------------
+  # WebRTC media uses ephemeral UDP ports, so the voice worker and coturn use the host network (Linux hosts).
+  voice:
+    build:
+      context: ./voice
+    image: intrv-voice:dev
+    profiles: [voice]
+    network_mode: host
+    env_file: .env
+    environment:
+      BACKEND_WS_URL: ws://127.0.0.1:8000
+      TTS_URL: http://127.0.0.1:8880
+    depends_on:
+      tts:
+        condition: service_healthy
+    restart: unless-stopped
+
+  tts:
+    build:
+      context: ./tts
+    image: intrv-tts:dev
+    profiles: [voice]
+    ports:
+      - "127.0.0.1:8880:8880"
+    restart: unless-stopped
+
+  coturn:
+    image: coturn/coturn:4.7.0
+    profiles: [voice]
+    network_mode: host
+    command:
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SHARED_SECRET:-}
+      - --realm=${TURN_REALM:-intrv.local}
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
+      - --no-cli
+      - --fingerprint
+      - --no-multicast-peers
+      - --denied-peer-ip=10.0.0.0-10.255.255.255
+      - --denied-peer-ip=172.16.0.0-172.31.255.255
+      - --denied-peer-ip=192.168.0.0-192.168.255.255
     restart: unless-stopped
 
 volumes:

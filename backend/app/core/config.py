@@ -118,13 +118,7 @@ class Settings(BaseSettings):
     # Directory of shipped (SYSTEM) role packs; each org gets read-only copies it can fork.
     role_packs_dir: str = str(Path(__file__).resolve().parents[2] / "seed" / "role_packs")
 
-    # --- Speech ------------------------------------------------------------------------------
-    stt_backend: Literal["faster_whisper", "groq"] = "faster_whisper"
-    stt_model: str = "large-v3-turbo"
-    stt_device: Literal["cuda", "cpu"] = "cpu"
-    groq_api_key: SecretStr | None = None
-    tts_backend: Literal["kokoro", "piper", "browser"] = "kokoro"
-    kokoro_voice: str = "af_heart"
+    # Speech-to-text and text-to-speech run in the voice worker (voice/), not in the API (ADR 0009).
 
     # --- Agent engine / LLM ------------------------------------------------------------------
     engine_turn_mode: Literal["auto", "single_call", "two_call"] = "auto"
@@ -150,6 +144,10 @@ class Settings(BaseSettings):
     turn_credential: SecretStr | None = None
     turn_shared_secret: SecretStr | None = None
     stun_urls: CsvList = Field(default_factory=lambda: ["stun:stun.l.google.com:19302"])
+    voice_public_url: str | None = (
+        None  # the voice service (docker compose profile "voice"), e.g. https://voice.example.com
+    )
+    turn_credential_ttl_s: int = Field(default=3600, ge=300, le=86_400)
 
     # --- Email -------------------------------------------------------------------------------
     smtp_host: str | None = None

@@ -17,3 +17,5 @@ Items deliberately left out of a phase (CLAUDE.md rule 1: no stubs; list it here
 | Template "Test with sample CV" upload | Simulation runs the real controller, policy and interviewer on the pack's first technical topics with scripted answers, without a CV | Phase 10 |
 | Waiting up to 60 s for in-flight topic grades before finalising | Finalisation grades any missing topic itself and keeps the latest of duplicate runs, so waiting adds latency without changing the result | Unscheduled |
 | Softened candidate feedback export | Reports are interviewer-only for now | Phase 10 |
+| Audio integrity signals: second voice, background whispering, keyboard transients | Needs speaker-embedding and audio-event models (Hugging Face is unreachable from the build sandbox); the engine already accepts the events | Phase 8 (with camera signals) |
+| Voice room for the interviewer's own preview | The voice worker authenticates with the candidate's invite token; interviewers preview voice by opening the invite link | Unscheduled |

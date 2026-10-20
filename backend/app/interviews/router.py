@@ -24,7 +24,7 @@ from app.core.security import decode_access_token
 from app.db.deps import DbSession
 from app.db.models import InterviewSession, InterviewTemplate, RolePack, SessionStatus, UserStatus
 from app.db.models import User as UserModel
-from app.interviews import export, service
+from app.interviews import export, media, service
 from app.interviews.engine import Emit, EngineError, SessionRef, owner_session, public_state
 from app.interviews.integrity import BrowserEvent
 from app.interviews.persona import lint_persona
@@ -225,6 +225,7 @@ class CreateInterviewIn(BaseModel):
     cv_document_id: uuid.UUID | None = None
     jd_document_id: uuid.UUID | None = None
     question_set_id: uuid.UUID | None = None
+    mode: Literal["TEXT", "VOICE"] = Field(default="TEXT", description="Candidates can switch to text at any time")
     seniority: Seniority | None = None
     space_ids: list[uuid.UUID] | None = Field(default=None, description="Reference material for the interviewer")
     settings: dict[str, Any] | None = Field(default=None, description="Overrides of the template's settings")
@@ -463,6 +464,12 @@ async def consent(token: str, body: ConsentIn, db: DbSession, resources: Resourc
     return {"accepted": True, "camera": given["camera"], "at": given["at"]}
 
 
+@join_router.get("/{token}/voice", summary="Voice room: the voice service's offer URL and ICE servers")
+async def voice(token: str, db: DbSession, settings: SettingsDep) -> dict[str, Any]:
+    ref = await service.resolve_invite(db, token)
+    return media.voice_info(settings, ref.id)
+
+
 @join_router.post("/{token}/integrity", summary="Browser integrity signals (batched)")
 async def integrity_events(token: str, body: IntegrityIn, db: DbSession, resources: ResourcesDep) -> dict[str, int]:
     ref = await service.resolve_invite(db, token)
@@ -560,5 +567,11 @@ async def _handle(
         await service.candidate_events(resources.session_factory, ref, events)
     elif kind == "end":
         await engine.end(ref, reason="ended by the candidate", emit=emit)
+    elif kind == "mode" and isinstance(message.get("mode"), str):
+        await engine.set_mode(ref, message["mode"], emit)
+    elif kind == "spoken" and isinstance(message.get("seq"), int) and isinstance(message.get("text"), str):
+        await engine.record_spoken(ref, message["seq"], message["text"], interrupted=bool(message.get("interrupted")))
+    elif kind == "nudge":
+        await engine.nudge(ref, emit)
     else:
         await emit({"type": "error", "code": "invalid", "message": "Unknown message."})

@@ -1,0 +1,24 @@
+[project]
+name = "intrv-tts"
+version = "0.1.0"
+description = "Kokoro text-to-speech over HTTP for the Intrv-embed voice worker (separate container)"
+requires-python = ">=3.12,<3.13"
+# kokoro-onnx is MIT, but it depends on phonemizer and espeak-ng (GPL-3.0). This service is therefore its own
+# optional container and is never imported by the backend or the voice worker (CLAUDE.md rule 10).
+license = "GPL-3.0-or-later"
+dependencies = [
+    "kokoro-onnx==0.6.1",
+    "fastapi>=0.115",
+    "uvicorn>=0.34",
+    "numpy>=1.26",
+]
+
+[dependency-groups]
+dev = ["pytest>=8.3", "httpx>=0.28", "ruff>=0.9"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"

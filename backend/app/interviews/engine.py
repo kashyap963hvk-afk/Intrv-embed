@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import copy
 import re
 import time
 import uuid
@@ -90,6 +91,11 @@ FALLBACK_CLOSE = (
 FALLBACK_CANDIDATE_ANSWER = (
     "That's a good question for the recruiter, and I'll pass it on. Is there anything else you'd like to ask?"
 )
+REPHRASE_DIRECTIVE = (
+    "The candidate has been silent for a while. Do not move on. Rephrase your last question in simpler, narrower "
+    "words, or offer a concrete starting point, in at most two short sentences ending with one question."
+)
+MODES = ("TEXT", "VOICE")
 REMINDER_DIRECTIVE = 'Before anything else, say this neutral reminder in one sentence: "{reminder}" Then: '
 
 _DONT_KNOW = re.compile(
@@ -258,6 +264,7 @@ class Turn:
     rules: OrgPolicy
     history: list[InterviewTurn]
     now: datetime
+    state_before: dict[str, Any] | None = None  # voice: lets an answer that continues after barge-in be merged
 
     @property
     def topic(self) -> PlanTopic | None:
@@ -584,10 +591,34 @@ class InterviewEngine:
                 if client_id and _already_answered(turn, client_id):
                     await self._resume(db, turn, emit)  # duplicate send after a reconnect
                     return
+                if meta.get("continuation") is True and turn.session.mode == "VOICE":
+                    text = await self._merge_unheard(db, turn, text)
                 if not turn.state.get("awaiting"):
                     raise EngineError("not_awaiting", "Please wait for the interviewer's question.")
                 jobs = await self._answer(db, turn, text.strip()[:MAX_ANSWER_CHARS], meta, emit, client_id)
         self._jobs_after(ref, jobs)
+
+    async def _merge_unheard(self, db: AsyncSession, turn: Turn, text: str) -> str:
+        """Voice: the candidate paused, we answered, they kept talking over a reply they never heard. Undo that
+        exchange and treat both parts as one answer."""
+        if len(turn.history) < 2:  # noqa: PLR2004
+            return text
+        reply, previous = turn.history[-1], turn.history[-2]
+        meta = reply.meta or {}
+        if (
+            reply.speaker != Speaker.INTERVIEWER
+            or previous.speaker != Speaker.CANDIDATE
+            or not meta.get("interrupted")
+            or meta.get("spoken_text")
+            or not isinstance(meta.get("state_before"), dict)
+        ):
+            return text
+        turn.state = dict(meta["state_before"])
+        await db.delete(reply)
+        await db.delete(previous)
+        await db.flush()
+        turn.history = turn.history[:-2]
+        return f"{previous.text} {text}"[:MAX_ANSWER_CHARS]
 
     async def _answer(
         self,
@@ -599,6 +630,7 @@ class InterviewEngine:
         client_id: str | None,
     ) -> list[tuple[str, dict[str, str]]]:
         session = turn.session
+        turn.state_before = copy.deepcopy(turn.state)
         asked_at = _parse_time(turn.state.get("asked_at"))
         delay = (turn.now - asked_at).total_seconds() if asked_at else None
         clean_meta = _client_meta(meta, client_id)
@@ -682,7 +714,12 @@ class InterviewEngine:
             Speaker.INTERVIEWER,
             reply,
             latency=latency,
-            meta={"action": decision.action, "move": decision.move, "integrity": decision.integrity},
+            meta={
+                "action": decision.action,
+                "move": decision.move,
+                "integrity": decision.integrity,
+                **({"state_before": turn.state_before} if session.mode == "VOICE" and turn.state_before else {}),
+            },
         )
         if plan.closing:
             session.status, session.ended_at = SessionStatus.COMPLETED, turn.now
@@ -1123,6 +1160,59 @@ class InterviewEngine:
             if outcome.closing:
                 break
         return {"opening_question": first.seed_question, "turns": results}
+
+    # --- voice ------------------------------------------------------------------------------------------
+
+    async def set_mode(self, ref: SessionRef, mode: str, emit: Emit) -> None:
+        """Voice ↔ text in the same session ("Switch to text" keeps the transcript and the clock)."""
+        if mode not in MODES:
+            raise EngineError("invalid", "Unknown interview mode.")
+        async with owner_session(self.deps.session_factory, ref.org_id, ref.owner_user_id) as db:
+            session = await db.get(InterviewSession, ref.id)
+            if session is None or session.status not in {SessionStatus.PLANNED, SessionStatus.LIVE}:
+                raise EngineError("not_available", "This interview is not open.")
+            session.mode = mode
+            await db.commit()
+            await emit({"type": "state", **public_state(session)})
+
+    async def record_spoken(self, ref: SessionRef, seq: int, text: str, *, interrupted: bool) -> None:
+        """What the candidate actually heard: whole sentences played before any barge-in (voice only)."""
+        async with owner_session(self.deps.session_factory, ref.org_id, ref.owner_user_id) as db:
+            turn = await db.scalar(
+                select(InterviewTurn).where(InterviewTurn.session_id == ref.id, InterviewTurn.seq == seq)
+            )
+            if turn is None or turn.speaker != Speaker.INTERVIEWER:
+                return
+            turn.meta = {**(turn.meta or {}), "spoken_text": text[:4000], "interrupted": bool(interrupted)}
+            await db.commit()
+
+    async def nudge(self, ref: SessionRef, emit: Emit) -> None:
+        """After a long silence (voice): the interviewer rephrases or narrows its question; nothing is graded."""
+        async with session_lock(self.deps.agent.valkey, ref.id) as acquired:
+            if not acquired:
+                return
+            async with owner_session(self.deps.session_factory, ref.org_id, ref.owner_user_id) as db:
+                turn = await self._load(db, ref)
+                if turn.session.status != SessionStatus.LIVE or not turn.state.get("awaiting"):
+                    return
+                if turn.state.get("phase") != "topic":
+                    return
+                seq = int(turn.state.get("seq", 0)) + 1
+                last = turn.last_question()
+                reply, latency = await self._speak(
+                    db,
+                    turn,
+                    seq,
+                    emit,
+                    directive=REPHRASE_DIRECTIVE,
+                    acknowledgement="Do not start with an acknowledgement.",
+                    fallback=f"Let me put it another way. {last}" if last else GENERIC_PROBE,
+                    needs_question=True,
+                )
+                row = self._add_turn(db, turn, Speaker.INTERVIEWER, reply, latency=latency, meta={"action": "rephrase"})
+                self._save_state(turn)
+                await db.commit()
+                await emit({"type": "turn.end", "seq": row.seq, "text": reply, "awaiting": True})
 
     def on_disconnect(self, ref: SessionRef) -> None:
         """Called when the socket closes; recorded off the socket's task so a server-side cancel cannot cut it."""
