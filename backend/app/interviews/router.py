@@ -73,6 +73,7 @@ class TemplatePatch(BaseModel):
     persona_prompt: str | None = Field(default=None, max_length=6000)
     settings: InterviewSettings | None = None
     interviewer_name: str | None = Field(default=None, max_length=60)
+    shared: bool | None = Field(default=None, description="Share with the whole organization (owners only)")
 
 
 class TemplateOut(BaseModel):

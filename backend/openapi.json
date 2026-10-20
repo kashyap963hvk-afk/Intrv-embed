@@ -6177,6 +6177,18 @@
                 "type": "null"
               }
             ]
+          },
+          "shared": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Share with the whole organization (owners only)",
+            "title": "Shared"
           }
         },
         "title": "TemplatePatch",

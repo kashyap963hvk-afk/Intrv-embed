@@ -288,7 +288,7 @@ def test_browser_severity_and_summary() -> None:
     ]
     summary = integrity.summarise(events)  # type: ignore[arg-type]
     assert summary["rollup"] == "nothing notable"
-    assert summary["time_away_seconds"] == 10
+    assert summary["time_away_seconds"] == 9  # one absence can fire both signals: never summed
     assert summary["label"].startswith("Signals, not proof")
 
 

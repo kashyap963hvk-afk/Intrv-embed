@@ -90,20 +90,27 @@ async def save_template(
     fields: dict[str, Any],
     meta: ClientMeta,
 ) -> InterviewTemplate:
+    """Create or patch a template. On a patch an explicit null clears the role pack or resets the variant to the
+    pack's default; other null fields are left as they are."""
     if "settings" in fields and fields["settings"] is not None:
         fields["settings"] = InterviewSettings.model_validate(fields["settings"]).model_dump(mode="json")
-    if fields.get("role_pack_id") is not None:
-        pack = await db.get(RolePack, fields["role_pack_id"])
+    if "role_pack_id" in fields and fields["role_pack_id"] is None:
+        fields["role_variant"] = None
+    pack_id = fields.get("role_pack_id", template.role_pack_id if template else None)
+    if pack_id is not None and ("role_pack_id" in fields or "role_variant" in fields):
+        pack = await db.get(RolePack, pack_id)
         if pack is None:
             raise NotFoundError("Role pack not found.")
         try:
-            RolePackSpec.model_validate(pack.spec).role(fields.get("role_variant"))
+            RolePackSpec.model_validate(pack.spec).role(
+                fields.get("role_variant", template.role_variant if template else None)
+            )
         except ValueError as exc:
             raise AppError(str(exc)) from exc
     shared = fields.pop("shared", None)
+    if shared and principal.role != Role.OWNER:
+        raise ForbiddenError("Only owners can share templates with the organization.")
     if template is None:
-        if shared and principal.role != Role.OWNER:
-            raise ForbiddenError("Only owners can create organization templates.")
         template = InterviewTemplate(
             id=uuid.uuid4(),
             org_id=principal.org_id,
@@ -118,8 +125,13 @@ async def save_template(
     else:
         require_template_edit(principal, template)
         action = "template.update"
+        if shared is not None and shared != (template.owner_user_id is None):
+            if principal.role != Role.OWNER:
+                raise ForbiddenError("Only owners can change who a template is shared with.")
+            template.owner_user_id = None if shared else principal.user_id
+            template.visibility = TemplateVisibility.ORG if shared else TemplateVisibility.PRIVATE
     for key, value in fields.items():
-        if value is not None:
+        if value is not None or key in {"role_pack_id", "role_variant"}:
             setattr(template, key, value)
     await db.flush()
     await record(
@@ -424,7 +436,7 @@ async def run_prepare(
             if failed is None:
                 return
             friendly = exc.detail if isinstance(exc, AppError) and exc.detail else str(exc)
-            if not isinstance(exc, AppError | LLM_FAILURES):
+            if not isinstance(exc, (AppError, *LLM_FAILURES)):
                 log.exception("interviews.prepare_crashed", session_id=str(session_id))
                 friendly = f"Preparation failed unexpectedly ({type(exc).__name__}). Try again."
             failed.status, failed.error, failed.progress = SessionStatus.FAILED, friendly[:2000], "Failed"

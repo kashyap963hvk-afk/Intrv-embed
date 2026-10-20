@@ -182,11 +182,13 @@ async def mark_addressed(db: AsyncSession, session_id: uuid.UUID) -> None:
 def summarise(events: list[IntegrityEvent]) -> dict[str, Any]:
     """Reviewer rollup. Signals, not proof: the label is part of the data so every view carries it."""
     counts: dict[str, int] = {}
-    away_ms = 0
+    away = {"tab_hidden": 0, "window_blur": 0}
     for event in events:
         counts[event.kind] = counts.get(event.kind, 0) + 1
-        if event.kind in {"tab_hidden", "window_blur"} and event.duration_ms:
-            away_ms += event.duration_ms
+        if event.kind in away and event.duration_ms:
+            away[event.kind] += event.duration_ms
+    # A tab switch usually fires both signals for one absence, so take the larger total (a lower bound), never the sum.
+    away_ms = max(away.values())
     medium_plus = sum(1 for e in events if SEVERITY_RANK.get(e.severity, 0) >= SEVERITY_RANK["medium"])
     return {
         "label": "Signals, not proof. A human must review before any decision.",

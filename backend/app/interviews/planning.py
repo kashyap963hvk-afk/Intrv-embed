@@ -13,7 +13,8 @@ from app.agents.runtime import AgentDeps, llm, org_name, search
 from app.core.logging import get_logger
 from app.db.models import AgentRole, QuestionItem
 from app.interviews.schemas import InterviewPlan, InterviewSettings, PlanTopic
-from app.llm.types import CallCtx, LLMUnavailableError, StructuredOutputError
+from app.llm.service import PolicyViolationError
+from app.llm.types import CallCtx, LLMUnavailableError, ProviderError, StructuredOutputError
 from app.questions.plan import is_behavioral
 from app.rolepacks.schema import RolePackSpec, RoleVariant
 
@@ -278,7 +279,7 @@ async def plan_interview(
         planned = normalise_plan(
             await llm(deps, db).complete_json(ctx, messages, InterviewPlan, temperature=0.3), spec, role, structure
         )
-    except (LLMUnavailableError, StructuredOutputError) as exc:
+    except (LLMUnavailableError, StructuredOutputError, PolicyViolationError, ProviderError, TimeoutError) as exc:
         log.warning("interviews.planner_fallback", error=str(exc))
         planned = None
     if planned is not None and any(t.section == "TECHNICAL" for t in planned.topics):

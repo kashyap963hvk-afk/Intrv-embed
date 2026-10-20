@@ -35,6 +35,11 @@ export function MainNav() {
         </Link>
       )}
       {me && me.user.status === "ACTIVE" && (
+        <Link href="/app/interviews" className={link}>
+          Interviews
+        </Link>
+      )}
+      {me && me.user.status === "ACTIVE" && (
         <Link href="/app/llm" className={link}>
           AI models
         </Link>

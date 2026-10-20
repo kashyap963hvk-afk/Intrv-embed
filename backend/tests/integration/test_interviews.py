@@ -536,6 +536,29 @@ def test_templates_preview_lint_and_simulate(team: dict[str, Any]) -> None:
     assert all(t["interviewer"].endswith("?") for t in simulated["turns"])
     assert simulated["turns"][-1]["answer_quality"] == "shallow"
 
+    # Sharing and the role pack can be changed after creation; explicit nulls reset them.
+    tid = template["id"]
+    assert owner.patch(f"/api/templates/{tid}", json={"shared": False}).json()["shared"] is False
+    assert template["id"] not in {t["id"] for t in member.get("/api/templates").json()}
+    reset = owner.patch(f"/api/templates/{tid}", json={"role_variant": None}).json()
+    assert (reset["role_pack_id"], reset["role_variant"]) == (template["role_pack_id"], None)
+    bad = owner.patch(f"/api/templates/{tid}", json={"role_variant": "no_such_variant"})
+    assert bad.status_code == 400
+    cleared = owner.patch(f"/api/templates/{tid}", json={"role_pack_id": None}).json()
+    assert cleared["role_pack_id"] is None
+    assert cleared["name"] == "Firmware loop"
+    mine = member.post("/api/templates", json={"name": "Mine"}).json()
+    assert member.patch(f"/api/templates/{mine['id']}", json={"shared": True}).status_code == 403
+
+
+def test_prepare_without_any_model_configured(team: dict[str, Any]) -> None:
+    owner = team["owner"]  # a fresh org with no model at all: preparation must not hang in PREPARING
+    created = owner.post("/api/interviews", json={"role_pack_id": pack_id(owner)})
+    assert created.status_code in {201, 202}, created.text
+    detail = owner.get(f"/api/interviews/{created.json()['id']}").json()
+    assert detail["status"] == "PLANNED"
+    assert detail["plan"]["source"] == "fallback"
+
 
 def test_self_healing_scan(pg: Postgres, team: dict[str, Any]) -> None:
     from app.healing import heal  # noqa: PLC0415 - imported where used, like the Celery task
