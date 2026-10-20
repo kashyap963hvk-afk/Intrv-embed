@@ -130,6 +130,8 @@ class Settings(BaseSettings):
     engine_turn_mode: Literal["auto", "single_call", "two_call"] = "auto"
     allow_private_llm_endpoints: bool = False
     gguf_allowed_dirs: Annotated[list[str], NoDecode] = Field(default_factory=list)
+    llama_server_bin: str = "llama-server"  # GGUF_MANAGED: llama.cpp server binary (path or name on PATH)
+    gguf_idle_unload_s: int = Field(default=900, ge=60)
 
     # --- Connectors --------------------------------------------------------------------------
     google_oauth_client_id: str | None = None

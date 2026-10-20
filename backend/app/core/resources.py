@@ -27,8 +27,10 @@ from app.interviews.engine import EngineDeps, InterviewEngine
 from app.knowledge.dispatch import CeleryDispatcher, IngestDispatcher, InlineDispatcher
 from app.knowledge.ingest import IngestDeps
 from app.knowledge.storage import ObjectStorage
+from app.llm.bridge_hub import BridgeHub
 from app.llm.factory import make_provider_factory
 from app.llm.gateway import LLMGateway, ProviderFactory
+from app.llm.gguf import GgufRuntime
 from app.llm.limits import ProfileLimiter
 from app.rag.engine import RagEngine
 from workers.config import create_celery
@@ -97,6 +99,8 @@ class Resources:
     agent_deps: AgentDeps
     jobs: JobDispatcher
     interviews: InterviewEngine
+    bridge: BridgeHub
+    gguf: GgufRuntime | None
 
     @classmethod
     def create(cls, settings: Settings) -> Resources:
@@ -104,7 +108,9 @@ class Resources:
         valkey = Redis.from_url(settings.valkey_url, socket_connect_timeout=3, socket_timeout=5)
         public_http = create_http_client(allow_private=False)
         private_http = create_http_client(allow_private=True)
-        provider_factory = make_provider_factory(settings, public_http, private_http)
+        bridge = BridgeHub(valkey)
+        gguf = GgufRuntime(settings) if settings.gguf_allowed_dirs else None
+        provider_factory = make_provider_factory(settings, public_http, private_http, bridge=bridge, gguf=gguf)
         session_factory = create_session_factory(engine)
         http = httpx.AsyncClient(timeout=httpx.Timeout(10.0, connect=3.0))
         s3 = create_s3_client(settings)
@@ -166,9 +172,13 @@ class Resources:
             agent_deps=agent_deps,
             jobs=jobs,
             interviews=InterviewEngine(EngineDeps(agent_deps, session_factory, jobs)),
+            bridge=bridge,
+            gguf=gguf,
         )
 
     async def close(self) -> None:
+        if self.gguf is not None:
+            await self.gguf.close()
         await self.connector_clients.provider_http.aclose()
         await self.rag.close()
         await self.public_http.aclose()

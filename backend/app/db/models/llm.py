@@ -8,7 +8,7 @@ from enum import StrEnum
 from typing import Any
 
 from sqlalchemy import Boolean, ForeignKey, Index, Integer, LargeBinary, String, Text, UniqueConstraint, text
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, IdMixin, TimestampMixin, str_enum
@@ -115,3 +115,23 @@ class UsageEvent(IdMixin, Base):
     ok: Mapped[bool] = mapped_column(Boolean, default=True)
     error_kind: Mapped[str | None] = mapped_column(String(40))
     at: Mapped[datetime] = mapped_column(server_default=text("now()"))
+
+
+class BridgeDevice(IdMixin, TimestampMixin, Base):
+    """A member's PC running the Local Model Bridge (ARCHITECTURE §10). Private to that member.
+
+    The device authenticates its tunnel with a token stored only as a SHA-256 hash; `models` is what the device
+    last announced (name, size, quantisation, context length), refreshed on every connect.
+    """
+
+    __tablename__ = "bridge_devices"
+
+    org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    platform: Mapped[str] = mapped_column(String(60), default="", server_default="")
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    models: Mapped[list[dict[str, Any]]] = mapped_column(JSONB, server_default=text("'[]'::jsonb"), default=list)
+    capabilities: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"), default=dict)
+    last_seen_at: Mapped[datetime | None]
+    revoked_at: Mapped[datetime | None]

@@ -88,8 +88,15 @@ def agent_deps() -> AgentDeps:
 
         ingest = ingest_deps()
         settings = ingest.settings
+        from app.llm.bridge_hub import BridgeHub  # noqa: PLC0415
+        from app.llm.gguf import GgufRuntime  # noqa: PLC0415
+
         factory = make_provider_factory(
-            settings, create_http_client(allow_private=False), create_http_client(allow_private=True)
+            settings,
+            create_http_client(allow_private=False),
+            create_http_client(allow_private=True),
+            bridge=BridgeHub(ingest.valkey),
+            gguf=GgufRuntime(settings) if settings.gguf_allowed_dirs else None,
         )
         _agents = AgentDeps(
             settings=settings,

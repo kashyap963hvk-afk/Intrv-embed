@@ -27,6 +27,7 @@ from app.cv import router as cv_router
 from app.interviews import router as interviews_router
 from app.knowledge import admin_router as knowledge_admin_router
 from app.knowledge import router as knowledge_router
+from app.llm import bridge_router
 from app.llm import router as llm_router
 from app.orgs.service import bootstrap_first_owner
 from app.questions import router as questions_router
@@ -88,6 +89,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router.router)
     app.include_router(admin_router.router)
     app.include_router(llm_router.router)
+    app.include_router(bridge_router.router)
+    app.include_router(bridge_router.ws_router)
     app.include_router(knowledge_router.router)
     app.include_router(knowledge_admin_router.router)
     app.include_router(connectors_router.router)

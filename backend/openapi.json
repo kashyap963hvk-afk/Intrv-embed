@@ -710,6 +710,53 @@
         "title": "CitationOut",
         "type": "object"
       },
+      "ClaimIn": {
+        "properties": {
+          "code": {
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "platform": {
+            "default": "",
+            "maxLength": 60,
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ],
+        "title": "ClaimIn",
+        "type": "object"
+      },
+      "ClaimOut": {
+        "properties": {
+          "device_id": {
+            "format": "uuid",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "token": {
+            "description": "Shown once; the bridge stores it. Only a hash is kept on the server.",
+            "title": "Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "token"
+        ],
+        "title": "ClaimOut",
+        "type": "object"
+      },
       "ConnectorKind": {
         "enum": [
           "GOOGLE_DRIVE",
@@ -1229,6 +1276,69 @@
           "latency_ms"
         ],
         "title": "DependencyStatus",
+        "type": "object"
+      },
+      "DeviceOut": {
+        "properties": {
+          "capabilities": {
+            "additionalProperties": true,
+            "title": "Capabilities",
+            "type": "object"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_seen_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Seen At"
+          },
+          "models": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Models",
+            "type": "array"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "online": {
+            "title": "Online",
+            "type": "boolean"
+          },
+          "platform": {
+            "title": "Platform",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "platform",
+          "online",
+          "models",
+          "capabilities",
+          "last_seen_at",
+          "created_at"
+        ],
+        "title": "DeviceOut",
         "type": "object"
       },
       "DiscoverRequest": {
@@ -2989,6 +3099,24 @@
         "title": "PackVisibility",
         "type": "string"
       },
+      "PairOut": {
+        "properties": {
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "expires_in_s": {
+            "title": "Expires In S",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "expires_in_s"
+        ],
+        "title": "PairOut",
+        "type": "object"
+      },
       "PasteIn": {
         "properties": {
           "doc_type": {
@@ -3462,6 +3590,19 @@
             ],
             "title": "Base Url"
           },
+          "device_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "BRIDGE only: your paired PC (see /api/bridge).",
+            "title": "Device Id"
+          },
           "kind": {
             "$ref": "#/components/schemas/ProviderKind",
             "default": "OPENAI_COMPATIBLE"
@@ -3471,6 +3612,19 @@
             "minLength": 1,
             "title": "Model",
             "type": "string"
+          },
+          "model_path": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "GGUF_MANAGED only (owners, self-host): absolute .gguf path.",
+            "title": "Model Path"
           },
           "name": {
             "maxLength": 120,
@@ -7666,6 +7820,131 @@
         "summary": "Request to join an org",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/bridge/claim": {
+      "post": {
+        "description": "Called by the bridge app (no browser session): exchanges a pairing code for a device token.",
+        "operationId": "claim_api_bridge_claim_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClaimOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Claim",
+        "tags": [
+          "bridge"
+        ]
+      }
+    },
+    "/api/bridge/devices": {
+      "get": {
+        "operationId": "devices_api_bridge_devices_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceOut"
+                  },
+                  "title": "Response Devices Api Bridge Devices Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Devices",
+        "tags": [
+          "bridge"
+        ]
+      }
+    },
+    "/api/bridge/devices/{device_id}": {
+      "delete": {
+        "operationId": "revoke_api_bridge_devices__device_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Device Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke",
+        "tags": [
+          "bridge"
+        ]
+      }
+    },
+    "/api/bridge/pair": {
+      "post": {
+        "description": "A one-time code the member types into the bridge app on their PC (valid 10 minutes).",
+        "operationId": "pair_api_bridge_pair_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Pair",
+        "tags": [
+          "bridge"
         ]
       }
     },

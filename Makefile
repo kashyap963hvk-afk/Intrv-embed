@@ -32,6 +32,7 @@ test: test-unit test-integration ## Backend unit + integration tests, frontend t
 
 test-unit: ## Fast tests, no Docker needed
 	$(BACKEND) uv run pytest -m "not integration and not live"
+	cd bridge && uv run pytest -q
 	$(FRONTEND) npm run typecheck
 
 test-integration: ## Tests against real containers (needs Docker)

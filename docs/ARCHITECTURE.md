@@ -625,7 +625,8 @@ Connectors  GET /api/connectors/kinds ; GET/POST /api/connectors/accounts ; POST
             GET/POST /api/spaces/{id}/sources ; GET/PATCH/DELETE /api/sources/{id} ; POST /api/sources/{id}/sync
 Search      POST /api/search (debug/RAG playground; ACL enforced)
 LLM         GET /api/llm/presets ; CRUD /api/llm/profiles ; POST /api/llm/profiles/{id}/probe ; GET /api/llm/profiles/{id}/models
-            GET/PUT /api/llm/routes ; POST /api/bridge/pair ; WS /api/bridge/connect ; GET /api/bridge/devices
+            GET/PUT /api/llm/routes ; POST /api/bridge/pair ; POST /api/bridge/claim (bridge app, pairing code)
+            WS /api/bridge/connect (device token) ; GET /api/bridge/devices ; DELETE /api/bridge/devices/{id} (ADR 0008)
 Role packs  CRUD /api/role-packs ; POST /api/role-packs/build (Role Builder agent) ; POST /api/role-packs/{id}/fork
 Templates   CRUD /api/templates ; POST /api/templates/{id}/preview-prompt (L0–L4, lint) ; POST /api/templates/{id}/simulate
 Questions   POST /api/question-sets (generate) ; GET/PATCH /api/question-sets/{id} ; POST /api/question-sets/{id}/items/{iid}/regenerate

@@ -45,6 +45,7 @@ from app.db.models.knowledge import (
 )
 from app.db.models.llm import (
     AgentRole,
+    BridgeDevice,
     LLMProfile,
     LLMRoleRoute,
     OrgKey,
@@ -67,6 +68,7 @@ __all__ = [
     "AccountStatus",
     "AgentRole",
     "AuditLog",
+    "BridgeDevice",
     "CandidateProfile",
     "ChunkKind",
     "ConnectorAccount",

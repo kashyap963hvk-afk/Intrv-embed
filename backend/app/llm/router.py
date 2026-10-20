@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import uuid
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, Request, status
 from sqlalchemy import delete, select
@@ -22,6 +22,7 @@ from app.core.ssrf import UnsafeURLError, validate_url
 from app.db.deps import DbSession
 from app.db.models import (
     AgentRole,
+    BridgeDevice,
     LLMProfile,
     LLMRoleRoute,
     Organization,
@@ -31,6 +32,7 @@ from app.db.models import (
     UserPolicy,
 )
 from app.llm.gateway import CallTrace
+from app.llm.gguf import GgufPathError, resolve_model_path
 from app.llm.presets import get_preset, load_presets
 from app.llm.probe import Prober
 from app.llm.schemas import (
@@ -113,8 +115,11 @@ def _check_kind(kind: ProviderKind, settings: Settings, policy: OrgPolicy) -> No
         if settings.is_prod:
             raise InvalidProfileError("The scripted test provider is only available in development.")
         return
-    if kind in (ProviderKind.BRIDGE, ProviderKind.GGUF_MANAGED):
-        raise InvalidProfileError("This provider type is not supported by this server version.")
+    if kind == ProviderKind.GGUF_MANAGED and not settings.gguf_allowed_dirs:
+        raise InvalidProfileError(
+            "Local GGUF files can only be used in self-host mode (set GGUF_ALLOWED_DIRS). In cloud deployments, "
+            "run the model on your PC through the Local Model Bridge."
+        )
     if kind == ProviderKind.SERVER_LOCAL and not settings.allow_private_llm_endpoints:
         raise InvalidProfileError(
             "Self-hosted endpoints are disabled on this server. In cloud deployments, run local models through "
@@ -125,7 +130,7 @@ def _check_kind(kind: ProviderKind, settings: Settings, policy: OrgPolicy) -> No
 
 
 def _check_url(kind: ProviderKind, base_url: str | None, settings: Settings) -> str | None:
-    if kind == ProviderKind.FAKE:
+    if kind in (ProviderKind.FAKE, ProviderKind.BRIDGE, ProviderKind.GGUF_MANAGED):
         return None
     if not base_url:
         raise InvalidProfileError("A base URL is required.")
@@ -137,6 +142,32 @@ def _check_url(kind: ProviderKind, base_url: str | None, settings: Settings) -> 
         )
     except UnsafeURLError as exc:
         raise InvalidProfileError(exc.detail) from exc
+
+
+async def _local_model_params(
+    db: AsyncSession, principal: Principal, body: ProfileCreate, kind: ProviderKind, settings: Settings
+) -> dict[str, Any]:
+    if kind == ProviderKind.BRIDGE:
+        if body.scope != "personal":
+            raise InvalidProfileError("A model on your PC is personal; it cannot be shared with the organization.")
+        device = await db.get(BridgeDevice, body.device_id) if body.device_id else None  # RLS: own devices
+        if device is None or device.revoked_at is not None:
+            raise InvalidProfileError("Choose one of your paired PCs.")
+        known = {m["id"] for m in device.models}
+        if known and body.model not in known:
+            raise InvalidProfileError("That model is not on the selected PC. Rescan models in the bridge app.")
+        return {"device_id": str(device.id)}
+    if kind == ProviderKind.GGUF_MANAGED:
+        if not principal.is_owner:
+            raise ForbiddenError("Only owners can run model files on the server.")
+        try:
+            path = resolve_model_path(body.model_path or "", settings.gguf_allowed_dirs)
+        except GgufPathError as exc:
+            raise InvalidProfileError(str(exc)) from exc
+        return {"path": str(path)}
+    if body.device_id is not None or body.model_path is not None:
+        raise InvalidProfileError("device_id and model_path are only for local models.")
+    return {}
 
 
 async def _can_create(db: AsyncSession, principal: Principal, scope: str, policy: OrgPolicy) -> None:
@@ -216,9 +247,10 @@ async def create_profile(
         raise ForbiddenError("Only owners can change a provider's data-training classification.")
 
     trains = body.trains_on_data if body.trains_on_data is not None else (preset.trains_on_data if preset else None)
-    if kind == ProviderKind.FAKE:
-        trains = False
     params = body.params.model_dump(exclude_none=True)
+    if kind in (ProviderKind.FAKE, ProviderKind.BRIDGE, ProviderKind.GGUF_MANAGED):
+        trains = False  # nothing leaves this deployment or the member's own PC
+    params |= await _local_model_params(db, principal, body, kind, settings)
     if body.script is not None:
         if kind != ProviderKind.FAKE:
             raise InvalidProfileError("Scripts are only for the test provider.")

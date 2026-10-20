@@ -49,6 +49,10 @@ class ProfileCreate(BaseModel):
         default=None, description="Owners only: override the preset (e.g. a paid tier with a no-training agreement)."
     )
     script: list[dict[str, Any]] | None = Field(default=None, description="FAKE provider only (dev/test).")
+    device_id: uuid.UUID | None = Field(default=None, description="BRIDGE only: your paired PC (see /api/bridge).")
+    model_path: str | None = Field(
+        default=None, max_length=1000, description="GGUF_MANAGED only (owners, self-host): absolute .gguf path."
+    )
 
 
 class ProfileUpdate(BaseModel):

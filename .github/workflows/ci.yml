@@ -39,6 +39,25 @@ jobs:
           REQUIRE_DOCKER: "1"
         run: uv run pytest -m "not live"
 
+  bridge:
+    name: Local Model Bridge (lint, types, tests)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bridge
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.32"
+          enable-cache: true
+          cache-dependency-glob: bridge/uv.lock
+      - run: uv python install 3.12
+      - run: uv sync --frozen
+      - run: uv run ruff check . && uv run ruff format --check .
+      - run: uv run mypy src
+      - run: uv run pytest
+
   frontend:
     name: Frontend (lint, types, build)
     runs-on: ubuntu-latest
