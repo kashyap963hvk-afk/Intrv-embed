@@ -55,6 +55,7 @@ class PlanTopic(BaseModel):
     expected_signals: list[str] = Field(default_factory=list)
     red_flags: list[str] = Field(default_factory=list)
     planned_minutes: float = Field(default=5, ge=1, le=40)
+    task_id: str | None = Field(default=None, max_length=64)  # PRACTICAL topics: the role pack task
 
 
 class InterviewPlan(BaseModel):
@@ -116,4 +117,5 @@ class InterviewSettings(BaseModel):
     blind_grading: bool = True
     grading_runs: int = Field(default=3, ge=1, le=5)
     interviewer_name: str | None = Field(default=None, max_length=60)
+    practical_tasks: list[str] = Field(default_factory=list, max_length=4, description="Role pack task ids")
     structure: list[dict[str, int | str]] | None = None  # [{section, minutes}], defaults to the role variant's

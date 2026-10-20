@@ -4,7 +4,7 @@
 #   core          data stores + backend + worker + beat + frontend (dev mode); fastembed models in-process
 #   models        Text Embeddings Inference (CPU): bge-m3 + bge-reranker-v2-m3 (set EMBED_BACKEND=tei, see .env.example)
 #   gpu           CUDA TEI images (override TEI_IMAGE)          voice   voice worker + Kokoro TTS + coturn
-#   coding        Phase 8: Piston (+ optional Renode)          prod    Phase 10: Caddy + production images
+#   coding        Piston code runner for practical rounds       prod    Phase 10: Caddy + production images
 #   observability Phase 10: OpenTelemetry collector
 # Profiles listed for later phases are added together with the code that needs them.
 #
@@ -286,7 +286,36 @@ services:
       - --denied-peer-ip=192.168.0.0-192.168.255.255
     restart: unless-stopped
 
+  # --- practical rounds (Phase 8) ---------------------------------------------------------------------------
+  # Piston runs candidate code in isolate sandboxes (no network, CPU/memory/time limits); it needs privileged
+  # mode for its cgroups. piston-init installs the language packages once (they persist in the volume).
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    profiles: [coding]
+    privileged: true
+    volumes:
+      - pistondata:/piston
+    ports:
+      - "127.0.0.1:2000:2000"
+    restart: unless-stopped
+
+  piston-init:
+    image: curlimages/curl:8.17.0
+    profiles: [coding]
+    depends_on: [piston]
+    command:
+      - sh
+      - -c
+      - >
+        until curl -sf http://piston:2000/api/v2/runtimes >/dev/null; do sleep 2; done;
+        for pkg in gcc:10.2.0 python:3.10.0; do
+          curl -sf -X POST http://piston:2000/api/v2/packages -H 'Content-Type: application/json'
+          -d "{\"language\": \"$${pkg%%:*}\", \"version\": \"$${pkg##*:}\"}" || true;
+        done
+    restart: "no"
+
 volumes:
+  pistondata:
   models:
   teidata:
   pgdata:

@@ -1239,6 +1239,7 @@ def _already_answered(turn: Turn, client_id: str) -> bool:
     return any(t.speaker == Speaker.CANDIDATE and (t.meta or {}).get("client_id") == client_id for t in turn.history)
 
 
+_UUID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
 _META_KEYS = {"typing_ms": (int, float), "paste_chars": (int, float), "paste_count": (int,), "edits": (int,)}
 
 
@@ -1251,6 +1252,9 @@ def _client_meta(meta: dict[str, Any], client_id: str | None) -> dict[str, Any]:
     }
     if client_id:
         clean["client_id"] = client_id[:64]
+    submission = meta.get("submission_id")
+    if isinstance(submission, str) and _UUID.fullmatch(submission):
+        clean["submission_id"] = submission  # practical work this answer talks about
     return clean
 
 

@@ -165,3 +165,23 @@ class IntegrityEvent(IdMixin, Base):
     detail: Mapped[dict[str, Any]] = mapped_column(server_default=sql_text("'{}'::jsonb"), default=dict)
     addressed: Mapped[bool] = mapped_column(Boolean, default=False, server_default=sql_text("false"))
     created_at: Mapped[datetime] = mapped_column(server_default=sql_text("now()"))
+
+
+class PracticalSubmission(IdMixin, Base):
+    """Code, a diagram or an answer to a practical task, with test results and the reviewer's (verified) findings."""
+
+    __tablename__ = "practical_submissions"
+    __table_args__ = (Index("ix_practical_submissions_session", "session_id", "created_at"),)
+
+    org_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("organizations.id", ondelete="CASCADE"), index=True)
+    owner_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("interview_sessions.id", ondelete="CASCADE"))
+    topic_id: Mapped[str] = mapped_column(String(64))
+    task_id: Mapped[str] = mapped_column(String(64))
+    kind: Mapped[str] = mapped_column(String(32))
+    code: Mapped[str] = mapped_column(Text, default="", server_default="")
+    explanation: Mapped[str] = mapped_column(Text, default="", server_default="")
+    attachment_key: Mapped[str | None] = mapped_column(String(500))  # whiteboard image in the session's S3 prefix
+    results: Mapped[dict[str, Any]] = mapped_column(server_default=sql_text("'{}'::jsonb"), default=dict)
+    review: Mapped[dict[str, Any] | None] = mapped_column()
+    created_at: Mapped[datetime] = mapped_column(server_default=sql_text("now()"))

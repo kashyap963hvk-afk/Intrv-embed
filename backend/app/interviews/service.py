@@ -44,11 +44,13 @@ from app.db.models import (
 from app.interviews import integrity
 from app.interviews.engine import FINALIZE_JOB, LLM_FAILURES, SessionRef, owner_session
 from app.interviews.persona import PERSONA_VARIABLES, lint_persona, render_persona
-from app.interviews.planning import context_packs, plan_interview
+from app.interviews.planning import context_packs, plan_interview, practical_availability, with_practical
 from app.interviews.schemas import InterviewPlan, InterviewSettings
 from app.knowledge.acl import readable, space_permissions
 from app.knowledge.events import publish
+from app.knowledge.storage import ObjectStorage
 from app.orgs.policy import org_policy
+from app.practical.service import submissions as practical_submissions
 from app.rolepacks.schema import RolePackSpec
 
 log = get_logger("app.interviews")
@@ -367,6 +369,18 @@ async def _prepare(deps: AgentDeps, db: AsyncSession, session: InterviewSession)
         gap=gap,
         question_items=items,
     )
+    available, practical, notes = await practical_availability(
+        deps,
+        db,
+        org_id=org_id,
+        user_id=user_id,
+        spec=spec,
+        settings=settings,
+        space_ids=[uuid.UUID(s) for s in session.acl_snapshot],
+        code_runner=bool(deps.settings.piston_url),
+    )
+    if settings.practical_tasks:
+        plan = with_practical(plan, spec, variant, settings, structure, available)
     await progress("Gathering reference material")
     packs = await context_packs(
         deps,
@@ -383,6 +397,8 @@ async def _prepare(deps: AgentDeps, db: AsyncSession, session: InterviewSession)
         "source": source,
         "context_packs": packs,
         "candidate": {"summary": profile.blind_summary if profile else "", "evidence": index},
+        "practical": practical,
+        "notes": notes,
         "gap_matrix": gap,
         "prompt_versions": composer.versions("planner", "cv_extract", "jd_match"),
     }
@@ -574,7 +590,7 @@ async def transcript(db: AsyncSession, session_id: uuid.UUID) -> list[InterviewT
     )
 
 
-async def report(db: AsyncSession, session: InterviewSession) -> dict[str, Any]:
+async def report(db: AsyncSession, session: InterviewSession, storage: ObjectStorage | None = None) -> dict[str, Any]:
     scorecard = await db.scalar(select(Scorecard).where(Scorecard.session_id == session.id))
     events = list(
         await db.scalars(
@@ -630,6 +646,12 @@ async def report(db: AsyncSession, session: InterviewSession) -> dict[str, Any]:
             for t in turns
         ],
         "plan": {"topics": session.plan.get("topics", []), "source": session.plan.get("source")},
+        "practical": await practical_submissions(db, storage, session.id) if storage else [],
+        "snapshots": [
+            await storage.presign_get(e.detail["key"], filename="snapshot.jpg", expires_s=600)
+            for e in events
+            if storage and e.kind == "snapshot" and isinstance(e.detail.get("key"), str)
+        ],
     }
 
 

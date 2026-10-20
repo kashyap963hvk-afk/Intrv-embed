@@ -19,3 +19,5 @@ Items deliberately left out of a phase (CLAUDE.md rule 1: no stubs; list it here
 | Softened candidate feedback export | Reports are interviewer-only for now | Phase 10 |
 | Audio integrity signals: second voice, background whispering, keyboard transients | Needs speaker-embedding and audio-event models (Hugging Face is unreachable from the build sandbox); the engine already accepts the events | Phase 8 (with camera signals) |
 | Voice room for the interviewer's own preview | The voice worker authenticates with the candidate's invite token; interviewers preview voice by opening the invite link | Unscheduled |
+| Renode MCU simulation for firmware tasks (`RENODE_ENABLED`) | Could not be built and verified reliably in the build environment (ADR 0010); Piston covers host-compiled tasks | Unscheduled |
+| Live Piston container check in this sandbox | GHCR blob storage is blocked here; the runner is tested against a Piston-API server using the host gcc | Any networked CI run |

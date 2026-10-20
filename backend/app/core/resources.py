@@ -32,6 +32,7 @@ from app.llm.factory import make_provider_factory
 from app.llm.gateway import LLMGateway, ProviderFactory
 from app.llm.gguf import GgufRuntime
 from app.llm.limits import ProfileLimiter
+from app.practical.piston import PistonClient
 from app.rag.engine import RagEngine
 from workers.config import create_celery
 
@@ -101,6 +102,7 @@ class Resources:
     interviews: InterviewEngine
     bridge: BridgeHub
     gguf: GgufRuntime | None
+    piston: PistonClient | None
 
     @classmethod
     def create(cls, settings: Settings) -> Resources:
@@ -174,6 +176,7 @@ class Resources:
             interviews=InterviewEngine(EngineDeps(agent_deps, session_factory, jobs)),
             bridge=bridge,
             gguf=gguf,
+            piston=PistonClient(settings.piston_url, http) if settings.piston_url else None,
         )
 
     async def close(self) -> None:

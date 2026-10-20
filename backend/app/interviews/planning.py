@@ -20,6 +20,11 @@ from app.rolepacks.schema import RolePackSpec, RoleVariant
 log = get_logger("app.interviews")
 
 TOPIC_SECTIONS = ("CV_WALKTHROUGH", "TECHNICAL", "BEHAVIORAL")
+SECTION_ORDER = ("OPENING", "CV_WALKTHROUGH", "TECHNICAL", "PRACTICAL", "BEHAVIORAL", "CANDIDATE_QUESTIONS", "CLOSE")
+PRACTICAL_SEED = (
+    "Let's do a short practical exercise now. The task is on the Practical tab: take your time, run it as often as "
+    "you like, and when you submit, walk me through what you found and why. Shall we start?"
+)
 MINUTES_PER_TOPIC = {"CV_WALKTHROUGH": 5.0, "TECHNICAL": 6.0, "BEHAVIORAL": 4.0}
 DEFAULT_STRUCTURE = [
     {"section": "OPENING", "minutes": 2},
@@ -35,20 +40,25 @@ REFERENCE_DOC_TYPES = ("KNOWLEDGE", "DATASHEET", "CODE", "RUBRIC", "QUESTION_BAN
 
 
 def structure_for(settings: InterviewSettings, role: RoleVariant) -> list[dict[str, Any]]:
-    """Sections with minutes scaled to the interview's duration. Text interviews fold PRACTICAL into TECHNICAL."""
+    """Sections with minutes scaled to the interview's duration. Without practical tasks, PRACTICAL time goes to
+    TECHNICAL."""
     raw: list[dict[str, Any]] = (
         list(settings.structure)
         if settings.structure
         else [s.model_dump(mode="json") for s in role.default_structure] or list(DEFAULT_STRUCTURE)
     )
+    practical = bool(settings.practical_tasks)
     merged: dict[str, float] = {}
     for step in raw:
-        section = "TECHNICAL" if step["section"] == "PRACTICAL" else str(step["section"])
+        section = str(step["section"])
+        if section == "PRACTICAL" and not practical:
+            section = "TECHNICAL"
         merged[section] = merged.get(section, 0.0) + float(step["minutes"])
+    if practical and "PRACTICAL" not in merged:
+        merged["PRACTICAL"] = 12.0 * len(settings.practical_tasks)
     total = sum(merged.values()) or 1.0
     scale = settings.duration_minutes / total
-    order = [s for s in ("OPENING", *TOPIC_SECTIONS, "CANDIDATE_QUESTIONS", "CLOSE") if s in merged]
-    return [{"section": s, "minutes": round(merged[s] * scale, 1)} for s in order]
+    return [{"section": s, "minutes": round(merged[s] * scale, 1)} for s in SECTION_ORDER if s in merged]
 
 
 def _topic_count(structure: list[dict[str, Any]], section: str) -> int:
@@ -159,16 +169,56 @@ def normalise_plan(
     sections = {s["section"] for s in structure}
     topics: list[PlanTopic] = []
     for topic in plan.topics:
-        section = "TECHNICAL" if topic.section == "PRACTICAL" else topic.section
+        if topic.section == "PRACTICAL":
+            continue  # practical topics come from the role pack's tasks, never from the planner
+        section = topic.section
         if section not in sections:
             continue
         competencies = [c for c in topic.competencies if c in known] or [
             max(role.weights, key=role.weights.__getitem__)
         ]
         topics.append(topic.model_copy(update={"section": section, "competencies": competencies}))
+    topics.sort(key=lambda t: SECTION_ORDER.index(t.section))  # stable: keeps the planner's order inside a section
     for index, topic in enumerate(topics, start=1):
         topic.id = f"t{index}"
     return InterviewPlan(topics=topics) if topics else plan
+
+
+def with_practical(
+    plan: InterviewPlan,
+    spec: RolePackSpec,
+    role: RoleVariant,
+    settings: InterviewSettings,
+    structure: list[dict[str, Any]],
+    available: set[str],
+) -> InterviewPlan:
+    """Insert one PRACTICAL topic per chosen task (those that can run here), in section order, and renumber."""
+    minutes = next((float(s["minutes"]) for s in structure if s["section"] == "PRACTICAL"), 0.0)
+    chosen = [t for t in spec.practical_tasks if t.id in settings.practical_tasks and t.id in available]
+    topics = [t for t in plan.topics if t.section != "PRACTICAL"]
+    for task in chosen:
+        topics.append(
+            PlanTopic(
+                title=f"Practical: {task.id.replace('_', ' ')}",
+                section="PRACTICAL",
+                competencies=[c for c in task.rubric_competencies if role.weights.get(c, 0) > 0]
+                or [max(role.weights, key=role.weights.__getitem__)],
+                source={"type": "rubric", "ref": task.id},
+                seed_question=PRACTICAL_SEED,
+                probe_angles=[
+                    "What was the first thing you noticed when you read the code?",
+                    "How would you confirm that on real hardware?",
+                    "What would you change if this ran on a multi-core MCU?",
+                ],
+                expected_signals=task.known_bugs[:6],
+                planned_minutes=max(1.0, minutes / max(1, len(chosen))),
+                task_id=task.id,
+            )
+        )
+    topics.sort(key=lambda t: SECTION_ORDER.index(t.section))
+    for index, topic in enumerate(topics, start=1):
+        topic.id = f"t{index}"
+    return InterviewPlan(topics=topics)
 
 
 async def plan_interview(
@@ -271,3 +321,53 @@ async def context_packs(
             pack.append({"document_id": str(chunk.document_id), "title": chunk.citation.title, "text": text})
         packs[topic.id] = pack
     return packs
+
+
+async def practical_availability(
+    deps: AgentDeps,
+    db: AsyncSession,
+    *,
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    spec: RolePackSpec,
+    settings: InterviewSettings,
+    space_ids: list[uuid.UUID],
+    code_runner: bool,
+) -> tuple[set[str], dict[str, Any], list[str]]:
+    """Which chosen tasks can run here: code needs the runner, datasheet reading needs a datasheet the session
+    may read. Returns (task ids, per-task context, notes for the interviewer's progress line)."""
+    available: set[str] = set()
+    context: dict[str, Any] = {}
+    notes: list[str] = []
+    for task in spec.practical_tasks:
+        if task.id not in settings.practical_tasks:
+            continue
+        if task.kind.value in {"DEBUG_SNIPPET", "WRITE_CODE"} and not code_runner:
+            notes.append(f"{task.id}: skipped (no code runner configured)")
+            continue
+        if task.kind.value == "DATASHEET_READING":
+            chunks = (
+                await search(
+                    deps,
+                    db,
+                    org_id=org_id,
+                    user_id=user_id,
+                    query=task.prompt,
+                    space_ids=space_ids,
+                    k=2,
+                    doc_types=("DATASHEET",),
+                )
+                if space_ids
+                else []
+            )
+            if not chunks:
+                notes.append(f"{task.id}: skipped (no datasheet in the reference spaces)")
+                continue
+            context[task.id] = {
+                "reference": [
+                    {"document_id": str(c.document_id), "title": c.citation.title, "text": c.text[:CONTEXT_CHARS]}
+                    for c in chunks
+                ]
+            }
+        available.add(task.id)
+    return available, context, notes

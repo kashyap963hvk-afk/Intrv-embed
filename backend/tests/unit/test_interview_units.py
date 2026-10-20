@@ -323,9 +323,14 @@ async def test_graders_never_see_integrity_data_or_names(monkeypatch: pytest.Mon
         SimpleNamespace(seq=2, speaker=grading.Speaker.CANDIDATE, text="I doubled the stack of the CAN task."),
     ]
     topic = PlanTopic(id="t1", title="RTOS", seed_question="How do you size stacks?", competencies=["emb.rtos"])
+
+    class NoSubmissions:
+        async def scalars(self, *_args: Any) -> list[Any]:
+            return []
+
     await grading._grade_with_retry(
         None,
-        None,
+        NoSubmissions(),
         session,
         topic,
         spec,

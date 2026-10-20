@@ -10,7 +10,7 @@ from collections.abc import Awaitable
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect, status
+from fastapi import APIRouter, Depends, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, ValidationError
 
@@ -19,6 +19,7 @@ from app.auth.cookies import ACCESS_COOKIE
 from app.auth.deps import ActiveMember, SettingsDep, csrf_protect
 from app.core.errors import AppError, ConflictError
 from app.core.logging import get_logger
+from app.core.ratelimit import enforce_rate_limit
 from app.core.resources import Resources
 from app.core.security import decode_access_token
 from app.db.deps import DbSession
@@ -30,6 +31,8 @@ from app.interviews.integrity import BrowserEvent
 from app.interviews.persona import lint_persona
 from app.interviews.schemas import InterviewPlan, InterviewSettings
 from app.knowledge.deps import ResourcesDep
+from app.practical import service as practical
+from app.practical.service import PracticalDeps
 from app.rolepacks.schema import RolePackSpec
 
 log = get_logger("app.interviews")
@@ -400,8 +403,10 @@ async def delete_interview(session_id: uuid.UUID, _member: ActiveMember, db: DbS
 
 
 @router.get("/{session_id}/report")
-async def get_report(session_id: uuid.UUID, _member: ActiveMember, db: DbSession) -> dict[str, Any]:
-    return await service.report(db, await service.get_session(db, session_id))
+async def get_report(
+    session_id: uuid.UUID, _member: ActiveMember, db: DbSession, resources: ResourcesDep
+) -> dict[str, Any]:
+    return await service.report(db, await service.get_session(db, session_id), resources.storage)
 
 
 @router.post("/{session_id}/regrade", status_code=status.HTTP_202_ACCEPTED, summary="Grade the interview again")
@@ -426,9 +431,10 @@ async def export_report(
     session_id: uuid.UUID,
     _member: ActiveMember,
     db: DbSession,
+    resources: ResourcesDep,
     format: Annotated[Literal["json", "pdf"], Query()] = "pdf",
 ) -> Response:
-    report = await service.report(db, await service.get_session(db, session_id))
+    report = await service.report(db, await service.get_session(db, session_id), resources.storage)
     filename = re.sub(r"[^A-Za-z0-9._-]+", "-", report["title"]).strip("-")[:80] or "interview"
     if format == "json":
         body, media = json.dumps(report, indent=1, default=str).encode(), "application/json"
@@ -468,6 +474,73 @@ async def consent(token: str, body: ConsentIn, db: DbSession, resources: Resourc
 async def voice(token: str, db: DbSession, settings: SettingsDep) -> dict[str, Any]:
     ref = await service.resolve_invite(db, token)
     return media.voice_info(settings, ref.id)
+
+
+class CodeIn(BaseModel):
+    code: str = Field(max_length=40_000)
+
+
+class SubmitIn(CodeIn):
+    explanation: str = Field(default="", max_length=6000)
+
+
+def _practical(resources: Resources) -> PracticalDeps:
+    return PracticalDeps(resources.agent_deps, resources.session_factory, resources.storage, resources.piston)
+
+
+def _as_problem(exc: EngineError) -> AppError:
+    return ConflictError(exc.message) if exc.code in {"no_task", "not_live", "unavailable"} else AppError(exc.message)
+
+
+@join_router.get("/{token}/practical", summary="The current practical task (code, diagram or datasheet)")
+async def practical_task(token: str, db: DbSession, resources: ResourcesDep) -> dict[str, Any]:
+    ref = await service.resolve_invite(db, token)
+    try:
+        return await practical.current_task(_practical(resources), ref)
+    except EngineError as exc:
+        raise _as_problem(exc) from exc
+
+
+@join_router.post("/{token}/practical/run", summary="Compile and run against the task's tests")
+async def practical_run(token: str, body: CodeIn, db: DbSession, resources: ResourcesDep) -> dict[str, Any]:
+    ref = await service.resolve_invite(db, token)
+    await enforce_rate_limit(resources.valkey, f"practical-run:{ref.id}", limit=60, window_s=3600)
+    try:
+        return await practical.run_code(_practical(resources), ref, body.code)
+    except EngineError as exc:
+        raise _as_problem(exc) from exc
+
+
+@join_router.post("/{token}/practical/submit", summary="Submit code and explanation for review")
+async def practical_submit(token: str, body: SubmitIn, db: DbSession, resources: ResourcesDep) -> dict[str, Any]:
+    ref = await service.resolve_invite(db, token)
+    await enforce_rate_limit(resources.valkey, f"practical-submit:{ref.id}", limit=10, window_s=3600)
+    try:
+        return await practical.submit(_practical(resources), ref, body.code, body.explanation)
+    except EngineError as exc:
+        raise _as_problem(exc) from exc
+
+
+@join_router.post("/{token}/whiteboard", summary="Submit a diagram (PNG/JPEG/WebP, up to 3 MB)")
+async def whiteboard(token: str, file: UploadFile, db: DbSession, resources: ResourcesDep) -> dict[str, Any]:
+    ref = await service.resolve_invite(db, token)
+    await enforce_rate_limit(resources.valkey, f"whiteboard:{ref.id}", limit=10, window_s=3600)
+    image = await file.read(practical.MAX_IMAGE_BYTES + 1)
+    try:
+        return await practical.whiteboard(_practical(resources), ref, image, file.content_type or "")
+    except EngineError as exc:
+        raise _as_problem(exc) from exc
+
+
+@join_router.post("/{token}/snapshot", summary="STRICT mode: a low-resolution camera frame for the reviewer")
+async def snapshot(token: str, file: UploadFile, db: DbSession, resources: ResourcesDep) -> dict[str, bool]:
+    ref = await service.resolve_invite(db, token)
+    await enforce_rate_limit(resources.valkey, f"snapshot:{ref.id}", limit=120, window_s=3600)
+    try:
+        stored = await practical.snapshot(_practical(resources), ref, await file.read(practical.MAX_SNAPSHOT_BYTES + 1))
+    except EngineError as exc:
+        raise _as_problem(exc) from exc
+    return {"stored": stored}
 
 
 @join_router.post("/{token}/integrity", summary="Browser integrity signals (batched)")

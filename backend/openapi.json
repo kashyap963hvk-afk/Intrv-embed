@@ -379,6 +379,20 @@
         "title": "AzureAccountIn",
         "type": "object"
       },
+      "Body_snapshot_api_join__token__snapshot_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_snapshot_api_join__token__snapshot_post",
+        "type": "object"
+      },
       "Body_upload_documents_api_spaces__space_id__documents_post": {
         "properties": {
           "doc_type": {
@@ -408,6 +422,20 @@
           "files"
         ],
         "title": "Body_upload_documents_api_spaces__space_id__documents_post",
+        "type": "object"
+      },
+      "Body_whiteboard_api_join__token__whiteboard_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_whiteboard_api_join__token__whiteboard_post",
         "type": "object"
       },
       "BrowseOut": {
@@ -755,6 +783,20 @@
           "token"
         ],
         "title": "ClaimOut",
+        "type": "object"
+      },
+      "CodeIn": {
+        "properties": {
+          "code": {
+            "maxLength": 40000,
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "CodeIn",
         "type": "object"
       },
       "ConnectorKind": {
@@ -2457,6 +2499,15 @@
             "title": "Language",
             "type": "string"
           },
+          "practical_tasks": {
+            "description": "Role pack task ids",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 4,
+            "title": "Practical Tasks",
+            "type": "array"
+          },
           "strictness": {
             "default": "balanced",
             "enum": [
@@ -3362,6 +3413,18 @@
           },
           "source": {
             "$ref": "#/components/schemas/TopicSource"
+          },
+          "task_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task Id"
           },
           "title": {
             "maxLength": 200,
@@ -5875,6 +5938,26 @@
           "label"
         ],
         "title": "SubjectItem",
+        "type": "object"
+      },
+      "SubmitIn": {
+        "properties": {
+          "code": {
+            "maxLength": 40000,
+            "title": "Code",
+            "type": "string"
+          },
+          "explanation": {
+            "default": "",
+            "maxLength": 6000,
+            "title": "Explanation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "SubmitIn",
         "type": "object"
       },
       "TemplateIn": {
@@ -9658,6 +9741,214 @@
         ]
       }
     },
+    "/api/join/{token}/practical": {
+      "get": {
+        "operationId": "practical_task_api_join__token__practical_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Practical Task Api Join  Token  Practical Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "The current practical task (code, diagram or datasheet)",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
+    "/api/join/{token}/practical/run": {
+      "post": {
+        "operationId": "practical_run_api_join__token__practical_run_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Practical Run Api Join  Token  Practical Run Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Compile and run against the task's tests",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
+    "/api/join/{token}/practical/submit": {
+      "post": {
+        "operationId": "practical_submit_api_join__token__practical_submit_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Practical Submit Api Join  Token  Practical Submit Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit code and explanation for review",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
+    "/api/join/{token}/snapshot": {
+      "post": {
+        "operationId": "snapshot_api_join__token__snapshot_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_snapshot_api_join__token__snapshot_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "title": "Response Snapshot Api Join  Token  Snapshot Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "STRICT mode: a low-resolution camera frame for the reviewer",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
     "/api/join/{token}/voice": {
       "get": {
         "operationId": "voice_api_join__token__voice_get",
@@ -9697,6 +9988,60 @@
           }
         },
         "summary": "Voice room: the voice service's offer URL and ICE servers",
+        "tags": [
+          "candidate"
+        ]
+      }
+    },
+    "/api/join/{token}/whiteboard": {
+      "post": {
+        "operationId": "whiteboard_api_join__token__whiteboard_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "token",
+            "required": true,
+            "schema": {
+              "title": "Token",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_whiteboard_api_join__token__whiteboard_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Whiteboard Api Join  Token  Whiteboard Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit a diagram (PNG/JPEG/WebP, up to 3 MB)",
         "tags": [
           "candidate"
         ]

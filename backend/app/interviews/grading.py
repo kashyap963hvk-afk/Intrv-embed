@@ -29,6 +29,7 @@ from app.db.models import (
     IntegrityEvent,
     InterviewSession,
     InterviewTurn,
+    PracticalSubmission,
     Scorecard,
     ScorecardStatus,
     SessionStatus,
@@ -40,6 +41,7 @@ from app.interviews.engine import LLM_FAILURES, owner_session
 from app.interviews.schemas import CompetencyGrade, InterviewPlan, PlanTopic, ScorecardNarrative, TopicGradeResult
 from app.knowledge.events import publish
 from app.llm.types import CallCtx
+from app.practical.service import grader_lines
 from app.rolepacks.schema import RolePackSpec
 
 log = get_logger("app.interviews")
@@ -155,6 +157,13 @@ async def _grade_with_retry(
     competencies: list[str],
     temperature: float,
 ) -> tuple[dict[str, CompetencyGrade], str | None]:
+    submissions = list(
+        await db.scalars(
+            select(PracticalSubmission).where(
+                PracticalSubmission.session_id == session.id, PracticalSubmission.topic_id == topic.id
+            )
+        )
+    )
     anchors = {c: spec.competency(c).anchors for c in competencies if spec.competency(c)}  # type: ignore[union-attr]
     packs: dict[str, list[dict[str, str]]] = session.plan.get("context_packs", {})
     messages = composer.task_messages(
@@ -164,7 +173,7 @@ async def _grade_with_retry(
         untrusted={
             "context_pack": "\n".join(p["text"] for p in packs.get(topic.id, [])) or "(none)",
             "blind_summary": session.plan.get("candidate", {}).get("summary", "") or "(no CV)",
-            "transcript_slice": _transcript(turns),
+            "transcript_slice": "\n".join([_transcript(turns), *grader_lines(submissions)]),
         },
     )
     ctx = CallCtx(
