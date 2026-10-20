@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from celery import Celery
+from celery.schedules import crontab
 from kombu import Queue
 
 from app.core.config import Settings
@@ -44,6 +45,11 @@ def create_celery(settings: Settings) -> Celery:
         beat_schedule={
             "connector-sync-due": {"task": "sync.due", "schedule": 60.0, "options": {"queue": "sync"}},
             "heal-stuck-work": {"task": "system.heal", "schedule": 300.0, "options": {"queue": "default"}},
+            "retention-purge": {
+                "task": "privacy.purge",
+                "schedule": crontab(hour=3, minute=17),
+                "options": {"queue": "default"},
+            },
         },
     )
     return app

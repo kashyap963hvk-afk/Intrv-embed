@@ -1556,6 +1556,82 @@
         "title": "DownloadOut",
         "type": "object"
       },
+      "EraseIn": {
+        "properties": {
+          "confirm": {
+            "default": false,
+            "description": "Must be true: erasure cannot be undone",
+            "title": "Confirm",
+            "type": "boolean"
+          },
+          "document_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Document Ids",
+            "type": "array"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The candidate's email as written on their CV",
+            "title": "Email"
+          },
+          "profile_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Profile Ids",
+            "type": "array"
+          },
+          "session_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Session Ids",
+            "type": "array"
+          }
+        },
+        "title": "EraseIn",
+        "type": "object"
+      },
+      "EraseOut": {
+        "properties": {
+          "erased": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Erased",
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectItem"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "erased",
+          "items"
+        ],
+        "title": "EraseOut",
+        "type": "object"
+      },
       "ForkIn": {
         "properties": {
           "name": {
@@ -5708,6 +5784,87 @@
           "message"
         ],
         "title": "SpecProblem",
+        "type": "object"
+      },
+      "SubjectIn": {
+        "properties": {
+          "document_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Document Ids",
+            "type": "array"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "format": "email",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The candidate's email as written on their CV",
+            "title": "Email"
+          },
+          "profile_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Profile Ids",
+            "type": "array"
+          },
+          "session_ids": {
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 200,
+            "title": "Session Ids",
+            "type": "array"
+          }
+        },
+        "title": "SubjectIn",
+        "type": "object"
+      },
+      "SubjectItem": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "owner_user_id": {
+            "title": "Owner User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "owner_user_id",
+          "label"
+        ],
+        "title": "SubjectItem",
         "type": "object"
       },
       "TemplateIn": {
@@ -9904,6 +10061,131 @@
         "summary": "Put Routes",
         "tags": [
           "llm"
+        ]
+      }
+    },
+    "/api/privacy/erase": {
+      "post": {
+        "operationId": "erase_api_privacy_erase_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EraseIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EraseOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Erase a candidate's data everywhere (cannot be undone)",
+        "tags": [
+          "privacy"
+        ]
+      }
+    },
+    "/api/privacy/export": {
+      "post": {
+        "operationId": "export_api_privacy_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Subject access export (JSON)",
+        "tags": [
+          "privacy"
+        ]
+      }
+    },
+    "/api/privacy/search": {
+      "post": {
+        "operationId": "search_api_privacy_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SubjectItem"
+                  },
+                  "title": "Response Search Api Privacy Search Post",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview everything held about a candidate",
+        "tags": [
+          "privacy"
         ]
       }
     },

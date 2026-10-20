@@ -30,6 +30,7 @@ from app.knowledge import router as knowledge_router
 from app.llm import bridge_router
 from app.llm import router as llm_router
 from app.orgs.service import bootstrap_first_owner
+from app.privacy import router as privacy_router
 from app.questions import router as questions_router
 from app.rolepacks import router as rolepacks_router
 
@@ -101,6 +102,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(interviews_router.router)
     app.include_router(interviews_router.join_router)
     app.include_router(interviews_router.ws_router)
+    app.include_router(privacy_router.router)
     if settings.metrics_enabled:
         app.include_router(health.metrics_router)
     return app

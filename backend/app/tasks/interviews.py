@@ -1,5 +1,5 @@
-"""Celery tasks for interviews: preparation (default queue), shadow grading and the scorecard (grade queue), and the
-self-healing scan (beat)."""
+"""Celery tasks for interviews: preparation (default queue), shadow grading and the scorecard (grade queue), the
+self-healing scan and the nightly retention purge (beat)."""
 
 from __future__ import annotations
 
@@ -51,3 +51,20 @@ def heal_stuck_work() -> dict[str, int]:
     jobs = CeleryJobs(current_app)
     engine = InterviewEngine(EngineDeps(agent_deps(), factory, jobs))
     return run(heal(factory, jobs=jobs, ingest=CeleryDispatcher(current_app), engine=engine))
+
+
+@shared_task(name="privacy.purge", acks_late=False, max_retries=0, soft_time_limit=3000, time_limit=3300)
+def purge_expired_candidate_data() -> dict[str, int]:
+    """Nightly retention purge (each organization's `retention_days`, default 180)."""
+    from app.knowledge.storage import ObjectStorage  # noqa: PLC0415
+    from app.privacy.service import PrivacyDeps, purge_expired  # noqa: PLC0415
+    from workers.runtime import agent_deps, ingest_deps, run  # noqa: PLC0415
+
+    ingest = ingest_deps()
+
+    async def go() -> dict[str, int]:
+        storage: ObjectStorage = ingest.storage
+        deps = PrivacyDeps(agent_deps(), ingest.session_factory, storage, await ingest.rag.store())
+        return await purge_expired(deps)
+
+    return run(go())

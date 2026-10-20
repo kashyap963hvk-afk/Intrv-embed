@@ -639,7 +639,8 @@ Interviews  GET/POST /api/interviews ; GET/DELETE /api/interviews/{id} ; POST /a
             GET /api/interviews/{id}/export?format=pdf|json
 Candidate   GET /api/join/{token} ; POST /api/join/{token}/consent ; POST /api/join/{token}/integrity (batched signals)
 Events      GET /api/events (SSE: ingestion progress, grading progress, notifications)
-Privacy     POST /api/privacy/erase (subject) ; GET /api/privacy/export
+Privacy     POST /api/privacy/search | /export | /erase (owners; subject by CV email or ids; erase needs confirm=true)
+            beat `privacy.purge` nightly 03:17 UTC: candidate data past the org's retention_days
 Ops         GET /healthz ; GET /readyz (deps) ; GET /metrics ; GET /api/system/selftest (owner-only: models load, dims match)
             beat `system.heal` every 5 min: re-dispatches or closes work left behind by dead workers (ADR 0007 §4)
 ```
