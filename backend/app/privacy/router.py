@@ -31,6 +31,9 @@ class SubjectIn(BaseModel):
 
 class EraseIn(SubjectIn):
     confirm: bool = Field(default=False, description="Must be true: erasure cannot be undone")
+    reason: str = Field(
+        default="", max_length=500, description="Why, e.g. the data subject's request reference (kept in the audit log)"
+    )
 
 
 class SubjectItem(BaseModel):
@@ -130,6 +133,6 @@ async def erase(body: EraseIn, request: Request, principal: Owner, db: DbSession
         action="privacy.erased",
         meta=ClientMeta.from_request(request),
         target_type="subject",
-        detail={**_selector(body), "erased": erased},
+        detail={**_selector(body), "erased": erased, "reason": body.reason.strip()},
     )
     return EraseOut(erased=erased, items=[SubjectItem.model_validate(i.out()) for i in items])

@@ -67,7 +67,7 @@ def _points(infra: Infra, document_id: str) -> int:
     return total
 
 
-def test_erasure_leaves_no_trace(pg: Postgres, infra: Infra, settings: Settings) -> None:
+def test_erasure_leaves_no_trace(pg: Postgres, infra: Infra, settings: Settings) -> None:  # noqa: PLR0915 - one story
     org = seed_org(settings)
     _, member_email = seed_user(settings, org)
     owner, member = new_client(settings), new_client(settings)
@@ -113,7 +113,8 @@ def test_erasure_leaves_no_trace(pg: Postgres, infra: Infra, settings: Settings)
         assert bundle["profiles"][0]["contact_and_name"]["name"] == "Priya Raman"
         assert bundle["interviews"][0]["transcript"]
         assert owner.post("/api/privacy/erase", json={"email": "priya.raman@example.com"}).status_code == 400
-        erased = owner.post("/api/privacy/erase", json={"email": "priya.raman@example.com", "confirm": True}).json()
+        body = {"email": "priya.raman@example.com", "confirm": True, "reason": "DSR-2026-114"}
+        erased = owner.post("/api/privacy/erase", json=body).json()
         assert erased["erased"]["cv"] == 1
         assert erased["erased"]["session"] == 1
 
@@ -128,6 +129,7 @@ def test_erasure_leaves_no_trace(pg: Postgres, infra: Infra, settings: Settings)
             ).fetchall()
         assert [a[0] for a in audit] == ["privacy.exported", "privacy.erased"]
         assert all("priya" not in a[1].lower() for a in audit)  # the email is only stored as a hash
+        assert "DSR-2026-114" in audit[1][1]
     finally:
         owner.close()
         member.close()

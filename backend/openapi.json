@@ -1647,6 +1647,13 @@
             "title": "Profile Ids",
             "type": "array"
           },
+          "reason": {
+            "default": "",
+            "description": "Why, e.g. the data subject's request reference (kept in the audit log)",
+            "maxLength": 500,
+            "title": "Reason",
+            "type": "string"
+          },
           "session_ids": {
             "items": {
               "format": "uuid",

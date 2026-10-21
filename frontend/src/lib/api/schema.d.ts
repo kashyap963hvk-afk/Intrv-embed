@@ -2542,6 +2542,12 @@ export interface components {
             email?: string | null;
             /** Profile Ids */
             profile_ids?: string[];
+            /**
+             * Reason
+             * @description Why, e.g. the data subject's request reference (kept in the audit log)
+             * @default
+             */
+            reason?: string;
             /** Session Ids */
             session_ids?: string[];
         };
