@@ -272,6 +272,14 @@ export function cameraFlush(state: CameraState): BrowserEvent[] {
   return events;
 }
 
+/** Report episodes still in progress and start fresh (the candidate ends the interview; the baseline stays). */
+export function cameraClose(state: CameraState): { state: CameraState; events: BrowserEvent[] } {
+  return {
+    state: { ...state, absent: NO_EPISODE, multiple: NO_EPISODE, away: NO_EPISODE, maxFaces: 0, direction: null },
+    events: cameraFlush(state),
+  };
+}
+
 /** The observation for one landmarker result (face count; head pose only for a single face). */
 export function observe(faceLandmarks: readonly (readonly Point[])[]): Observation {
   const faces = faceLandmarks.length;
@@ -314,6 +322,19 @@ export function virtualCameraEvent(label: string): BrowserEvent | null {
 /** A snapshot the API accepts: a JPEG (starts with FF D8) of at most 300 KB. */
 export function isAcceptableSnapshot(bytes: Uint8Array): boolean {
   return bytes.length >= 2 && bytes.length <= SNAPSHOT_MAX_BYTES && bytes[0] === 0xff && bytes[1] === 0xd8;
+}
+
+/** Hosts MediaPipe's built-in usage logger posts to; blocked so nothing about the camera check leaves the device. */
+const TELEMETRY_HOSTS = new Set(["odml.pa.googleapis.com"]);
+
+/** Whether a fetch is MediaPipe's usage telemetry (never allowed to leave the browser). */
+export function isMediapipeTelemetry(input: RequestInfo | URL): boolean {
+  const raw = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
+  try {
+    return TELEMETRY_HOSTS.has(new URL(raw).hostname);
+  } catch {
+    return false;
+  }
 }
 
 /** The camera check runs when the interview's camera setting is on, integrity is not OFF and the candidate agreed. */

@@ -1,7 +1,7 @@
 "use client";
 
 import { Camera, CameraOff } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 
 import { useCameraMonitor } from "@/lib/camera-monitor";
 import type { BrowserEvent } from "@/lib/interviews";
@@ -37,11 +37,21 @@ function SelfView({ stream }: { stream: MediaStream }) {
 export function CameraCheck({
   record,
   snapshot,
+  flushRef,
 }: {
   record: (event: BrowserEvent) => void;
   snapshot: ((jpeg: Blob) => Promise<boolean>) | null;
+  /** Set to the camera's flush, so episodes in progress are reported before the candidate ends the interview. */
+  flushRef: RefObject<(() => void) | null>;
 }) {
   const camera = useCameraMonitor({ enabled: true, record, snapshot });
+  const { flush } = camera;
+  useEffect(() => {
+    flushRef.current = flush;
+    return () => {
+      flushRef.current = null;
+    };
+  }, [flush, flushRef]);
   const on = camera.status === "on";
   return (
     <aside

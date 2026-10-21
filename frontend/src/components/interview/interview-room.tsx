@@ -215,7 +215,16 @@ function AnswerBox({
   );
 }
 
-function EndButton({ room, disabled }: { room: InterviewRoom; disabled: boolean }) {
+function EndButton({
+  room,
+  disabled,
+  beforeEnd,
+}: {
+  room: InterviewRoom;
+  disabled: boolean;
+  /** Deliver pending integrity signals while the interview is still live. */
+  beforeEnd: () => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -238,6 +247,7 @@ function EndButton({ room, disabled }: { room: InterviewRoom; disabled: boolean 
           </DialogClose>
           <Button
             onClick={() => {
+              beforeEnd();
               room.end();
               setOpen(false);
             }}
@@ -342,12 +352,14 @@ export function InterviewRoomView({
   });
   const endRef = useRef<HTMLLIElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const cameraFlushRef = useRef<(() => void) | null>(null);
   const turnCount = state.turns.length;
   const lastText = state.turns.at(-1)?.text ?? "";
 
   const voiceInfo = useVoiceInfo(candidate?.token ?? "", Boolean(candidate));
   const voiceAvailable = voiceInfo.data?.available === true;
   const [chosen, setChosen] = useState<Channel | null>(null);
+  /** A room-level message (voice fallback, diagram review) that stays until dismissed. */
   const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
   // Until the candidate chooses, a voice interview starts with the microphone check (when voice is available).
   const channel: Channel = chosen ?? (voiceAvailable && candidate?.sessionMode === "VOICE" ? "voice-setup" : "text");
@@ -505,7 +517,7 @@ export function InterviewRoomView({
       ? `${interviewerName} is preparing the next question…`
       : "Please wait for the next question.";
   const onPaste = (chars: number) => monitor.record(clipboardEvent("paste", chars));
-  const answering: PracticalAnswering = { send: room.answer, canAnswer, hint, onPaste };
+  const answering: PracticalAnswering = { send: room.answer, canAnswer, hint, onPaste, onNotice: setVoiceNotice };
   const practical = isPracticalTopic(live);
   const speaking = channel === "voice" && call.status === "connected";
 
@@ -540,13 +552,21 @@ export function InterviewRoomView({
               <Mic aria-hidden /> Switch to voice
             </Button>
           )}
-          <EndButton room={room} disabled={!open || !isLive} />
+          <EndButton
+            room={room}
+            disabled={!open || !isLive}
+            beforeEnd={() => {
+              cameraFlushRef.current?.();
+              monitor.flushNow();
+            }}
+          />
         </div>
       </div>
 
       {monitoring?.enabled && <MonitoringNote items={monitoring.items} />}
       {candidate?.camera && isLive && (
         <CameraCheck
+          flushRef={cameraFlushRef}
           record={monitor.record}
           snapshot={candidate.snapshots ? (jpeg) => postSnapshot(candidate.token, jpeg) : null}
         />

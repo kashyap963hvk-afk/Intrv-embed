@@ -5,6 +5,7 @@ import {
   AWAY_AFTER_MS,
   awayDirection,
   CALIBRATION_FRAMES,
+  cameraClose,
   cameraFlush,
   cameraMonitoringOn,
   cameraStep,
@@ -16,6 +17,7 @@ import {
   headPose,
   INITIAL_CAMERA,
   isAcceptableSnapshot,
+  isMediapipeTelemetry,
   LANDMARK,
   MULTIPLE_AFTER_MS,
   NO_EPISODE,
@@ -225,6 +227,15 @@ describe("the camera monitor", () => {
     expect(cameraFlush(INITIAL_CAMERA)).toEqual([]);
   });
 
+  it("reports episodes in progress before the candidate ends, once, and keeps the learnt pose", () => {
+    const { state, end } = calibrated();
+    const gone = feed(state, { faces: 0, pose: null }, end, 7_000);
+    const closed = cameraClose(gone.state);
+    expect(closed.events.map((e) => e.kind)).toEqual(["camera_face_absent"]);
+    expect(closed.state.baseline).toEqual(state.baseline);
+    expect(cameraFlush(closed.state)).toEqual([]); // not reported twice when the camera then stops
+  });
+
   it("only ever emits camera event kinds with counts, directions and durations", () => {
     const { state, end } = calibrated();
     const runs = [
@@ -260,6 +271,14 @@ describe("devices and snapshots", () => {
     expect(isAcceptableSnapshot(new Uint8Array([0x89, 0x50, 0x4e, 0x47]))).toBe(false);
     expect(isAcceptableSnapshot(new Uint8Array(SNAPSHOT_MAX_BYTES + 1).fill(0xff))).toBe(false);
     expect(isAcceptableSnapshot(new Uint8Array([0xff]))).toBe(false);
+  });
+
+  it("recognises MediaPipe's usage telemetry so it can be kept on the device", () => {
+    expect(isMediapipeTelemetry("https://odml.pa.googleapis.com/v1/log")).toBe(true);
+    expect(isMediapipeTelemetry(new URL("https://odml.pa.googleapis.com/v1/log"))).toBe(true);
+    expect(isMediapipeTelemetry(new Request("https://odml.pa.googleapis.com/v1/log"))).toBe(true);
+    expect(isMediapipeTelemetry("http://localhost:8000/api/join/t/integrity")).toBe(false);
+    expect(isMediapipeTelemetry("/models/face_landmarker.task")).toBe(false);
   });
 
   it("runs only with the setting on, integrity monitoring on and the candidate's consent", () => {

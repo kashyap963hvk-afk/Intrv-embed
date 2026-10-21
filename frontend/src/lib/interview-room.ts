@@ -213,6 +213,8 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
 export interface IntegrityMonitor {
   /** Queue a signal (paste sizes come from the answer box). */
   record: (event: BrowserEvent) => void;
+  /** Deliver queued signals now (before the interview ends: signals sent afterwards are not stored). */
+  flushNow: () => void;
   fullscreen: boolean;
   fullscreenSupported: boolean;
   enterFullscreen: () => void;
@@ -240,6 +242,7 @@ export function useIntegrityMonitor(
   const deliverRef = useRef(deliver);
   const enabledRef = useRef(enabled);
   const enteredRef = useRef(false);
+  const flushNowRef = useRef<() => void>(() => undefined);
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenSupported] = useState(
     () => typeof document !== "undefined" && typeof document.documentElement.requestFullscreen === "function",
@@ -283,6 +286,8 @@ export function useIntegrityMonitor(
       }
     };
 
+    flushNowRef.current = () => void flush();
+
     const step = (signal: AbsenceSignal) => {
       const next = absenceStep(absence, signal, Date.now());
       absence = next.state;
@@ -309,6 +314,7 @@ export function useIntegrityMonitor(
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("copy", onCopy);
       clearInterval(timer);
+      flushNowRef.current = () => undefined;
       void flush();
     };
   }, [enabled, record]);
@@ -337,7 +343,8 @@ export function useIntegrityMonitor(
       });
   }, []);
 
-  return { record, fullscreen, fullscreenSupported, enterFullscreen };
+  const flushNow = useCallback(() => flushNowRef.current(), []);
+  return { record, flushNow, fullscreen, fullscreenSupported, enterFullscreen };
 }
 
 /** The current time, updated every `intervalMs` while `running`. */

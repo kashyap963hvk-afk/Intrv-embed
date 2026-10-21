@@ -54,6 +54,8 @@ export interface PracticalAnswering {
   hint: string;
   /** Integrity: size of a paste into the editor or explanation (never its content). */
   onPaste: (chars: number) => void;
+  /** A message that must outlive the task panel (the topic moves on once the explanation is answered). */
+  onNotice: (message: string) => void;
 }
 
 function TaskHeader({ task, children }: { task: PracticalTask; children?: ReactNode }) {
@@ -348,6 +350,7 @@ function DiagramWorkspace({
       { file: image.blob, name: image.name },
       {
         onSuccess: (result) => {
+          if (result.message) answering.onNotice(result.message);
           if (linked.send(text, { ...meta, submission_id: result.submission_id })) {
             setExplanation("");
             tracker.current = EMPTY_TYPING;
@@ -417,11 +420,6 @@ function DiagramWorkspace({
       {uploadError && (
         <p role="alert" className="text-sm text-destructive">
           {uploadError.message}
-        </p>
-      )}
-      {upload.data?.message && (
-        <p role="status" className="rounded-md bg-muted px-3 py-2 text-sm">
-          {upload.data.message}
         </p>
       )}
       <SentNote linked={linked} canAnswer={answering.canAnswer} />

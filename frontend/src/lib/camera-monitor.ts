@@ -1,9 +1,10 @@
 "use client";
 
 import type { FaceLandmarker, FaceLandmarkerResult } from "@mediapipe/tasks-vision";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import {
+  cameraClose,
   cameraFlush,
   cameraStep,
   DETECT_INTERVAL_MS,
@@ -11,6 +12,7 @@ import {
   faceLandmarkerOptions,
   INITIAL_CAMERA,
   isAcceptableSnapshot,
+  isMediapipeTelemetry,
   MEDIAPIPE_WASM_PATH,
   observe,
   SNAPSHOT_INTERVAL_MS,
@@ -29,6 +31,8 @@ export interface CameraMonitor {
   stream: MediaStream | null;
   /** Faces in view at the last check (null before the first one). */
   faces: number | null;
+  /** Report episodes in progress now (before the candidate ends the interview, while it is still live). */
+  flush: () => void;
 }
 
 export interface CameraMonitorOptions {
@@ -37,6 +41,20 @@ export interface CameraMonitorOptions {
   record: (event: BrowserEvent) => void;
   /** STRICT mode: send a low-resolution JPEG to the reviewer; null when snapshots are off. */
   snapshot: ((jpeg: Blob) => Promise<boolean>) | null;
+}
+
+let telemetryBlocked = false;
+
+/**
+ * MediaPipe Tasks posts usage statistics to Google with the global fetch, and has no option to turn that off.
+ * Answer those requests locally with 403, which also makes its logger stop for good.
+ */
+function blockMediapipeTelemetry(): void {
+  if (telemetryBlocked) return;
+  telemetryBlocked = true;
+  const original = window.fetch.bind(window);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) =>
+    isMediapipeTelemetry(input) ? Promise.resolve(new Response(null, { status: 403 })) : original(input, init);
 }
 
 /** Event-triggered snapshots are spaced at least this far apart. */
@@ -82,6 +100,7 @@ export function useCameraMonitor({ enabled, record, snapshot }: CameraMonitorOpt
   const [faces, setFaces] = useState<number | null>(null);
   const recordRef = useRef(record);
   const snapshotRef = useRef(snapshot);
+  const flushRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     recordRef.current = record;
@@ -98,6 +117,11 @@ export function useCameraMonitor({ enabled, record, snapshot }: CameraMonitorOpt
     let state = INITIAL_CAMERA;
     let lastFaces: number | null = null;
     let lastEventSnapshot = 0;
+    flushRef.current = () => {
+      const closed = cameraClose(state);
+      state = closed.state;
+      for (const event of closed.events) recordRef.current(event);
+    };
     const video = document.createElement("video");
     video.muted = true;
     video.playsInline = true;
@@ -163,6 +187,7 @@ export function useCameraMonitor({ enabled, record, snapshot }: CameraMonitorOpt
       await video.play().catch(() => undefined);
 
       try {
+        blockMediapipeTelemetry();
         const vision = await import("@mediapipe/tasks-vision");
         const fileset = await vision.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_PATH);
         const created = await vision.FaceLandmarker.createFromOptions(fileset, faceLandmarkerOptions(FACE_MODEL_PATH));
@@ -189,6 +214,7 @@ export function useCameraMonitor({ enabled, record, snapshot }: CameraMonitorOpt
     void start();
     return () => {
       stopped = true;
+      flushRef.current = () => undefined;
       if (detectTimer) clearInterval(detectTimer);
       if (snapshotTimer) clearInterval(snapshotTimer);
       for (const event of cameraFlush(state)) recordRef.current(event);
@@ -202,5 +228,6 @@ export function useCameraMonitor({ enabled, record, snapshot }: CameraMonitorOpt
     };
   }, [enabled]);
 
-  return { status, error, stream, faces };
+  const flush = useCallback(() => flushRef.current(), []);
+  return { status, error, stream, faces, flush };
 }
