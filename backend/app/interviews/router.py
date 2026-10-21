@@ -13,6 +13,7 @@ from typing import Annotated, Any, Literal
 from fastapi import APIRouter, Depends, Query, Request, UploadFile, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, ValidationError
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 
 from app.audit.service import ClientMeta
 from app.auth.cookies import ACCESS_COOKIE
@@ -613,6 +614,9 @@ async def interview_socket(websocket: WebSocket, session_id: uuid.UUID, token: s
     except (EngineError, AppError) as exc:
         await websocket.close(code=4403, reason=getattr(exc, "message", None) or str(exc)[:120])
         return
+    except PoolTimeoutError:
+        await websocket.close(code=1013, reason="Server busy; reconnect shortly.")  # 1013 = try again later
+        return
     await websocket.accept()
 
     async def emit(frame: dict[str, Any]) -> None:
@@ -625,9 +629,12 @@ async def interview_socket(websocket: WebSocket, session_id: uuid.UUID, token: s
             await emit({"type": "error", "code": exc.code, "message": exc.message})
         except AppError as exc:
             await emit({"type": "error", "code": "invalid", "message": exc.detail or str(exc)})
+        except PoolTimeoutError:
+            log.warning("interviews.socket_busy", session_id=str(ref.id))  # the client retries `busy`
+            await emit({"type": "error", "code": "busy", "message": "The server is busy; retrying in a moment."})
 
-    await safely(engine.hello(ref, emit))
     try:
+        await safely(engine.hello(ref, emit))
         while True:
             raw = await websocket.receive_text()
             if len(raw) > MAX_FRAME_CHARS:

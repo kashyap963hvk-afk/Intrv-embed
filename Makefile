@@ -7,7 +7,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down logs ps test test-unit test-integration test-isolation lint fmt openapi \
-        migrate create-owner e2e selftest up-prod down-prod logs-prod backup-now
+        migrate create-owner e2e selftest up-prod down-prod logs-prod backup-now loadtest
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -87,3 +87,6 @@ logs-prod: ## Follow production logs
 
 backup-now: ## Run one backup immediately (same as the nightly job)
 	$(PROD) run --rm -e BACKUP_NOW=1 backup
+
+loadtest: ## N concurrent text interviews against INTRV_API (default local); needs INTRV_EMAIL/INTRV_PASSWORD (docs/LOADTEST.md)
+	cd loadtest && uv run --no-project --with httpx==0.28.1 --with websockets==15.0.1 python interviews.py -n $(or $(N),50)

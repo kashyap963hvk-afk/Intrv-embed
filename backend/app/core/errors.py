@@ -12,6 +12,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import TimeoutError as PoolTimeoutError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import get_logger
@@ -167,8 +168,27 @@ async def _unhandled_error_handler(request: Request, exc: Exception) -> JSONResp
     return internal_error_response(request)
 
 
+BUSY_RETRY_AFTER_S = 2
+
+
+async def _pool_exhausted_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Every database connection is in use (a burst of interviews starting together). Tell the client to retry
+    shortly instead of failing with a 500; the web app retries on 503 and the interview socket on `busy`."""
+    log.warning("db.pool_exhausted", path=request.url.path, error=str(exc)[:200])
+    return problem_response(
+        request,
+        status=503,
+        slug="busy",
+        title="Server busy",
+        detail="The server is busy; please retry in a moment.",
+        extra={"retry_after_s": BUSY_RETRY_AFTER_S},
+        headers={"Retry-After": str(BUSY_RETRY_AFTER_S)},
+    )
+
+
 def register_exception_handlers(app: FastAPI) -> None:
     app.add_exception_handler(AppError, _app_error_handler)
+    app.add_exception_handler(PoolTimeoutError, _pool_exhausted_handler)
     app.add_exception_handler(StarletteHTTPException, _http_error_handler)
     app.add_exception_handler(RequestValidationError, _validation_error_handler)
     app.add_exception_handler(Exception, _unhandled_error_handler)

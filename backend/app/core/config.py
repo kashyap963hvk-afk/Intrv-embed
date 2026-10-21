@@ -63,8 +63,8 @@ class Settings(BaseSettings):
     # --- Data stores -------------------------------------------------------------------------
     database_url: str
     database_migration_url: str | None = None
-    db_pool_size: int = Field(default=10, ge=1, le=200)
-    db_max_overflow: int = Field(default=10, ge=0, le=200)
+    db_pool_size: int = Field(default=20, ge=1, le=200)
+    db_max_overflow: int = Field(default=20, ge=0, le=200)
     valkey_url: str
     qdrant_url: str
     qdrant_api_key: SecretStr | None = None
