@@ -119,6 +119,11 @@ def test_practical_round_end_to_end(pg: Postgres, settings: Settings) -> None:  
         {"on": "system", "match": "minute interview for the role", "reply": json.dumps(PLAN)},
         {"on": "system", "match": "You are the turn controller", "reply": control("adequate", "probe")},
         {"on": "system", "match": "Review an interview candidate's submission", "reply": json.dumps(REVIEW)},
+        {  # the interviewer sees the verified review of the submission (ARCHITECTURE §14.3)
+            "on": "system",
+            "match": "practical work just submitted.*reviewer: Found the volatile, overflow and tearing bugs",
+            "reply": "You covered volatile and the overflow well. How would you size the buffers for bursts?",
+        },
         {
             "on": "system",
             "match": "You grade one interview topic.*practical submission for debug_isr_adc.*known bugs found: 1, 3, 2",
@@ -192,7 +197,8 @@ def test_practical_round_end_to_end(pg: Postgres, settings: Settings) -> None:  
                     "meta": {"submission_id": submitted["submission_id"]},
                 }
             )
-            until_turn_end(ws)
+            reply, _ = until_turn_end(ws)
+            assert "size the buffers for bursts" in reply["text"]
             ws.receive_json()
 
             bitfields = candidate.get(f"/api/join/{token}/practical").json()

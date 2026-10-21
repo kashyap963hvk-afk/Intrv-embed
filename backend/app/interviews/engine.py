@@ -42,6 +42,7 @@ from app.db.models import (
     InterviewSession,
     InterviewTurn,
     Organization,
+    PracticalSubmission,
     QualityTier,
     SessionStatus,
     Speaker,
@@ -55,6 +56,7 @@ from app.interviews.schemas import InterviewPlan, InterviewSettings, PlanTopic, 
 from app.llm.service import PolicyViolationError
 from app.llm.types import CallCtx, LLMUnavailableError, Message, ProviderError, StructuredOutputError
 from app.orgs.policy import OrgPolicy, org_policy
+from app.practical.notes import interviewer_notes
 from app.rag.risk import injection_matches
 from app.rolepacks.schema import RolePackSpec, RoleVariant
 
@@ -265,6 +267,7 @@ class Turn:
     history: list[InterviewTurn]
     now: datetime
     state_before: dict[str, Any] | None = None  # voice: lets an answer that continues after barge-in be merged
+    practical: list[str] = field(default_factory=list)  # the candidate's work on the current practical topic
 
     @property
     def topic(self) -> PlanTopic | None:
@@ -359,6 +362,7 @@ class Turn:
                     "asked_questions": self.state.get("asked", [])[-12:] or "(none)",
                     "topic_question": topic.seed_question if topic else "",
                     "context_pack": self.context_text(),
+                    "practical_work": "\n".join(self.practical) or "(none)",
                 },
             ),
             task,
@@ -441,7 +445,7 @@ class InterviewEngine:
             )
         )
         plan = InterviewPlan.model_validate({"topics": session.plan.get("topics", [])})
-        return Turn(
+        turn = Turn(
             session=session,
             state=dict(session.state or {}),
             plan=plan,
@@ -451,6 +455,15 @@ class InterviewEngine:
             history=history,
             now=now_utc(),
         )
+        topic = turn.topic
+        if topic is not None and topic.section == "PRACTICAL" and turn.state.get("phase") == "topic":
+            work = await db.scalars(
+                select(PracticalSubmission)
+                .where(PracticalSubmission.session_id == session.id, PracticalSubmission.topic_id == topic.id)
+                .order_by(PracticalSubmission.created_at)
+            )
+            turn.practical = interviewer_notes(list(work))
+        return turn
 
     @staticmethod
     def _add_turn(db: AsyncSession, turn: Turn, speaker: Speaker, text: str, **extra: Any) -> InterviewTurn:

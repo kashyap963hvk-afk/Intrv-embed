@@ -846,6 +846,7 @@ const joinInfoSchema = z.object({
   contact: text,
   consent_version: text,
   consent_given: z.boolean().catch(false),
+  camera_consent: z.boolean().catch(false),
   human_alternative: text,
 });
 

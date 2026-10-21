@@ -71,7 +71,7 @@ Camera signals are computed in the candidate's browser, only with consent, and o
 | `controller` | 2 | task |
 | `cv_extract` | 2 | task |
 | `grader` | 1 | task |
-| `interview_context` | 1 | task |
+| `interview_context` | 2 | task |
 | `interviewer_persona` | 1 | task |
 | `interviewer_turn` | 1 | task |
 | `jd_match` | 1 | task |

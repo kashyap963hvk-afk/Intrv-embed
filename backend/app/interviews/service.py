@@ -532,6 +532,7 @@ async def join_info(factory: async_sessionmaker[AsyncSession], ref: SessionRef) 
             "contact": policy.consent_contact or "the recruiter who sent you this link",
             "consent_version": CONSENT_VERSION,
             "consent_given": bool((session.consent or {}).get("accepted")),
+            "camera_consent": bool((session.consent or {}).get("camera")),
             "human_alternative": "You may ask for a human interviewer instead; contact "
             + (policy.consent_contact or "the recruiter")
             + ".",
@@ -577,12 +578,26 @@ async def give_consent(
         return session.consent
 
 
+LATE_EVENTS_S = 120  # a browser flushes episodes still open when the interview ends (e.g. ended by the engine)
+
+
+def _accepts_events(session: InterviewSession) -> bool:
+    if session.status == SessionStatus.LIVE:
+        return True
+    ended = session.ended_at
+    return (
+        session.status == SessionStatus.COMPLETED
+        and ended is not None
+        and (datetime.now(UTC) - ended).total_seconds() <= LATE_EVENTS_S
+    )
+
+
 async def candidate_events(
     factory: async_sessionmaker[AsyncSession], ref: SessionRef, events: list[integrity.BrowserEvent]
 ) -> int:
     async with owner_session(factory, ref.org_id, ref.owner_user_id) as db:
         session = await db.get(InterviewSession, ref.id)
-        if session is None or session.status != SessionStatus.LIVE:
+        if session is None or not _accepts_events(session):
             return 0
         if not (session.consent or {}).get("camera"):
             events = [e for e in events if not e.kind.startswith("camera_")]

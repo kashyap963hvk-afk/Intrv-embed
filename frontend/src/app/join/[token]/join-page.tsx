@@ -12,30 +12,9 @@ import type { JoinInfo } from "@/lib/interviews";
 import { postIntegrity, useGiveConsent, useJoinInfo } from "@/lib/interviews-api";
 
 /** The camera choice made on the consent screen, kept for this tab so a reload keeps the camera check. */
-function cameraKey(token: string): string {
-  return `intrv.camera-consent.${token}`;
-}
-
-function rememberCamera(token: string, camera: boolean): void {
-  try {
-    window.sessionStorage.setItem(cameraKey(token), camera ? "1" : "0");
-  } catch {
-    // Storage unavailable: after a reload the camera check stays off unless it is required.
-  }
-}
-
-/**
- * Whether the candidate agreed to the camera check. The join details say only that consent was given, so a
- * required camera implies it; an optional one is known from this tab's choice, and is off when unknown.
- */
-function cameraConsent(token: string, info: JoinInfo, justGiven: boolean | null): boolean {
-  if (justGiven !== null) return justGiven;
-  if (info.camera_monitoring === "required") return true;
-  try {
-    return window.sessionStorage.getItem(cameraKey(token)) === "1";
-  } catch {
-    return false;
-  }
+/** Whether the candidate agreed to the camera check: this tab's choice, else what the server recorded. */
+function cameraConsent(info: JoinInfo, justGiven: boolean | null): boolean {
+  return justGiven ?? info.camera_consent;
 }
 
 function Notice({ title, children }: { title: string; children: ReactNode }) {
@@ -130,7 +109,6 @@ function Consent({
               consent.mutate(camera, {
                 onSuccess: (given) => {
                   const agreed = given.camera === true;
-                  rememberCamera(token, agreed);
                   onAccepted(agreed);
                 },
               })
@@ -202,11 +180,7 @@ function Join({ token }: { token: string }) {
       />
     );
   }
-  const camera = cameraMonitoringOn(
-    data.camera_monitoring,
-    data.integrity_mode,
-    cameraConsent(token, data, cameraGiven),
-  );
+  const camera = cameraMonitoringOn(data.camera_monitoring, data.integrity_mode, cameraConsent(data, cameraGiven));
   return (
     <InterviewRoomView
       sessionId={data.session_id}

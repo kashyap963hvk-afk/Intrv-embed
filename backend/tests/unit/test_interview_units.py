@@ -344,3 +344,17 @@ async def test_graders_never_see_integrity_data_or_names(monkeypatch: pytest.Mon
     assert "I doubled the stack" in prompt
     for leaked in ("Priya", "tab_hidden", "paste", "integrity_event", "worth a look"):
         assert leaked not in prompt
+
+
+def test_late_integrity_events_window() -> None:
+    from datetime import UTC, datetime, timedelta  # noqa: PLC0415
+
+    from app.db.models import SessionStatus  # noqa: PLC0415
+    from app.interviews.service import LATE_EVENTS_S, _accepts_events  # noqa: PLC0415
+
+    now = datetime.now(UTC)
+    live = SimpleNamespace(status=SessionStatus.LIVE, ended_at=None)
+    just_ended = SimpleNamespace(status=SessionStatus.COMPLETED, ended_at=now - timedelta(seconds=10))
+    long_ended = SimpleNamespace(status=SessionStatus.COMPLETED, ended_at=now - timedelta(seconds=LATE_EVENTS_S + 5))
+    planned = SimpleNamespace(status=SessionStatus.PLANNED, ended_at=None)
+    assert [_accepts_events(s) for s in (live, just_ended, long_ended, planned)] == [True, True, False, False]  # type: ignore[arg-type]
