@@ -57,6 +57,21 @@ function blockMediapipeTelemetry(): void {
     isMediapipeTelemetry(input) ? Promise.resolve(new Response(null, { status: 403 })) : original(input, init);
 }
 
+/**
+ * The MediaPipe WebAssembly module writes informational lines ("INFO: Created TensorFlow Lite XNNPACK delegate")
+ * to stderr, which Emscripten prints with console.error. Its loader merges a pre-set global `Module`, so stderr is
+ * routed here: informational lines are dropped and anything else stays visible as a warning.
+ */
+function quietMediapipeStderr(): void {
+  Object.assign(self, {
+    Module: {
+      printErr: (line: string) => {
+        if (!line.startsWith("INFO:")) console.warn(line);
+      },
+    },
+  });
+}
+
 /** Event-triggered snapshots are spaced at least this far apart. */
 const MIN_EVENT_SNAPSHOT_GAP_MS = 10_000;
 
@@ -190,6 +205,7 @@ export function useCameraMonitor({ enabled, record, snapshot }: CameraMonitorOpt
         blockMediapipeTelemetry();
         const vision = await import("@mediapipe/tasks-vision");
         const fileset = await vision.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_PATH);
+        quietMediapipeStderr();
         const created = await vision.FaceLandmarker.createFromOptions(fileset, faceLandmarkerOptions(FACE_MODEL_PATH));
         if (stopped) {
           created.close();
