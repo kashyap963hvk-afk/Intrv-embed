@@ -49,7 +49,7 @@ from app.db.models import (
     User,
 )
 from app.db.tenant import TenantContext, set_tenant_context
-from app.interviews import integrity, policy, speech
+from app.interviews import integrity, permissions, policy, speech
 from app.interviews.persona import render_persona
 from app.interviews.planning import fallback_plan, structure_for
 from app.interviews.schemas import InterviewPlan, InterviewSettings, PlanTopic, TurnControl
@@ -1184,6 +1184,8 @@ class InterviewEngine:
             session = await db.get(InterviewSession, ref.id)
             if session is None or session.status not in {SessionStatus.PLANNED, SessionStatus.LIVE}:
                 raise EngineError("not_available", "This interview is not open.")
+            if mode == "VOICE" and not await permissions.voice_allowed(db, session.owner_user_id):
+                raise EngineError("forbidden", "Voice is not enabled for this interview; please continue in text.")
             session.mode = mode
             await db.commit()
             await emit({"type": "state", **public_state(session)})

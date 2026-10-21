@@ -706,3 +706,37 @@ def test_voice_mode_spoken_nudge_and_continuation(pg: Postgres, team: dict[str, 
     assert rows[1][3]["action"] == "rephrase"
     assert rows[-1][3]["spoken_text"] == merged["text"]
     assert rows[-1][3]["interrupted"] is False
+
+
+def test_member_limits_set_by_owners(team: dict[str, Any]) -> None:
+    owner, member = team["owner"], team["member"]
+    member_id = member.get("/api/auth/me").json()["user"]["id"]
+    limits = {"can_use_voice": False, "can_use_coding": False, "can_edit_prompts": False, "monthly_interview_quota": 1}
+    assert owner.patch(f"/api/admin/users/{member_id}/policy", json=limits).status_code == 200
+    pack = pack_id(member)
+
+    assert member.post("/api/interviews", json={"role_pack_id": pack, "mode": "VOICE"}).status_code == 403
+    coding = {"role_pack_id": pack, "settings": {"practical_tasks": ["write_bitfield_helpers"]}}
+    assert member.post("/api/interviews", json=coding).status_code == 403
+    first = member.post("/api/interviews", json={"role_pack_id": pack})
+    assert first.status_code == 202, first.text
+    quota = member.post("/api/interviews", json={"role_pack_id": pack})
+    assert quota.status_code == 403
+    assert "1 interviews for this month" in quota.json()["detail"]
+
+    persona = {"name": "Mine", "persona_prompt": "You are warm and direct."}
+    assert member.post("/api/templates", json=persona).status_code == 403
+    assert member.post("/api/templates", json={"name": "Plain"}).status_code == 201
+
+    # The candidate of a member without voice cannot switch the interview to voice.
+    token = member.post(f"/api/interviews/{first.json()['id']}/invite", json={}).json()["url"].rsplit("/", 1)[1]
+    candidate = team["candidate"]
+    assert candidate.get(f"/api/join/{token}/voice").json()["available"] is False
+    assert candidate.post(f"/api/join/{token}/consent", json={"accepted": True}).status_code == 200
+    with candidate.websocket(f"/ws/interview/{first.json()['id']}?token={token}") as ws:
+        ws.receive_json()
+        ws.send_json({"type": "mode", "mode": "VOICE"})
+        assert ws.receive_json()["code"] == "forbidden"
+
+    # Owners are never limited.
+    assert owner.post("/api/interviews", json={"role_pack_id": pack, "mode": "VOICE"}).status_code == 202

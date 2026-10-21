@@ -26,7 +26,7 @@ from app.core.security import decode_access_token
 from app.db.deps import DbSession
 from app.db.models import InterviewSession, InterviewTemplate, RolePack, SessionStatus, UserStatus
 from app.db.models import User as UserModel
-from app.interviews import export, media, service
+from app.interviews import export, media, permissions, service
 from app.interviews.engine import Emit, EngineError, SessionRef, owner_session, public_state
 from app.interviews.integrity import BrowserEvent
 from app.interviews.persona import lint_persona
@@ -495,8 +495,11 @@ async def consent(token: str, body: ConsentIn, db: DbSession, resources: Resourc
 
 
 @join_router.get("/{token}/voice", summary="Voice room: the voice service's offer URL and ICE servers")
-async def voice(token: str, db: DbSession, settings: SettingsDep) -> dict[str, Any]:
+async def voice(token: str, db: DbSession, settings: SettingsDep, resources: ResourcesDep) -> dict[str, Any]:
     ref = await service.resolve_invite(db, token)
+    async with owner_session(resources.session_factory, ref.org_id, ref.owner_user_id) as owner_db:
+        if not await permissions.voice_allowed(owner_db, ref.owner_user_id):
+            return {"available": False, "offer_url": None, "ice_servers": []}  # the room falls back to text
     return media.voice_info(settings, ref.id)
 
 

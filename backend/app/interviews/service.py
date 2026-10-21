@@ -41,7 +41,7 @@ from app.db.models import (
     Speaker,
     TemplateVisibility,
 )
-from app.interviews import integrity
+from app.interviews import integrity, permissions
 from app.interviews.engine import FINALIZE_JOB, LLM_FAILURES, SessionRef, owner_session
 from app.interviews.persona import PERSONA_VARIABLES, lint_persona, render_persona
 from app.interviews.planning import context_packs, plan_interview, practical_availability, with_practical
@@ -83,6 +83,23 @@ async def list_templates(db: AsyncSession) -> list[InterviewTemplate]:
     return list(await db.scalars(select(InterviewTemplate).order_by(InterviewTemplate.name)))
 
 
+async def _check_pack(db: AsyncSession, template: InterviewTemplate | None, fields: dict[str, Any]) -> None:
+    """Clearing the pack also resets the variant; a changed pack or variant must exist."""
+    if "role_pack_id" in fields and fields["role_pack_id"] is None:
+        fields["role_variant"] = None
+    pack_id = fields.get("role_pack_id", template.role_pack_id if template else None)
+    if pack_id is None or ("role_pack_id" not in fields and "role_variant" not in fields):
+        return
+    pack = await db.get(RolePack, pack_id)
+    if pack is None:
+        raise NotFoundError("Role pack not found.")
+    variant = fields.get("role_variant", template.role_variant if template else None)
+    try:
+        RolePackSpec.model_validate(pack.spec).role(variant)
+    except ValueError as exc:
+        raise AppError(str(exc)) from exc
+
+
 async def save_template(
     db: AsyncSession,
     principal: Principal,
@@ -94,19 +111,9 @@ async def save_template(
     pack's default; other null fields are left as they are."""
     if "settings" in fields and fields["settings"] is not None:
         fields["settings"] = InterviewSettings.model_validate(fields["settings"]).model_dump(mode="json")
-    if "role_pack_id" in fields and fields["role_pack_id"] is None:
-        fields["role_variant"] = None
-    pack_id = fields.get("role_pack_id", template.role_pack_id if template else None)
-    if pack_id is not None and ("role_pack_id" in fields or "role_variant" in fields):
-        pack = await db.get(RolePack, pack_id)
-        if pack is None:
-            raise NotFoundError("Role pack not found.")
-        try:
-            RolePackSpec.model_validate(pack.spec).role(
-                fields.get("role_variant", template.role_variant if template else None)
-            )
-        except ValueError as exc:
-            raise AppError(str(exc)) from exc
+    await _check_pack(db, template, fields)
+    if fields.get("persona_prompt") and (template is None or fields["persona_prompt"] != template.persona_prompt):
+        await permissions.check_prompt_edit(db, principal)
     shared = fields.pop("shared", None)
     if shared and principal.role != Role.OWNER:
         raise ForbiddenError("Only owners can share templates with the organization.")
@@ -264,6 +271,7 @@ async def create_session(
     merged |= template.settings if template else {}
     merged |= {k: v for k, v in (body.get("settings") or {}).items() if v is not None}
     settings = InterviewSettings.model_validate(merged).model_dump(mode="json")
+    await permissions.check_new_interview(db, principal, mode=str(body.get("mode") or "TEXT"), settings=settings)
     settings["seniority"] = body.get("seniority")
     settings["interviewer_name"] = merged.get("interviewer_name")
     allowed = readable(await space_permissions(db, valkey, org_id=principal.org_id, user_id=principal.user_id))

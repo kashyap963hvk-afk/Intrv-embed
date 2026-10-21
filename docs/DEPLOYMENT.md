@@ -214,6 +214,54 @@ the owner, for the whole organization) adds models under **AI models**:
 Keys are encrypted per organization, never returned to the browser, and each agent role (interviewer,
 grader, vision…) can route to a different model with fallbacks.
 
+### 6.2 Owners, members and access
+
+**Several owners.** Owners have full control: users, policies, models, privacy and every setting. Add each one
+to the same organization with an emailed invite link, so they choose their own password:
+
+```bash
+make create-owner STACK=prod INVITE=1 ORG=intrv NAME="Owner One" EMAIL=first.owner@gmail.com
+make create-owner STACK=prod INVITE=1 ORG=intrv NAME="Owner Two" EMAIL=second.owner@gmail.com
+```
+
+The first command creates the organization `intrv`; the next ones add owners to it. The link is emailed when
+SMTP is set, and always printed. After that, owners can promote anyone else under **Admin → Users**.
+
+**Giving people access.**
+- **Invite:** **Admin → Invites** sends a link to any email address (Gmail or a work address), as Member or
+  Owner. Links expire after `INVITE_TTL_HOURS` (default 7 days).
+- **Request to join:** people can sign up for the organization themselves. They wait as *pending* until an
+  owner approves them under **Admin → Users**.
+- **Remove access:** **Suspend** or **Delete** a user under **Admin → Users**. Their sessions end at once.
+
+**Each person has their own space.** Their interviews, transcripts, reports, templates, question sets,
+model keys and personal knowledge spaces are private to them. Postgres row-level security enforces this,
+not just the UI. Organization spaces, shared templates and org-wide models are shared on purpose and set by
+owners. Per-user limits are under **Admin → Users → Policy**. They are enforced by the server; owners are never
+limited:
+- which models a user may use, and whether they may add their own keys;
+- voice access (checked when an interview is created and when a candidate switches to voice);
+- coding tasks, and editing the interviewer persona;
+- a monthly interview quota.
+
+Sign-in is with email and password. "Sign in with Google" is not built yet (BACKLOG), but Gmail addresses
+work as login emails.
+
+**Growing to production or enterprise.**
+- **More organizations:** with `ALLOW_ORG_SIGNUP=true`, other companies can register their own organization,
+  fully isolated from yours. Keep it `false` for a single company.
+- **More load:** raise `API_WORKERS` and `WORKER_CONCURRENCY`, or move to topology §2C. That means
+  replicated API containers, managed Postgres, Valkey and Qdrant, and a GPU node for voice and local models.
+  `docs/LOADTEST.md` explains the sizing.
+- **Enterprise controls you already have:**
+  - groups and per-space grants;
+  - an org-wide model policy (for example, block providers that train on candidate data);
+  - an append-only audit log;
+  - retention and right-to-erasure;
+  - private or air-gapped use with local models only.
+- **Not built yet** (BACKLOG): single sign-on (Google, Microsoft), owner break-glass access and org-wide
+  selection-rate reports.
+
 ## 7. Backups and restore
 
 The `backup` service runs every night at `BACKUP_HOUR_UTC`, and `make backup-now` runs it immediately. Each run

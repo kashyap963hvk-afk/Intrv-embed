@@ -58,9 +58,9 @@ openapi: ## Regenerate backend/openapi.json and frontend API types
 migrate: ## Apply database migrations (also runs automatically on `make up`)
 	$(COMPOSE) run --rm migrate
 
-create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.com NAME="Your Name" [STACK=prod]
-	@test -n "$(ORG)" -a -n "$(EMAIL)" -a -n "$(NAME)" || { echo 'usage: make create-owner ORG=slug EMAIL=you@x.com NAME="Your Name"'; exit 1; }
-	$(if $(filter prod,$(STACK)),$(PROD),$(COMPOSE)) exec backend python -m app.cli create-owner --org-slug "$(ORG)" --org-name "$(ORG)" --email "$(EMAIL)" --name "$(NAME)" --password-stdin
+create-owner: ## Add an org owner: make create-owner ORG=acme EMAIL=you@acme.com NAME="Your Name" [INVITE=1] [STACK=prod]
+	@test -n "$(ORG)" -a -n "$(EMAIL)" -a -n "$(NAME)" || { echo 'usage: make create-owner ORG=slug EMAIL=you@x.com NAME="Your Name" [INVITE=1]'; exit 1; }
+	$(if $(filter prod,$(STACK)),$(PROD),$(COMPOSE)) exec backend python -m app.cli create-owner --org-slug "$(ORG)" --org-name "$(ORG)" --email "$(EMAIL)" --name "$(NAME)" $(if $(INVITE),,--password-stdin)
 
 e2e: ## Playwright browser tests against the running stack (`make up` first; see e2e/playwright.config.ts)
 	cd e2e && npm ci --no-audit --no-fund && npx playwright test
