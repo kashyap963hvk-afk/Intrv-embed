@@ -33,6 +33,8 @@ open http://localhost:3000                                          # sign in, a
 The full walkthrough, including voice, code tasks and a local model, is in [`docs/TESTING.md`](docs/TESTING.md).
 
 ## Deploy
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fkashyap963hvk-afk%2FIntrv-embed&root-directory=frontend&project-name=intrv-embed&env=NEXT_PUBLIC_API_BASE_URL,NEXT_PUBLIC_WS_BASE_URL,NEXT_PUBLIC_APP_URL&envDescription=Where%20your%20Intrv-embed%20API%20runs%20and%20this%20app%27s%20own%20URL&envLink=https%3A%2F%2Fgithub.com%2Fkashyap963hvk-afk%2FIntrv-embed%2Fblob%2Fmain%2Fdocs%2FDEPLOYMENT.md)
+
 Use one VPS with automatic HTTPS (`make up-prod`), with the frontend on Vercel or on the same server. For
 everything you need, including keys, DNS and backups, see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md).
 

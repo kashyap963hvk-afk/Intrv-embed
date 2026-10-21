@@ -2,6 +2,9 @@
   "name": "intrv-frontend",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "predev": "node scripts/copy-vendor-assets.mjs",
     "dev": "next dev",

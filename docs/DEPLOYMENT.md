@@ -177,6 +177,43 @@ Then log in as the owner, run **Admin → System self-test**, add an LLM profile
 - `coding`: Piston runs candidate code (privileged container; no network inside the sandboxes). Set
   `PISTON_URL=http://piston:2000`.
 
+### 6.1 Frontend on Vercel, step by step
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fkashyap963hvk-afk%2FIntrv-embed&root-directory=frontend&project-name=intrv-embed&env=NEXT_PUBLIC_API_BASE_URL,NEXT_PUBLIC_WS_BASE_URL,NEXT_PUBLIC_APP_URL&envDescription=Where%20your%20Intrv-embed%20API%20runs%20and%20this%20app%27s%20own%20URL&envLink=https%3A%2F%2Fgithub.com%2Fkashyap963hvk-afk%2FIntrv-embed%2Fblob%2Fmain%2Fdocs%2FDEPLOYMENT.md)
+
+The button, or **Vercel → Add New → Project → import `Intrv-embed`**, then:
+
+1. **Root Directory:** `frontend`. Vercel detects Next.js; keep the default build command (`npm run build`,
+   which also copies the self-hosted MediaPipe and font assets). Node 22 comes from `package.json`.
+2. **Production branch:** the branch you deploy (Settings → Git). The work is on `claude/sharp-dirac-wbhmtq`
+   until you merge it into `main`.
+3. **Environment variables** (Production and Preview):
+
+   | Variable | Value |
+   |---|---|
+   | `NEXT_PUBLIC_API_BASE_URL` | `https://api.example.com` (your backend from §6) |
+   | `NEXT_PUBLIC_WS_BASE_URL` | `wss://api.example.com` |
+   | `NEXT_PUBLIC_APP_URL` | `https://app.example.com` (this Vercel project's custom domain) |
+
+   The build fails with a clear message if one is missing or not a URL. Change them → **Redeploy**: Next.js
+   inlines `NEXT_PUBLIC_*` at build time.
+4. **Custom domain:** add `app.example.com` (Settings → Domains). It must share the registrable domain with
+   the API, or browsers drop the login cookie (§3). A bare `*.vercel.app` URL is fine to check that pages
+   load, but sign-in needs the custom domain.
+5. **Backend side:** in the server's `.env` set `PUBLIC_APP_URL` and `CORS_ALLOWED_ORIGINS` to
+   `https://app.example.com` and `COOKIE_DOMAIN=.example.com`, then `make up-prod` again.
+
+**Any model.** Nothing model-specific is configured on Vercel or in `.env`. After signing in, each user (or
+the owner, for the whole organization) adds models under **AI models**:
+- a preset (OpenAI, Anthropic, Gemini, Groq, OpenRouter, Mistral, DeepSeek, Together, Cerebras, NVIDIA,
+  Hugging Face, GitHub Models…);
+- any OpenAI-compatible endpoint (base URL + key + model);
+- a self-hosted server (Ollama, vLLM, llama-server);
+- or a `.gguf` on their own PC or pendrive through the Local Model Bridge.
+
+Keys are encrypted per organization, never returned to the browser, and each agent role (interviewer,
+grader, vision…) can route to a different model with fallbacks.
+
 ## 7. Backups and restore
 
 The `backup` service runs every night at `BACKUP_HOUR_UTC`, and `make backup-now` runs it immediately. Each run
