@@ -1,7 +1,11 @@
 "use client";
 
-import { Clock, Expand, Info, LoaderCircle, SendHorizontal, WifiOff } from "lucide-react";
+import { Clock, Expand, Info, Keyboard, LoaderCircle, Mic, SendHorizontal, WifiOff } from "lucide-react";
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from "react";
+
+import { CameraCheck } from "@/components/interview/camera-check";
+import { MicSetup, VoiceStage } from "@/components/interview/voice-panel";
+import { CandidatePractical, PreviewPractical, type PracticalAnswering } from "@/components/practical/practical-panel";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +39,10 @@ import {
   type LiveState,
   type RoomTurn,
 } from "@/lib/interviews";
+import { isPracticalTopic, type PracticalTask } from "@/lib/practical";
+import { postSnapshot, useVoiceInfo } from "@/lib/practical-api";
 import { cn } from "@/lib/utils";
+import { useMicCheck, useVoiceCall } from "@/lib/voice-session";
 
 export interface InterviewRoomProps {
   sessionId: string;
@@ -51,7 +58,24 @@ export interface InterviewRoomProps {
   /** Extra content for the ended screen (e.g. links for the owner). */
   endedExtra?: ReactNode;
   preview?: boolean;
+  /** The candidate's link: voice, practical tasks and the camera check (absent in the owner's preview). */
+  candidate?: CandidateSetup;
+  /** The owner's preview: the practical task shown for a plan topic (by its 1-based number). */
+  previewTask?: (topicNumber: number) => PracticalTask | null;
 }
+
+export interface CandidateSetup {
+  token: string;
+  /** The mode the interview was set up in (TEXT or VOICE); voice is offered whenever it is available. */
+  sessionMode: string;
+  /** The consented in-browser camera check is on for this interview. */
+  camera: boolean;
+  /** STRICT mode with camera consent: low-resolution snapshots for the human reviewer. */
+  snapshots: boolean;
+}
+
+/** How the candidate answers: typing, setting up the microphone, or speaking. */
+type Channel = "text" | "voice-setup" | "voice";
 
 function MonitoringNote({ items }: { items: string[] }) {
   return (
@@ -267,7 +291,35 @@ function Waiting({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-/** The text interview: streamed interviewer turns, the answer box, time and topic progress (never the plan). */
+function ChannelChoice({ channel, onChange }: { channel: Channel; onChange: (channel: Channel) => void }) {
+  return (
+    <div role="radiogroup" aria-label="How you answer" className="flex flex-wrap justify-center gap-2">
+      <Button
+        role="radio"
+        aria-checked={channel !== "text"}
+        variant={channel !== "text" ? "default" : "outline"}
+        onClick={() => onChange("voice-setup")}
+      >
+        <Mic aria-hidden /> Speak
+      </Button>
+      <Button
+        role="radio"
+        aria-checked={channel === "text"}
+        variant={channel === "text" ? "default" : "outline"}
+        onClick={() => onChange("text")}
+      >
+        <Keyboard aria-hidden /> Type
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * The interview room: streamed interviewer turns, time and topic progress (never the plan), and the candidate's
+ * way of answering. Text is always available; voice (ADR 0009) connects to the voice service when it is
+ * configured, and "Switch to text" keeps the same session and transcript. Practical topics show the task
+ * (ADR 0010); the consented camera check (ADR 0005) runs in the browser only.
+ */
 export function InterviewRoomView({
   sessionId,
   token,
@@ -277,6 +329,8 @@ export function InterviewRoomView({
   deliverFallback,
   endedExtra,
   preview = false,
+  candidate,
+  previewTask,
 }: InterviewRoomProps) {
   const room = useInterviewRoom(sessionId, token);
   const { state, connection } = room;
@@ -287,12 +341,81 @@ export function InterviewRoomView({
     return deliverFallback ? deliverFallback(events) : false;
   });
   const endRef = useRef<HTMLLIElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
   const turnCount = state.turns.length;
   const lastText = state.turns.at(-1)?.text ?? "";
+
+  const voiceInfo = useVoiceInfo(candidate?.token ?? "", Boolean(candidate));
+  const voiceAvailable = voiceInfo.data?.available === true;
+  const [chosen, setChosen] = useState<Channel | null>(null);
+  const [voiceNotice, setVoiceNotice] = useState<string | null>(null);
+  // Until the candidate chooses, a voice interview starts with the microphone check (when voice is available).
+  const channel: Channel = chosen ?? (voiceAvailable && candidate?.sessionMode === "VOICE" ? "voice-setup" : "text");
+  const mic = useMicCheck(channel === "voice-setup" && state.ended === null);
+
+  const toText = () => {
+    setChosen("text");
+    room.setMode("TEXT");
+    room.resync(); // the transcript and state again, including the turns spoken over voice
+  };
+  const call = useVoiceCall(
+    {
+      onFrame: room.ingest,
+      onHeard: room.heard,
+      onDropped: () => {
+        setVoiceNotice(
+          "The voice connection dropped, so the interview continues in text. You can switch back to voice.",
+        );
+        toText();
+      },
+    },
+    audioRef,
+  );
+
+  async function startVoice() {
+    if (!candidate) return;
+    setVoiceNotice(null);
+    // Fresh ICE servers: TURN credentials are short-lived.
+    const info = (await voiceInfo.refetch()).data;
+    const stream = mic.take();
+    if (!info?.available || !info.offerUrl || !stream) {
+      if (stream) for (const track of stream.getTracks()) track.stop();
+      setVoiceNotice("Voice is not available right now. Please continue in text.");
+      setChosen("text");
+      return;
+    }
+    const connected = await call.connect({
+      stream,
+      offerUrl: info.offerUrl,
+      iceServers: info.iceServers,
+      token: candidate.token,
+    });
+    if (connected) setChosen("voice");
+    else mic.retry(); // the check opens the microphone again for another try
+  }
+
+  async function switchToText() {
+    await call.disconnect();
+    toText();
+  }
+
+  function startText() {
+    // An interview set up for voice that runs in text is recorded as text.
+    if (candidate?.sessionMode === "VOICE") room.setMode("TEXT");
+    room.start();
+  }
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [turnCount, lastText]);
+
+  const ended = state.ended !== null;
+  const { disconnect } = call;
+  useEffect(() => {
+    if (ended) void disconnect();
+  }, [ended, disconnect]);
+
+  const audio = <audio ref={audioRef} autoPlay className="hidden" />;
 
   if (room.closedReason) {
     return (
@@ -305,7 +428,7 @@ export function InterviewRoomView({
       </Alert>
     );
   }
-  if (state.ended !== null) return <Ended preview={preview} extra={endedExtra} />;
+  if (ended) return <Ended preview={preview} extra={endedExtra} />;
   if (!live) {
     return (
       <Waiting title={connection === "reconnecting" ? "Reconnecting…" : "Connecting…"}>
@@ -328,21 +451,47 @@ export function InterviewRoomView({
     );
   }
   if (live.status === "PLANNED") {
+    const voiceWanted = channel !== "text";
     return (
       <Waiting title={preview ? "Start the preview" : "Ready when you are"}>
+        {audio}
         <p>
-          {interviewerName} will ask one question at a time. Type your answers; take your time and ask if anything is
-          unclear.
+          {interviewerName} will ask one question at a time. {voiceWanted ? "Answer out loud" : "Type your answers"};
+          take your time and ask if anything is unclear.
         </p>
         {preview && (
           <p className="text-sm">
             Starting it yourself runs the real interview: the candidate cannot take it afterwards.
           </p>
         )}
+        {candidate && voiceAvailable && (
+          <ChannelChoice
+            channel={channel}
+            onChange={(next) => {
+              setVoiceNotice(null);
+              setChosen(next);
+            }}
+          />
+        )}
+        {candidate?.sessionMode === "VOICE" && voiceInfo.isFetched && !voiceAvailable && (
+          <p className="text-sm">Voice is not available right now, so this interview runs in text.</p>
+        )}
+        {voiceNotice && <p className="text-sm text-destructive">{voiceNotice}</p>}
         {state.notice && <p className="text-sm text-destructive">{state.notice.message}</p>}
-        <Button size="lg" disabled={connection !== "open"} onClick={() => room.start()}>
-          {connection === "open" ? "Start the interview" : "Connecting…"}
-        </Button>
+        {voiceWanted && candidate ? (
+          <MicSetup
+            check={mic}
+            connecting={call.status === "connecting"}
+            error={call.status === "failed" ? call.error : null}
+            startLabel="Start the interview"
+            onStart={() => void startVoice()}
+            onUseText={() => setChosen("text")}
+          />
+        ) : (
+          <Button size="lg" disabled={connection !== "open"} onClick={startText}>
+            {connection === "open" ? "Start the interview" : "Connecting…"}
+          </Button>
+        )}
       </Waiting>
     );
   }
@@ -355,9 +504,14 @@ export function InterviewRoomView({
     : busy
       ? `${interviewerName} is preparing the next question…`
       : "Please wait for the next question.";
+  const onPaste = (chars: number) => monitor.record(clipboardEvent("paste", chars));
+  const answering: PracticalAnswering = { send: room.answer, canAnswer, hint, onPaste };
+  const practical = isPracticalTopic(live);
+  const speaking = channel === "voice" && call.status === "connected";
 
   return (
     <div className="flex flex-col gap-4">
+      {audio}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <h1 className="flex flex-wrap items-center gap-2 text-lg font-semibold tracking-tight">
@@ -373,11 +527,30 @@ export function InterviewRoomView({
               <Expand /> Enter full screen
             </Button>
           )}
+          {candidate && voiceAvailable && channel === "text" && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={!isLive}
+              onClick={() => {
+                setVoiceNotice(null);
+                setChosen("voice-setup");
+              }}
+            >
+              <Mic aria-hidden /> Switch to voice
+            </Button>
+          )}
           <EndButton room={room} disabled={!open || !isLive} />
         </div>
       </div>
 
       {monitoring?.enabled && <MonitoringNote items={monitoring.items} />}
+      {candidate?.camera && isLive && (
+        <CameraCheck
+          record={monitor.record}
+          snapshot={candidate.snapshots ? (jpeg) => postSnapshot(candidate.token, jpeg) : null}
+        />
+      )}
       {preview && (
         <p className="text-xs text-muted-foreground">
           Preview as the interview&apos;s creator: browser integrity signals are not collected.
@@ -392,6 +565,14 @@ export function InterviewRoomView({
           <WifiOff className="size-4" aria-hidden /> Reconnecting… Your progress is saved.
         </div>
       )}
+      {voiceNotice && (
+        <div role="status" className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm">
+          <span>{voiceNotice}</span>
+          <Button size="sm" variant="ghost" onClick={() => setVoiceNotice(null)}>
+            Dismiss
+          </Button>
+        </div>
+      )}
       {state.notice && state.notice.code !== "busy" && (
         <div role="status" className="flex items-center justify-between gap-2 rounded-md bg-muted px-3 py-2 text-sm">
           <span>{state.notice.message}</span>
@@ -400,6 +581,16 @@ export function InterviewRoomView({
           </Button>
         </div>
       )}
+
+      {practical && candidate && (
+        <CandidatePractical
+          token={candidate.token}
+          topic={live.topic_number}
+          answering={answering}
+          voice={speaking ? { onSwitchToText: () => void switchToText() } : null}
+        />
+      )}
+      {practical && !candidate && previewTask && <PreviewPractical task={previewTask(live.topic_number)} />}
 
       <ol
         aria-live="polite"
@@ -416,13 +607,22 @@ export function InterviewRoomView({
         <li ref={endRef} aria-hidden className="h-px" />
       </ol>
 
-      <AnswerBox
-        enabled={canAnswer}
-        hint={hint}
-        returned={state.returned}
-        onSend={room.answer}
-        onPaste={(chars) => monitor.record(clipboardEvent("paste", chars))}
-      />
+      {speaking ? (
+        <VoiceStage call={call} interviewerName={interviewerName} onSwitchToText={() => void switchToText()} />
+      ) : channel === "voice-setup" && candidate ? (
+        <div className="flex justify-center">
+          <MicSetup
+            check={mic}
+            connecting={call.status === "connecting"}
+            error={call.status === "failed" ? call.error : null}
+            startLabel="Continue by voice"
+            onStart={() => void startVoice()}
+            onUseText={() => setChosen("text")}
+          />
+        </div>
+      ) : (
+        <AnswerBox enabled={canAnswer} hint={hint} returned={state.returned} onSend={room.answer} onPaste={onPaste} />
+      )}
     </div>
   );
 }

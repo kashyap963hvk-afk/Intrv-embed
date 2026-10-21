@@ -499,6 +499,8 @@ const topicSchema = z.object({
   expected_signals: textList,
   red_flags: textList,
   planned_minutes: z.number().catch(5),
+  /** The role pack's practical task for a PRACTICAL topic (kept on edits so the task stays linked). */
+  task_id: z.string().min(1).nullable().catch(null),
 });
 
 export type PlanTopic = z.infer<typeof topicSchema>;
@@ -862,6 +864,13 @@ export const BUSY_RETRY_MS = 2_000;
 export const MAX_ANSWER_CHARS = 6_000;
 /** Close code of an invalid token or session (no reconnect). */
 export const CLOSE_FORBIDDEN = 4403;
+/** Close code when the server is too busy to accept the socket ("try again later"): reconnect with backoff. */
+export const CLOSE_TRY_AGAIN = 1013;
+
+/** Whether the socket should reconnect after closing with `code` (only an invalid link or session is final). */
+export function reconnectable(code: number): boolean {
+  return code !== CLOSE_FORBIDDEN;
+}
 
 export function interviewSocketUrl(wsBaseUrl: string, sessionId: string, token: string | null): string {
   const base = `${wsBaseUrl.replace(/\/+$/, "")}/ws/interview/${encodeURIComponent(sessionId)}`;
@@ -928,7 +937,12 @@ export type ServerFrame = z.infer<typeof frameSchema>;
 
 /** Parse one server frame; anything malformed or unknown is ignored (null). */
 export function parseServerFrame(data: string): ServerFrame | null {
-  const parsed = frameSchema.safeParse(parseJson(data));
+  return parseServerFrameData(parseJson(data));
+}
+
+/** The same for a frame that arrived already decoded (the voice service relays engine frames as RTVI messages). */
+export function parseServerFrameData(data: unknown): ServerFrame | null {
+  const parsed = frameSchema.safeParse(data);
   return parsed.success ? parsed.data : null;
 }
 
@@ -937,6 +951,8 @@ export interface AnswerMeta {
   paste_chars: number;
   paste_count: number;
   edits: number;
+  /** A practical submission this answer explains (the engine links them). */
+  submission_id?: string;
 }
 
 export interface PendingAnswer {
@@ -991,6 +1007,8 @@ export const INITIAL_ROOM: RoomState = {
 export type RoomAction =
   | { type: "frame"; frame: ServerFrame; now: number }
   | { type: "answer.sent"; answer: PendingAnswer }
+  /** A final transcript of the candidate's speech (voice mode): it joins the answer being spoken. */
+  | { type: "voice.heard"; text: string }
   | { type: "notice.clear" };
 
 /** Errors that refer to the answer just sent (the server sends no client id with them). */
@@ -1034,6 +1052,32 @@ export function answerToResend(pending: PendingAnswer | null, lastClientId: stri
   return pending.clientId === lastClientId ? null : pending;
 }
 
+const VOICE_KEY = "v-";
+
+/** The spoken answer still being recorded: the last turn, the candidate's, from voice and not yet accepted. */
+function openVoiceTurn(turns: readonly RoomTurn[]): RoomTurn | null {
+  const last = turns.at(-1);
+  return last && last.speaker === "CANDIDATE" && last.key.startsWith(VOICE_KEY) && last.seq === null ? last : null;
+}
+
+function voiceHeard(state: RoomState, heard: string): RoomState {
+  const piece = heard.trim();
+  if (!piece) return state;
+  const open = openVoiceTurn(state.turns);
+  if (open) {
+    return { ...state, turns: [...state.turns.slice(0, -1), { ...open, text: joinSentences(open.text, piece) }] };
+  }
+  const turn: RoomTurn = {
+    key: `${VOICE_KEY}${state.turns.length}`,
+    seq: null,
+    speaker: "CANDIDATE",
+    text: piece,
+    streaming: false,
+    pending: false,
+  };
+  return { ...state, turns: [...state.turns, turn] };
+}
+
 /** Fold one server frame or local action into the room's state. */
 export function roomReducer(state: RoomState, action: RoomAction): RoomState {
   switch (action.type) {
@@ -1046,6 +1090,8 @@ export function roomReducer(state: RoomState, action: RoomAction): RoomState {
         notice: null,
         returned: null,
       };
+    case "voice.heard":
+      return voiceHeard(state, action.text);
     case "notice.clear":
       return state.notice ? { ...state, notice: null } : state;
     case "frame":
@@ -1091,7 +1137,17 @@ function applyFrame(state: RoomState, frame: ServerFrame, now: number): RoomStat
     }
     case "accepted": {
       const pending = state.pending;
-      if (!pending || frame.client_id !== pending.clientId) return state;
+      if (!pending || frame.client_id !== pending.clientId) {
+        // Voice answers are sent by the voice service under its own ids: the spoken answer is the one accepted.
+        const open = openVoiceTurn(state.turns);
+        if (!open) return state;
+        return {
+          ...state,
+          turns: [...state.turns.slice(0, -1), { ...open, seq: frame.seq }],
+          awaiting: false,
+          notice: null,
+        };
+      }
       const key = `c-${pending.clientId}`;
       return {
         ...state,
@@ -1132,6 +1188,8 @@ function applyFrame(state: RoomState, frame: ServerFrame, now: number): RoomStat
     case "error": {
       const notice = { code: frame.code, message: frame.message };
       const pending = state.pending;
+      // Busy: the page sends the same message again shortly (answers, start, end); nothing to show.
+      if (frame.code === "busy" && !(pending && pending.acceptedSeq === null)) return { ...state, notice: null };
       if (pending && pending.acceptedSeq === null && ANSWER_ERRORS.has(frame.code)) {
         // busy: the hook sends the same answer again shortly; anything else hands the text back to the candidate.
         if (frame.code === "busy") return { ...state, notice: null };
@@ -1150,6 +1208,46 @@ function applyFrame(state: RoomState, frame: ServerFrame, now: number): RoomStat
     case "pong":
       return state;
   }
+}
+
+/** A control message the page may need to send again when the server answers "busy". */
+export type ControlMessage = { type: "start" } | { type: "end" } | { type: "mode"; mode: "TEXT" | "VOICE" };
+
+/** Whether `frame` shows the server handled the control message (so a busy retry is no longer needed). */
+export function controlSettled(control: ControlMessage, frame: ServerFrame): boolean {
+  if (frame.type === "error") return frame.code !== "busy"; // refused for another reason: retrying will not help
+  switch (control.type) {
+    case "start":
+      return (
+        (frame.type === "state" && frame.status !== "PLANNED") ||
+        frame.type === "turn.start" ||
+        frame.type === "transcript" ||
+        frame.type === "ended"
+      );
+    case "end":
+      return (
+        frame.type === "ended" ||
+        (frame.type === "state" && (frame.status === "COMPLETED" || frame.status === "ABORTED"))
+      );
+    case "mode":
+      return frame.type === "state" && frame.mode === control.mode;
+  }
+}
+
+/**
+ * What to send again after a "busy" error (the server was out of capacity): the answer it never
+ * acknowledged and a start, end or mode change it never handled.
+ */
+export function busyRetries(pending: PendingAnswer | null, controls: readonly ControlMessage[]): object[] {
+  const messages: object[] = [];
+  if (pending && pending.acceptedSeq === null) messages.push(answerMessage(pending));
+  messages.push(...controls);
+  return messages;
+}
+
+/** The voice service lost its engine link (not the end of the interview): the room reloads its state instead. */
+export function isVoiceLinkLost(frame: ServerFrame): boolean {
+  return frame.type === "ended" && frame.reason === "closed";
 }
 
 /** The client → server message for an answer (the same client_id on every resend). */

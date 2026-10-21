@@ -40,3 +40,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# vendor browser assets copied from node_modules (scripts/copy-vendor-assets.mjs)
+/public/vendor/

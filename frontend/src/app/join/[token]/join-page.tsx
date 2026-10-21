@@ -7,8 +7,36 @@ import { InterviewRoomView } from "@/components/interview/interview-room";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { cameraMonitoringOn } from "@/lib/camera-integrity";
 import type { JoinInfo } from "@/lib/interviews";
 import { postIntegrity, useGiveConsent, useJoinInfo } from "@/lib/interviews-api";
+
+/** The camera choice made on the consent screen, kept for this tab so a reload keeps the camera check. */
+function cameraKey(token: string): string {
+  return `intrv.camera-consent.${token}`;
+}
+
+function rememberCamera(token: string, camera: boolean): void {
+  try {
+    window.sessionStorage.setItem(cameraKey(token), camera ? "1" : "0");
+  } catch {
+    // Storage unavailable: after a reload the camera check stays off unless it is required.
+  }
+}
+
+/**
+ * Whether the candidate agreed to the camera check. The join details say only that consent was given, so a
+ * required camera implies it; an optional one is known from this tab's choice, and is off when unknown.
+ */
+function cameraConsent(token: string, info: JoinInfo, justGiven: boolean | null): boolean {
+  if (justGiven !== null) return justGiven;
+  if (info.camera_monitoring === "required") return true;
+  try {
+    return window.sessionStorage.getItem(cameraKey(token)) === "1";
+  } catch {
+    return false;
+  }
+}
 
 function Notice({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -21,7 +49,15 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Consent({ token, info, onAccepted }: { token: string; info: JoinInfo; onAccepted: () => void }) {
+function Consent({
+  token,
+  info,
+  onAccepted,
+}: {
+  token: string;
+  info: JoinInfo;
+  onAccepted: (camera: boolean) => void;
+}) {
   const [agreed, setAgreed] = useState(false);
   const [camera, setCamera] = useState(false);
   const consent = useGiveConsent(token);
@@ -29,7 +65,7 @@ function Consent({ token, info, onAccepted }: { token: string; info: JoinInfo; o
   const ready = agreed && (!cameraNeeded || camera);
 
   return (
-    <Card className="w-full">
+    <Card className="mx-auto w-full max-w-3xl">
       <CardContent className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">{info.organization}</p>
@@ -48,7 +84,9 @@ function Consent({ token, info, onAccepted }: { token: string; info: JoinInfo; o
           <div className="flex flex-col gap-0.5">
             <dt className="text-muted-foreground">Format</dt>
             <dd className="font-medium">
-              {info.mode === "TEXT" ? "Text: you type your answers" : info.mode.toLowerCase()}
+              {info.mode === "VOICE"
+                ? "Voice: you answer out loud (typing is always available)"
+                : "Text: you type your answers"}
             </dd>
           </div>
         </dl>
@@ -88,7 +126,15 @@ function Consent({ token, info, onAccepted }: { token: string; info: JoinInfo; o
           <Button
             className="w-fit"
             disabled={!ready || consent.isPending}
-            onClick={() => consent.mutate(camera, { onSuccess: onAccepted })}
+            onClick={() =>
+              consent.mutate(camera, {
+                onSuccess: (given) => {
+                  const agreed = given.camera === true;
+                  rememberCamera(token, agreed);
+                  onAccepted(agreed);
+                },
+              })
+            }
           >
             {consent.isPending ? "Saving…" : "I agree and continue"}
           </Button>
@@ -101,6 +147,7 @@ function Consent({ token, info, onAccepted }: { token: string; info: JoinInfo; o
 function Join({ token }: { token: string }) {
   const info = useJoinInfo(token);
   const [accepted, setAccepted] = useState(false);
+  const [cameraGiven, setCameraGiven] = useState<boolean | null>(null);
 
   if (info.isPending) return <p className="text-sm text-muted-foreground">Loading your interview…</p>;
   if (info.isError) {
@@ -144,8 +191,22 @@ function Join({ token }: { token: string }) {
     );
   }
   if (!accepted && !data.consent_given) {
-    return <Consent token={token} info={data} onAccepted={() => setAccepted(true)} />;
+    return (
+      <Consent
+        token={token}
+        info={data}
+        onAccepted={(camera) => {
+          setCameraGiven(camera);
+          setAccepted(true);
+        }}
+      />
+    );
   }
+  const camera = cameraMonitoringOn(
+    data.camera_monitoring,
+    data.integrity_mode,
+    cameraConsent(token, data, cameraGiven),
+  );
   return (
     <InterviewRoomView
       sessionId={data.session_id}
@@ -154,6 +215,7 @@ function Join({ token }: { token: string }) {
       heading={data.title}
       monitoring={{ enabled: data.integrity_mode !== "OFF", items: data.monitoring }}
       deliverFallback={(events) => postIntegrity(token, events)}
+      candidate={{ token, sessionMode: data.mode, camera, snapshots: camera && data.integrity_mode === "STRICT" }}
     />
   );
 }

@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-vendor-assets.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/copy-vendor-assets.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -12,15 +14,22 @@
     "check:api": "openapi-typescript ../backend/openapi.json --default-non-nullable=false -o src/lib/api/schema.d.ts && git diff --exit-code -- src/lib/api/schema.d.ts",
     "test": "vitest run",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "assets": "node scripts/copy-vendor-assets.mjs"
   },
   "dependencies": {
+    "@excalidraw/excalidraw": "0.18.1",
     "@hookform/resolvers": "5.9.2",
+    "@mediapipe/tasks-vision": "1.1.1",
+    "@monaco-editor/react": "4.7.0",
+    "@pipecat-ai/client-js": "1.14.0",
+    "@pipecat-ai/small-webrtc-transport": "1.11.0",
     "@tanstack/react-query": "5.104.3",
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "geist": "1.8.1",
     "lucide-react": "1.59.0",
+    "monaco-editor": "0.57.0",
     "next": "16.4.2",
     "openapi-fetch": "0.17.0",
     "radix-ui": "1.8.1",

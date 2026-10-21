@@ -27,6 +27,13 @@ import {
   interviewerBusy,
   interviewFormReady,
   interviewSocketUrl,
+  busyRetries,
+  CLOSE_FORBIDDEN,
+  CLOSE_TRY_AGAIN,
+  controlSettled,
+  reconnectable,
+  isVoiceLinkLost,
+  parseServerFrameData,
   MAX_QUEUED_EVENTS,
   moveTopic,
   newClientId,
@@ -115,6 +122,7 @@ function topic(id: string, section: PlanTopic["section"], title = `Topic ${id}`)
     expected_signals: [],
     red_flags: [],
     planned_minutes: 5,
+    task_id: null,
   };
 }
 
@@ -348,6 +356,18 @@ describe("the plan", () => {
     expect(topicEditProblem("Fine", "Why")).toMatch(/seed question/);
     expect(topicEditProblem("Fine", "Why is that?")).toBeNull();
     expect(planPatch(next).topics.topics).toHaveLength(4);
+  });
+
+  it("keeps a practical topic's task when the plan is edited", () => {
+    const plan = parsePlan({
+      topics: [
+        { title: "Practical: debug isr adc", section: "PRACTICAL", seed_question: "Take a look.", task_id: "t1" },
+      ],
+    });
+    expect(plan.topics[0].task_id).toBe("t1");
+    expect(parsePlan({ topics: [{ title: "Bare", seed_question: "Why?" }] }).topics[0].task_id).toBeNull();
+    const edited = updateTopic(plan.topics, 0, { title: "Practical: the ADC ISR" });
+    expect(planPatch(edited).topics.topics[0]).toMatchObject({ task_id: "t1", title: "Practical: the ADC ISR" });
   });
 });
 
@@ -612,6 +632,89 @@ describe("the room reducer", () => {
 
   it("builds the answer message with the same client id", () => {
     expect(answerMessage(pending("c9", "Hi"))).toEqual({ type: "answer", text: "Hi", client_id: "c9", meta: META });
+  });
+
+  it("links a practical submission through the answer's meta", () => {
+    const answer = { ...pending("c7", "I made the flag volatile."), meta: { ...META, submission_id: "s-1" } };
+    expect(answerMessage(answer).meta.submission_id).toBe("s-1");
+  });
+});
+
+describe("a busy server", () => {
+  it("swallows busy errors so the page can send the same message again", () => {
+    const busy = run(INITIAL_ROOM, { type: "error", code: "busy", message: "Busy, try again." });
+    expect(busy.notice).toBeNull();
+  });
+
+  it("resends the unacknowledged answer and any unhandled start, end or mode change", () => {
+    expect(busyRetries(pending("c1"), [{ type: "start" }])).toEqual([answerMessage(pending("c1")), { type: "start" }]);
+    expect(busyRetries({ ...pending("c1"), acceptedSeq: 4 }, [{ type: "end" }])).toEqual([{ type: "end" }]);
+    expect(busyRetries(null, [])).toEqual([]);
+  });
+
+  it("knows when a start, end or mode change took effect", () => {
+    const start = { type: "start" } as const;
+    expect(controlSettled(start, frame({ ...LIVE_STATE, status: "PLANNED" }))).toBe(false);
+    expect(controlSettled(start, frame(LIVE_STATE))).toBe(true);
+    expect(controlSettled(start, frame({ type: "turn.start", seq: 1, speaker: "INTERVIEWER" }))).toBe(true);
+    expect(controlSettled(start, frame({ type: "error", code: "busy", message: "" }))).toBe(false);
+    expect(controlSettled(start, frame({ type: "error", code: "consent_required", message: "" }))).toBe(true);
+    const end = { type: "end" } as const;
+    expect(controlSettled(end, frame(LIVE_STATE))).toBe(false);
+    expect(controlSettled(end, frame({ type: "ended", reason: "ended by the candidate" }))).toBe(true);
+    expect(controlSettled(end, frame({ ...LIVE_STATE, status: "COMPLETED" }))).toBe(true);
+    const mode = { type: "mode", mode: "TEXT" } as const;
+    expect(controlSettled(mode, frame({ ...LIVE_STATE, mode: "VOICE" }))).toBe(false);
+    expect(controlSettled(mode, frame(LIVE_STATE))).toBe(true);
+  });
+
+  it("reconnects after any close except an invalid link, including 1013 (try again later)", () => {
+    expect(reconnectable(CLOSE_TRY_AGAIN)).toBe(true);
+    expect(reconnectable(1006)).toBe(true);
+    expect(reconnectable(CLOSE_FORBIDDEN)).toBe(false);
+  });
+});
+
+describe("voice turns", () => {
+  const voice = (state: RoomState, text: string) => roomReducer(state, { type: "voice.heard", text });
+
+  it("builds the spoken answer from final transcripts until the engine accepts it", () => {
+    const asked = run(INITIAL_ROOM, LIVE_STATE, {
+      type: "turn.end",
+      seq: 1,
+      text: "Tell me about DMA?",
+      awaiting: true,
+    });
+    const speaking = voice(voice(asked, "I used DMA"), " in circular mode. ");
+    expect(speaking.turns.at(-1)).toMatchObject({
+      speaker: "CANDIDATE",
+      text: "I used DMA in circular mode.",
+      seq: null,
+      pending: false,
+    });
+    // The voice service sends the answer under its own client id.
+    const accepted = run(speaking, { type: "accepted", seq: 2, client_id: "voice-1" });
+    expect(accepted.turns.at(-1)).toMatchObject({ seq: 2, text: "I used DMA in circular mode." });
+    expect(accepted.awaiting).toBe(false);
+    // The next words start a new answer after the interviewer's reply.
+    const replied = run(accepted, { type: "turn.end", seq: 3, text: "Why circular?", awaiting: true });
+    const next = voice(replied, "Because of the ADC.");
+    expect(next.turns.map((t) => [t.speaker, t.seq])).toEqual([
+      ["INTERVIEWER", 1],
+      ["CANDIDATE", 2],
+      ["INTERVIEWER", 3],
+      ["CANDIDATE", null],
+    ]);
+    expect(new Set(next.turns.map((t) => t.key)).size).toBe(next.turns.length);
+    expect(voice(next, "   ")).toBe(next);
+  });
+
+  it("reads relayed frames and tells a lost voice link from the end of the interview", () => {
+    expect(parseServerFrameData({ type: "ended", reason: "closed" })).toEqual({ type: "ended", reason: "closed" });
+    expect(parseServerFrameData({ type: "turn.delta", seq: "x" })).toBeNull();
+    expect(isVoiceLinkLost(frame({ type: "ended", reason: "closed" }))).toBe(true);
+    expect(isVoiceLinkLost(frame({ type: "ended", reason: "completed" }))).toBe(false);
+    expect(isVoiceLinkLost(frame({ type: "pong" }))).toBe(false);
   });
 });
 

@@ -9,8 +9,9 @@ import {
   answerMessage,
   answerToResend,
   BUSY_RETRY_MS,
+  busyRetries,
   clipboardEvent,
-  CLOSE_FORBIDDEN,
+  controlSettled,
   enqueueEvent,
   INITIAL_ROOM,
   INTEGRITY_FLUSH_MS,
@@ -19,13 +20,16 @@ import {
   NO_ABSENCE,
   parseServerFrame,
   PING_INTERVAL_MS,
+  reconnectable,
   reconnectDelay,
   roomReducer,
   takeBatch,
   type AbsenceSignal,
   type AnswerMeta,
   type BrowserEvent,
+  type ControlMessage,
   type RoomState,
+  type ServerFrame,
 } from "@/lib/interviews";
 
 export type Connection = "connecting" | "open" | "reconnecting" | "closed";
@@ -41,6 +45,14 @@ export interface InterviewRoom {
   end: () => boolean;
   /** Integrity signals over the socket; false when it is not open (the caller falls back to HTTP). */
   integrity: (events: BrowserEvent[]) => boolean;
+  /** Voice ↔ text in the same session; false when the socket is not open. */
+  setMode: (mode: "TEXT" | "VOICE") => boolean;
+  /** Fold in an engine frame that arrived another way (relayed by the voice service). */
+  ingest: (frame: ServerFrame) => void;
+  /** A final transcript of what the candidate said (voice mode). */
+  heard: (text: string) => void;
+  /** Reconnect now, so the server sends the transcript and state again (after voice turns this socket missed). */
+  resync: () => void;
   clearNotice: () => void;
 }
 
@@ -54,6 +66,10 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
   const [closedReason, setClosedReason] = useState<string | null>(null);
   const stateRef = useRef(state);
   const socketRef = useRef<WebSocket | null>(null);
+  /** The page closed the socket to reconnect at once (resync), not a dropped connection. */
+  const resyncRef = useRef(false);
+  /** Starts, ends and mode changes not yet handled: sent again if the server answers "busy". */
+  const controlsRef = useRef<ControlMessage[]>([]);
 
   useEffect(() => {
     stateRef.current = state;
@@ -75,9 +91,8 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
     let pingTimer: ReturnType<typeof setInterval> | null = null;
     const url = interviewSocketUrl(env.wsBaseUrl, sessionId, token);
 
-    const resendPending = () => {
-      const pending = stateRef.current.pending;
-      if (pending && pending.acceptedSeq === null) send(answerMessage(pending));
+    const resendAfterBusy = () => {
+      for (const message of busyRetries(stateRef.current.pending, controlsRef.current)) send(message);
     };
 
     const connect = () => {
@@ -95,6 +110,8 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
         if (typeof message.data !== "string") return;
         const frame = parseServerFrame(message.data);
         if (!frame) return;
+        if (controlsRef.current.length)
+          controlsRef.current = controlsRef.current.filter((c) => !controlSettled(c, frame));
         // Decide on a resend before the frame is folded in (the reducer keeps the answer only when it must go again).
         const resend =
           frame.type === "transcript" ? answerToResend(stateRef.current.pending, frame.last_client_id) : null;
@@ -102,7 +119,7 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
         if (resend) send(answerMessage({ ...resend, acceptedSeq: null }));
         if (frame.type === "error" && frame.code === "busy") {
           if (busyTimer) clearTimeout(busyTimer);
-          busyTimer = setTimeout(resendPending, BUSY_RETRY_MS);
+          busyTimer = setTimeout(resendAfterBusy, BUSY_RETRY_MS);
         }
       };
 
@@ -111,7 +128,7 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
         pingTimer = null;
         if (socketRef.current === socket) socketRef.current = null;
         if (closed) return;
-        if (event.code === CLOSE_FORBIDDEN) {
+        if (!reconnectable(event.code)) {
           if (!token && !refreshed) {
             // The owner's access cookie may just have expired: any API call refreshes it, then try once more.
             refreshed = true;
@@ -129,7 +146,13 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
           setConnection("closed");
           return;
         }
+        // Anything else, including 1013 (server busy, try again later), reconnects with backoff.
         setConnection("reconnecting");
+        if (resyncRef.current) {
+          resyncRef.current = false;
+          connect();
+          return;
+        }
         retryTimer = setTimeout(connect, reconnectDelay(attempt));
         attempt += 1;
       };
@@ -146,6 +169,16 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
     };
   }, [sessionId, token, send]);
 
+  /** Send a start, end or mode change, remembered until the server handles it (resent after "busy"). */
+  const control = useCallback(
+    (message: ControlMessage): boolean => {
+      if (!send(message)) return false;
+      controlsRef.current = [...controlsRef.current.filter((c) => c.type !== message.type), message];
+      return true;
+    },
+    [send],
+  );
+
   const answer = useCallback(
     (text: string, meta: AnswerMeta): boolean => {
       const pending = { clientId: newClientId(crypto), text, meta, acceptedSeq: null };
@@ -160,10 +193,19 @@ export function useInterviewRoom(sessionId: string, token: string | null): Inter
     state,
     connection,
     closedReason,
-    start: useCallback(() => send({ type: "start" }), [send]),
+    start: useCallback(() => control({ type: "start" }), [control]),
     answer,
-    end: useCallback(() => send({ type: "end" }), [send]),
+    end: useCallback(() => control({ type: "end" }), [control]),
     integrity: useCallback((events: BrowserEvent[]) => send({ type: "integrity", events }), [send]),
+    setMode: useCallback((mode: "TEXT" | "VOICE") => control({ type: "mode", mode }), [control]),
+    ingest: useCallback((frame: ServerFrame) => dispatch({ type: "frame", frame, now: Date.now() }), []),
+    heard: useCallback((text: string) => dispatch({ type: "voice.heard", text }), []),
+    resync: useCallback(() => {
+      const socket = socketRef.current;
+      if (!socket || socket.readyState !== WebSocket.OPEN) return;
+      resyncRef.current = true;
+      socket.close(1000, "resync");
+    }, []),
     clearNotice: useCallback(() => dispatch({ type: "notice.clear" }), []),
   };
 }

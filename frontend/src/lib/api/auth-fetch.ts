@@ -1,18 +1,38 @@
 /**
  * fetch wrapper used by the typed API client:
  *  - sends the CSRF token (double-submit) on state-changing requests, fetching one when needed;
- *  - on 401, refreshes the session once (concurrent callers share one refresh) and retries.
+ *  - on 401, refreshes the session once (concurrent callers share one refresh) and retries;
+ *  - on 503 (the server is out of capacity), retries an idempotent GET or HEAD once after Retry-After.
  */
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const NO_REFRESH_PATHS = ["/api/auth/login", "/api/auth/refresh", "/api/auth/logout", "/api/auth/csrf"];
 
+const IDEMPOTENT_METHODS = new Set(["GET", "HEAD"]);
+/** Problem type of a 503 the backend sends when it is out of capacity. */
+export const BUSY_PROBLEM = "urn:intrv:problem:busy";
+const DEFAULT_RETRY_AFTER_MS = 1_000;
+const MAX_RETRY_AFTER_MS = 10_000;
+
+/** How long to wait before retrying, from a Retry-After header (seconds or an HTTP date), capped at 10 s. */
+export function retryAfterMs(header: string | null, now: number = Date.now()): number {
+  if (header === null || header.trim() === "") return DEFAULT_RETRY_AFTER_MS;
+  const value = header.trim();
+  const ms = /^\d+$/.test(value) ? Number(value) * 1_000 : Date.parse(value) - now;
+  if (Number.isNaN(ms)) return DEFAULT_RETRY_AFTER_MS;
+  return Math.min(MAX_RETRY_AFTER_MS, Math.max(0, ms));
+}
+
 export interface AuthFetchOptions {
   baseUrl: string;
   fetchImpl?: typeof fetch;
+  /** Waits before a retry (replaced in tests). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
-export function createAuthFetch({ baseUrl, fetchImpl = (...args) => fetch(...args) }: AuthFetchOptions) {
+const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+export function createAuthFetch({ baseUrl, fetchImpl = (...args) => fetch(...args), sleep = wait }: AuthFetchOptions) {
   let csrfToken: string | null = null;
   let csrfInFlight: Promise<string> | null = null;
   let refreshInFlight: Promise<boolean> | null = null;
@@ -71,6 +91,16 @@ export function createAuthFetch({ baseUrl, fetchImpl = (...args) => fetch(...arg
     return Boolean(body?.detail?.includes("CSRF"));
   }
 
+  async function isBusy(response: Response): Promise<boolean> {
+    if (response.status !== 503) return false;
+    if (response.headers.has("Retry-After")) return true;
+    const body = (await response
+      .clone()
+      .json()
+      .catch(() => null)) as { type?: string } | null;
+    return body?.type === BUSY_PROBLEM;
+  }
+
   return async function authFetch(input: Request): Promise<Response> {
     const pristine = input.clone();
     let response = await send(input.clone());
@@ -85,6 +115,11 @@ export function createAuthFetch({ baseUrl, fetchImpl = (...args) => fetch(...arg
       if (await refreshSession()) {
         response = await send(pristine.clone());
       }
+    }
+
+    if (IDEMPOTENT_METHODS.has(input.method) && (await isBusy(response))) {
+      await sleep(retryAfterMs(response.headers.get("Retry-After")));
+      response = await send(pristine.clone());
     }
     return response;
   };
