@@ -59,28 +59,32 @@ and grading need a model.
 ```bash
 make lint test           # ruff, mypy, eslint, tsc, unit + integration tests (Docker)
 make test-isolation      # tenant and space isolation suite
+make e2e                 # Playwright: headers + owner → candidate → report → decision in a real browser
+INTRV_EMAIL=... INTRV_PASSWORD=... make loadtest N=50   # concurrent interviews (docs/LOADTEST.md)
 open http://localhost:8000/docs   # API explorer
 ```
+
+### Optional parts
+
+- **Code tasks:** `docker compose --profile coding up -d` (Piston), then set `PISTON_URL=http://piston:2000` and
+  add `practical_tasks` to the interview settings. Without a runner, code tasks are skipped and noted in the plan.
+- **Voice:** `docker compose --profile voice up -d`, and set `VOICE_PUBLIC_URL=http://localhost:8090`. On the
+  candidate page, choose **Speak**.
+- **A model on your PC or pendrive:** go to **AI models → Use a model on my PC or pendrive** and follow the
+  pairing steps (`uvx --from ./bridge intrv-bridge pair <code>`, then `run`).
 
 The `beat` container runs the self-healing scan every 5 minutes: preparation, grading or ingestion left behind by
 a crashed worker is re-dispatched, and abandoned interviews are closed and graded.
 
-## 2. A private test server (one VPS, ~$5–10/month)
+## 2. A private test server (one VPS)
 
-Same compose stack on a small VPS (2 vCPU, 4–8 GB RAM): open only 80/443, put Caddy or another TLS proxy in
-front of `frontend:3000` and `backend:8000` (WebSockets must pass through), set in `.env`:
+Follow `docs/DEPLOYMENT.md` §6.
+1. Point `api.<domain>` and `files.<domain>` at the server.
+2. Run `make env` and set the production values in `.env`.
+3. Run `make up-prod`.
 
-```
-PUBLIC_APP_URL=https://app.example.com
-API_PUBLIC_URL=https://api.example.com
-CORS_ALLOWED_ORIGINS=https://app.example.com
-NEXT_PUBLIC_API_BASE_URL=https://api.example.com
-NEXT_PUBLIC_WS_BASE_URL=wss://api.example.com
-NEXT_PUBLIC_APP_URL=https://app.example.com
-SMTP_HOST=... SMTP_PORT=... SMTP_USER=... SMTP_PASSWORD=... MAIL_FROM=...   # for member invites
-```
-
-Use one registrable domain for app and API (cookies; see `docs/DEPLOYMENT.md` §3).
+Caddy obtains the HTTPS certificates. The frontend runs on Vercel, or on the same server with
+`PROFILES="frontend"`. Nightly encrypted backups start automatically.
 
 ## 3. Production (Vercel frontend + backend host)
 
@@ -97,4 +101,5 @@ inviting real candidates.
 | Private server | a VPS, a domain with two DNS records (`app`, `api`), optionally SMTP credentials |
 | Vercel production | a Vercel account, the domain, managed DB/cache/vector/storage accounts or the VPS, SMTP |
 | Connectors (optional) | Google OAuth client + Picker key, Microsoft Entra app, Dropbox app (`docs/DEPLOYMENT.md` §4.3) |
-| Voice (Phase 7) | a TURN server for candidates behind strict NATs |
+| Voice | UDP 3478 and 49160–49200 open on the server (bundled coturn); optionally a Groq key for speech-to-text |
+| Backups | an S3-compatible bucket in another provider/region and an age public key |
