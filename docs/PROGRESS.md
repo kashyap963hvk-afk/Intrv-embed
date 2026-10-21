@@ -73,7 +73,7 @@
 | Browser: pair a real `intrv-bridge`, see its models, add and test, revoke | ✅ Playwright smoke against the dev stack (stub LM Studio) |
 | Manual: real `.gguf` on a USB stick runs an interview | ⏳ needs your hardware |
 
-## Phase 8: Practical rounds and vision ✅ (backend 2026-10-20)
+## Phase 8: Practical rounds and vision ✅ (backend 2026-10-20, UI 2026-10-21)
 
 ### Delivered
 - **Runner:** a Piston runner (compose profile `coding`) runs each task's tests, with compiler warnings as static
@@ -83,6 +83,13 @@
   vision model", and the interview continues.
 - **Snapshots:** STRICT-mode camera snapshots go to the reviewer only, with consent.
 - **Skipped tasks:** tasks that cannot be assessed (no runner, no datasheet) are skipped and noted in the plan.
+- **Interviewer context:** the interviewer sees the verified results of the work just submitted (tests, the
+  reviewer's summary, the diagram description) as untrusted context, and can probe it.
+- **UI:** a bundled Monaco editor with Run and Submit, an Excalidraw whiteboard or photo upload, datasheet
+  excerpts, and a read-only view in the owner preview.
+- **Camera integrity:** MediaPipe face landmarker in the browser with blendshapes and matrices off. It computes
+  face count and head direction only; the model and WASM are self-hosted, and MediaPipe's usage telemetry is
+  blocked, so only derived events and STRICT-mode snapshots leave the browser.
 
 ### Acceptance results
 | Criterion | Result |
@@ -90,9 +97,11 @@
 | `write_bitfield_helpers`: reference passes 5/5, empty starter fails | ✅ `tests/integration/test_practical.py` (real gcc behind a Piston-compatible API) |
 | Reviewer finds ≥3 of 5 known bugs in `debug_isr_adc` (scripted) and invented quotes are dropped | ✅ found 1, 2, 3; invented bug 5 dropped |
 | No vision model → whiteboard message, interview continues | ✅ |
+| Camera: blendshapes never requested; face-count and gaze state machine | ✅ `camera-integrity.test.ts`; fake-camera smoke: one `camera_face_absent` event, 2 snapshots, 0 third-party requests |
+| Browser: whiteboard submit with no vision model, explanation linked to the submission | ✅ Playwright smoke on the dev stack |
 | Live Piston container | ⏳ GHCR is blocked in the build sandbox; runs in any networked environment |
 
-## Phase 7: Real-time voice ✅ (worker 2026-10-20)
+## Phase 7: Real-time voice ✅ (worker 2026-10-20, UI 2026-10-21)
 
 ### Delivered
 - **Voice worker:** Pipecat 1.13 driving the same interview socket as the text room. It uses Silero VAD,
@@ -100,12 +109,18 @@
 - **Turn handling:** barge-in records what the candidate actually heard; silence prompts at 7, 20 and 45 s;
   a cut-in after a long monologue; "Switch to text" keeps the same session.
 - **NAT traversal:** coturn with short-lived credentials.
+- **Voice room UI:**
+  - the Pipecat client over SmallWebRTC with the invite token, using a local microphone-only media manager
+    (no third-party CDN);
+  - mic check, speaking indicator, mute and always-on captions;
+  - "Switch to text" and back in the same session, with clear fallbacks when voice is unavailable.
 
 ### Acceptance results
 | Criterion | Result |
 |---|---|
 | Offline pipeline on recorded WAVs: barge-in, silence prompts, continuation | ✅ `voice/tests` |
 | Latency report | ✅ `make voice-bench`: end of turn about 40 ms p50, first sentence to audio about 330 ms (Kokoro CPU) |
+| Voice unavailable → the room falls back to text and the interview continues | ✅ Playwright smoke |
 | Browsers, speakers vs headphones, behind TURN | ⏳ manual checklist: needs a deployed stack with TURN |
 
 ## Phase 6: Interview engine (text) end to end ✅ (2026-10-20)
@@ -127,6 +142,7 @@
 | Scripted text interview end to end (API + WebSocket) | ✅ `tests/integration/test_interviews.py` |
 | Interview with no model at all still runs and recovers after "Grade again" | ✅ |
 | Browser walkthrough: template, new interview, candidate join, report | ✅ Playwright smoke on the dev stack |
+| `make e2e`: owner → candidate → graded report → decision, security headers, no hydration errors | ✅ 3/3 |
 
 ## Phase 5: Role packs, CV intelligence, question generation ✅ (2026-10-20)
 
