@@ -53,6 +53,12 @@ class OrgPolicy(BaseModel):
         default="", max_length=300, description="Who candidates contact about their data or to request a human."
     )
     retention_days: int = Field(default=180, ge=7, le=3650)
+    # --- Sign-in ----------------------------------------------------------------------------------------------
+    member_sign_in: Literal["password", "google"] = Field(
+        default="password",
+        description="How members sign in. 'google': members use Sign in with Google through their invitation; "
+        "only owners may use a password.",
+    )
 
 
 def org_policy(org: Organization) -> OrgPolicy:

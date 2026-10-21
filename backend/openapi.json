@@ -1754,6 +1754,19 @@
         "title": "GenerationParams",
         "type": "object"
       },
+      "GoogleAvailability": {
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "GoogleAvailability",
+        "type": "object"
+      },
       "GoogleOrgAccountIn": {
         "properties": {
           "name": {
@@ -2676,6 +2689,16 @@
           "role": {
             "$ref": "#/components/schemas/Role"
           },
+          "sign_in": {
+            "default": "password",
+            "description": "'google': accept with Sign in with Google (no password)",
+            "enum": [
+              "password",
+              "google"
+            ],
+            "title": "Sign In",
+            "type": "string"
+          },
           "usable": {
             "title": "Usable",
             "type": "boolean"
@@ -3032,6 +3055,16 @@
             "description": "Org-wide tone guidance for the AI interviewer (L1).",
             "maxLength": 1000,
             "title": "Interview Tone",
+            "type": "string"
+          },
+          "member_sign_in": {
+            "default": "password",
+            "description": "How members sign in. 'google': members use Sign in with Google through their invitation; only owners may use a password.",
+            "enum": [
+              "password",
+              "google"
+            ],
+            "title": "Member Sign In",
             "type": "string"
           },
           "retention_days": {
@@ -7802,6 +7835,109 @@
         ]
       }
     },
+    "/api/auth/google": {
+      "get": {
+        "operationId": "google_available_api_auth_google_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoogleAvailability"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Whether Sign in with Google is configured",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/google/start": {
+      "get": {
+        "operationId": "google_start_api_auth_google_start_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "next",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 500,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Next"
+            }
+          },
+          {
+            "in": "query",
+            "name": "invite",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Invite"
+            }
+          },
+          {
+            "in": "query",
+            "name": "org",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Org"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Begin Sign in with Google (redirects to Google)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/auth/invites/accept": {
       "post": {
         "operationId": "accept_invite_api_auth_invites_accept_post",
@@ -7956,6 +8092,88 @@
           }
         },
         "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/auth/oidc/google/callback": {
+      "get": {
+        "operationId": "google_callback_api_auth_oidc_google_callback_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Code"
+            }
+          },
+          {
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "State"
+            }
+          },
+          {
+            "in": "query",
+            "name": "error",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Error"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Google redirects here after sign-in",
         "tags": [
           "auth"
         ]

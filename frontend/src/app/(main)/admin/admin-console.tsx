@@ -4,6 +4,7 @@ import { RequireAuth } from "@/components/auth/require-auth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { AiPolicyCard } from "./ai-policy-card";
+import { SignInCard } from "./sign-in-card";
 import { AuditTab } from "./audit-tab";
 import { GroupsTab } from "./groups-tab";
 import { InvitesTab } from "./invites-tab";
@@ -55,8 +56,9 @@ export function AdminConsole() {
             <TabsContent value="privacy">
               <PrivacyTab />
             </TabsContent>
-            <TabsContent value="org">
+            <TabsContent value="org" className="flex flex-col gap-6">
               <OrgTab />
+              <SignInCard />
             </TabsContent>
           </Tabs>
         </section>

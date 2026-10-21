@@ -93,7 +93,7 @@ flowchart LR
 | Whiteboard | **Excalidraw** | MIT | System-design and block-diagram rounds. |
 | Code execution | **Piston** (C, C++, Python, Rust...) and, optionally, **Renode** to emulate MCUs (STM32, nRF52) for firmware tasks | MIT / MIT | Run in an isolated VM/container with no network. |
 | Frontend | **Next.js (current stable, App Router)**, TypeScript strict, Tailwind, shadcn/ui, TanStack Query, Zod, `@pipecat-ai/client-js` | MIT | Deployed on Vercel. |
-| Auth | argon2id (`argon2-cffi`), PyJWT, httpOnly cookies, CSRF double-submit, optional OIDC SSO (Google/Microsoft) via Authlib | MIT/BSD | |
+| Auth | argon2id (`argon2-cffi`), PyJWT, httpOnly cookies, CSRF double-submit, Sign in with Google (OIDC code flow + PKCE, httpx; ADR 0011) | MIT/BSD | |
 | Observability | structlog JSON, OpenTelemetry (FastAPI, httpx, SQLAlchemy, Celery), Prometheus `/metrics`; optional Langfuse | Apache/MIT | Per-turn latency spans are mandatory. |
 | TURN | **coturn** | BSD | 10–20% of corporate networks block P2P WebRTC without TURN. |
 
@@ -610,7 +610,7 @@ Goal: make cheating hard and visible to the human reviewer without automated ver
 ## 16. API surface (FastAPI)
 
 ```
-Auth        POST /api/auth/signup | /login | /logout | /refresh ; GET /api/auth/me ; GET /api/auth/oidc/{provider}/start|callback
+Auth        POST /api/auth/signup | /login | /logout | /refresh ; GET /api/auth/me ; GET /api/auth/google (enabled?) | /api/auth/google/start ; GET /api/auth/oidc/google/callback
 Owner       GET/PATCH /api/admin/users ; POST /api/admin/users/{id}/approve|suspend ; PATCH /api/admin/users/{id}/policy
             CRUD /api/admin/groups ; CRUD /api/admin/spaces (ORG) ; CRUD /api/admin/spaces/{id}/grants
             GET/PATCH /api/admin/org-policy ; GET /api/admin/usage ; GET /api/admin/audit ; POST /api/admin/break-glass
@@ -681,7 +681,7 @@ Intrv-embed/
 │   │   ├── main.py               # app factory, lifespan, routers, middleware (request id, tenant ctx, CORS for Vercel origin)
 │   │   ├── core/                 # config.py, security.py (jwt, argon2, csrf), crypto.py (envelope AES-GCM), ssrf.py, errors.py, logging.py, telemetry.py
 │   │   ├── db/                   # base.py, session.py (SET LOCAL tenant ctx), models/*.py, repositories/*.py, rls.sql
-│   │   ├── auth/                 # deps.py (principal, require_owner...), service.py, oidc.py
+│   │   ├── auth/                 # deps.py (principal, require_owner...), service.py, google.py (Sign in with Google)
 │   │   ├── acl/                  # resolver.py (allowed spaces + cache), grants service
 │   │   ├── connectors/           # base.py, registry.py, local_upload.py, url.py, gdrive.py, s3.py, azure_blob.py, msgraph.py, dropbox.py, oauth.py
 │   │   ├── ingest/               # tasks.py (celery), parser.py (docling), risk.py, chunker.py, cv_extractor.py, datasheet.py, code_chunker.py

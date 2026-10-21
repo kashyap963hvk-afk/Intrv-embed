@@ -118,3 +118,6 @@ class InvitePreview(BaseModel):
     role: Role
     usable: bool
     reason: str | None = None
+    sign_in: Literal["password", "google"] = Field(
+        default="password", description="'google': accept with Sign in with Google (no password)"
+    )

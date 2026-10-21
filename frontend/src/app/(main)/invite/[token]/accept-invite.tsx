@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { GoogleSignInButton, useGoogleSignIn } from "@/components/auth/google-sign-in-button";
 import { FormField } from "@/components/form-field";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ export function AcceptInvite() {
     defaultValues: { name: "", password: "", confirm: "" },
   });
   const { errors, isSubmitting } = form.formState;
+  const google = useGoogleSignIn();
 
   async function onSubmit({ name, password }: Values) {
     setError(null);
@@ -62,12 +64,39 @@ export function AcceptInvite() {
     );
   }
 
+  const intro = (
+    <p className="text-sm text-muted-foreground">
+      Join <strong className="text-foreground">{preview.data.org_name}</strong> as{" "}
+      {preview.data.role === "OWNER" ? "an owner" : "a member"} with <strong>{preview.data.email}</strong>.
+    </p>
+  );
+  if (preview.data.sign_in === "google") {
+    return (
+      <div className="flex flex-col gap-4">
+        {intro}
+        {google ? (
+          <>
+            <GoogleSignInButton invite={token} />
+            <p className="text-xs text-muted-foreground">
+              Sign in with the Google account for {preview.data.email}. No password is needed.
+            </p>
+          </>
+        ) : (
+          <Alert variant="destructive">
+            <AlertDescription>
+              This organization signs members in with Google, but Google sign-in is not configured on this server. Ask
+              an owner.
+            </AlertDescription>
+          </Alert>
+        )}
+      </div>
+    );
+  }
+
   return (
     <form className="flex flex-col gap-4" noValidate onSubmit={form.handleSubmit(onSubmit)}>
-      <p className="text-sm text-muted-foreground">
-        Join <strong className="text-foreground">{preview.data.org_name}</strong> as{" "}
-        {preview.data.role === "OWNER" ? "an owner" : "a member"} with <strong>{preview.data.email}</strong>.
-      </p>
+      {intro}
+      {google && <GoogleSignInButton invite={token} />}
       {error && (
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>

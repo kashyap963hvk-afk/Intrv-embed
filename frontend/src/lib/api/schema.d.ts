@@ -353,6 +353,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/google": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether Sign in with Google is configured */
+        get: operations["google_available_api_auth_google_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/google/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Begin Sign in with Google (redirects to Google) */
+        get: operations["google_start_api_auth_google_start_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/invites/accept": {
         parameters: {
             query?: never;
@@ -430,6 +464,23 @@ export interface paths {
         };
         /** Me */
         get: operations["me_api_auth_me_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/google/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Google redirects here after sign-in */
+        get: operations["google_callback_api_auth_oidc_google_callback_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2577,6 +2628,11 @@ export interface components {
             /** Temperature */
             temperature?: number | null;
         };
+        /** GoogleAvailability */
+        GoogleAvailability: {
+            /** Enabled */
+            enabled: boolean;
+        };
         /** GoogleOrgAccountIn */
         GoogleOrgAccountIn: {
             /**
@@ -2934,6 +2990,13 @@ export interface components {
             /** Reason */
             reason?: string | null;
             role: components["schemas"]["Role"];
+            /**
+             * Sign In
+             * @description 'google': accept with Sign in with Google (no password)
+             * @default password
+             * @enum {string}
+             */
+            sign_in?: "password" | "google";
             /** Usable */
             usable: boolean;
         };
@@ -3082,6 +3145,13 @@ export interface components {
              * @default
              */
             interview_tone?: string;
+            /**
+             * Member Sign In
+             * @description How members sign in. 'google': members use Sign in with Google through their invitation; only owners may use a password.
+             * @default password
+             * @enum {string}
+             */
+            member_sign_in?: "password" | "google";
             /**
              * Retention Days
              * @default 180
@@ -5200,6 +5270,59 @@ export interface operations {
             };
         };
     };
+    google_available_api_auth_google_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GoogleAvailability"];
+                };
+            };
+        };
+    };
+    google_start_api_auth_google_start_get: {
+        parameters: {
+            query?: {
+                next?: string | null;
+                invite?: string | null;
+                org?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     accept_invite_api_auth_invites_accept_post: {
         parameters: {
             query?: never;
@@ -5331,6 +5454,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+        };
+    };
+    google_callback_api_auth_oidc_google_callback_get: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                error?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

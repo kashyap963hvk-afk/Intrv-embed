@@ -8,6 +8,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import { GoogleSignInButton, useGoogleSignIn } from "@/components/auth/google-sign-in-button";
 import { FormField } from "@/components/form-field";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,9 @@ export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const queryClient = useQueryClient();
-  const [error, setError] = useState<string | null>(null);
+  // Google sign-in failures come back from the API as ?error=… on this page.
+  const [error, setError] = useState<string | null>(params.get("error"));
+  const google = useGoogleSignIn();
   const [orgChoices, setOrgChoices] = useState<{ slug: string; name: string }[] | null>(null);
   const form = useForm<Values>({ resolver: zodResolver(schema), defaultValues: { email: "", password: "" } });
 
@@ -59,6 +62,12 @@ export function LoginForm() {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+      {google && (
+        <>
+          <GoogleSignInButton next={params.get("next")} org={params.get("org")} />
+          <p className="text-center text-xs text-muted-foreground">Members use Google · owners can use a password</p>
+        </>
       )}
       <FormField id="email" label="Email" error={errors.email?.message}>
         <Input id="email" type="email" autoComplete="email" aria-invalid={!!errors.email} {...form.register("email")} />

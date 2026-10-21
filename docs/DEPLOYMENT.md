@@ -244,8 +244,27 @@ limited:
 - coding tasks, and editing the interviewer persona;
 - a monthly interview quota.
 
-Sign-in is with email and password. "Sign in with Google" is not built yet (BACKLOG), but Gmail addresses
-work as login emails.
+**Members sign in with Google; owners keep a password.**
+1. **Google Cloud Console** (console.cloud.google.com):
+   - **APIs & Services → OAuth consent screen:** choose *External*, add your app name and support email, and
+     the scopes `openid`, `email` and `profile`. Then **Publish app**. While it is in *Testing* mode, only the
+     test users you list can sign in. These basic scopes need no Google verification.
+   - **Credentials → Create credentials → OAuth client ID:** type *Web application*. The authorized
+     redirect URI is `https://api.example.com/api/auth/oidc/google/callback`.
+2. **Server:** put the client ID and secret in `.env` as `GOOGLE_OAUTH_CLIENT_ID` and
+   `GOOGLE_OAUTH_CLIENT_SECRET`, then run `make up-prod`. The same client can also serve the Google Drive
+   connector; add its redirect URI too.
+3. **App:** an owner turns on **Admin → Organization → Sign-in → Members sign in with Google only**.
+
+After that:
+- An owner invites any Gmail (or Google Workspace) address under **Admin → Users → Invite**.
+- The person opens the invitation, clicks **Continue with Google** and is signed in. There is no password to
+  set.
+- Later sign-ins use **Continue with Google** on the login page.
+- Google only proves who someone is; access still needs an invitation. An uninvited Google account is
+  refused, and a different Google account cannot take over an existing one.
+- Password sign-in is refused for members. Owners sign in with the password they set when they were created
+  (`make create-owner` without `INVITE=1` asks for it).
 
 **Growing to production or enterprise.**
 - **More organizations:** with `ALLOW_ORG_SIGNUP=true`, other companies can register their own organization,
@@ -259,8 +278,8 @@ work as login emails.
   - an append-only audit log;
   - retention and right-to-erasure;
   - private or air-gapped use with local models only.
-- **Not built yet** (BACKLOG): single sign-on (Google, Microsoft), owner break-glass access and org-wide
-  selection-rate reports.
+- **Not built yet** (BACKLOG): Microsoft sign-in, owner break-glass access and org-wide selection-rate
+  reports.
 
 ## 7. Backups and restore
 

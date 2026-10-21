@@ -10,6 +10,7 @@ from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.audit.service import ClientMeta, record
+from app.auth.google import GoogleIdentity, GoogleSignInError, PendingSignIn
 from app.auth.schemas import AcceptInviteRequest, InvitePreview, LoginRequest, SignupRequest
 from app.core.config import Settings
 from app.core.email import EmailSender, OutgoingEmail
@@ -26,6 +27,7 @@ from app.core.security import (
 )
 from app.db.models import Organization, RefreshToken, Role, User, UserInvite, UserPolicy, UserStatus
 from app.db.tenant import TenantContext, set_tenant_context
+from app.orgs.policy import org_policy
 
 log = get_logger("app.auth")
 
@@ -38,6 +40,14 @@ class WeakPasswordError(AppError):
     status_code = 422
     slug = "weak-password"
     title = "Password does not meet the requirements"
+
+
+GOOGLE_ONLY = "Your organization signs members in with Google: use “Continue with Google”."
+
+
+async def _members_use_google(db: AsyncSession, org_id: uuid.UUID) -> bool:
+    org = await db.get(Organization, org_id)
+    return org is not None and org_policy(org).member_sign_in == "google"
 
 
 class OrgChoiceRequiredError(AppError):
@@ -165,6 +175,8 @@ async def login(db: AsyncSession, settings: Settings, body: LoginRequest, meta: 
         raise ForbiddenError("This account is suspended. Contact your organization owner.")
 
     await bind_org(db, row["org_id"], row["id"], row["role"])
+    if row["role"] != Role.OWNER and await _members_use_google(db, row["org_id"]):
+        raise ForbiddenError(GOOGLE_ONLY)
     user = await db.get(User, row["id"])
     if user is None:  # deleted between lookup and load
         raise UnauthorizedError("Invalid email or password.")
@@ -260,12 +272,18 @@ async def _load_invite(db: AsyncSession, token: str) -> dict[str, object]:
 async def preview_invite(db: AsyncSession, token: str) -> InvitePreview:
     row = await _load_invite(db, token)
     problem = _invite_problem(row, datetime.now(UTC))
+    role = Role(str(row["role"]))
+    google = False
+    if role != Role.OWNER and isinstance(row["org_id"], uuid.UUID):
+        await bind_org(db, row["org_id"])
+        google = await _members_use_google(db, row["org_id"])
     return InvitePreview(
         org_name=str(row["org_name"]),
         email=str(row["email"]),
-        role=Role(str(row["role"])),
+        role=role,
         usable=problem is None,
         reason=problem,
+        sign_in="google" if google else "password",
     )
 
 
@@ -280,8 +298,10 @@ async def accept_invite(
     email = str(row["email"])
     if not isinstance(org_id, uuid.UUID):
         raise TypeError("invalid org id")
-    ensure_strong_password(body.password, email=email, name=body.name)
     await bind_org(db, org_id)
+    if Role(str(row["role"])) != Role.OWNER and await _members_use_google(db, org_id):
+        raise ForbiddenError(GOOGLE_ONLY)
+    ensure_strong_password(body.password, email=email, name=body.name)
 
     user = await db.scalar(select(User).where(User.email == email))
     if user is not None and user.status != UserStatus.PENDING:
@@ -309,6 +329,96 @@ async def accept_invite(
         detail={"role": user.role.value},
     )
     return await issue_session(db, settings, user, meta)
+
+
+# --- Sign in with Google ------------------------------------------------------------------------------
+
+
+async def google_sign_in(
+    db: AsyncSession, settings: Settings, identity: GoogleIdentity, pending: PendingSignIn, meta: ClientMeta
+) -> IssuedSession:
+    """An invitation link creates the account on first sign-in; afterwards the verified email finds it."""
+    if pending.invite:
+        user = await _accept_invite_with_google(db, identity, pending.invite, meta)
+    else:
+        user = await _google_account(db, identity, pending.org)
+    if user.oidc_sub and user.oidc_sub != identity.sub:
+        raise GoogleSignInError("This account is linked to a different Google account.")
+    user.oidc_sub = identity.sub
+    user.last_login_at = datetime.now(UTC)
+    session = await issue_session(db, settings, user, meta)
+    await record(
+        db,
+        org_id=user.org_id,
+        actor_id=user.id,
+        action="auth.login",
+        meta=meta,
+        target_type="user",
+        target_id=user.id,
+        detail={"method": "google"},
+    )
+    return session
+
+
+async def _google_account(db: AsyncSession, identity: GoogleIdentity, org_slug: str | None) -> User:
+    rows = (await db.execute(text("SELECT * FROM auth_users_by_email(:e)"), {"e": identity.email})).mappings().all()
+    if org_slug:
+        rows = [r for r in rows if r["org_slug"] == org_slug.strip().lower()]
+    if not rows:
+        raise GoogleSignInError(
+            f"No account uses {identity.email}. Ask an owner to invite you, then open the invitation link."
+        )
+    if len(rows) > 1:
+        raise GoogleSignInError("This email belongs to several organizations; open your organization's sign-in link.")
+    row = rows[0]
+    if row["status"] == UserStatus.SUSPENDED:
+        raise GoogleSignInError("This account is suspended. Contact your organization owner.")
+    if row["status"] == UserStatus.PENDING:
+        raise GoogleSignInError("Your account is waiting for approval by an organization owner.")
+    await bind_org(db, row["org_id"], row["id"], row["role"])
+    user = await db.get(User, row["id"])
+    if user is None:
+        raise GoogleSignInError(f"No account uses {identity.email}.")
+    return user
+
+
+async def _accept_invite_with_google(db: AsyncSession, identity: GoogleIdentity, token: str, meta: ClientMeta) -> User:
+    try:
+        row = await _load_invite(db, token)
+    except NotFoundError as exc:
+        raise GoogleSignInError("This invitation link is not valid.") from exc
+    problem = _invite_problem(row, datetime.now(UTC))
+    if problem:
+        raise GoogleSignInError(problem)
+    if str(row["email"]).lower() != identity.email:
+        raise GoogleSignInError(f"This invitation is for {row['email']}; sign in with that Google account.")
+    org_id = row["org_id"]
+    if not isinstance(org_id, uuid.UUID):
+        raise TypeError("invalid org id")
+    await bind_org(db, org_id)
+    user = await db.scalar(select(User).where(User.email == identity.email))
+    if user is not None and user.status != UserStatus.PENDING:
+        raise GoogleSignInError("An account with this email already exists; use “Continue with Google” to sign in.")
+    if user is None:
+        user = User(org_id=org_id, email=identity.email, name=identity.name[:120])
+        db.add(user)
+        await db.flush()
+        db.add(UserPolicy(user_id=user.id, org_id=org_id))
+    user.role = Role(str(row["role"]))
+    user.status = UserStatus.ACTIVE
+    await db.execute(update(UserInvite).where(UserInvite.id == row["id"]).values(accepted_at=datetime.now(UTC)))
+    await bind_org(db, org_id, user.id, user.role.value)
+    await record(
+        db,
+        org_id=org_id,
+        actor_id=user.id,
+        action="invite.accepted",
+        meta=meta,
+        target_type="invite",
+        target_id=str(row["id"]),
+        detail={"role": user.role.value, "method": "google"},
+    )
+    return user
 
 
 # --- Account ------------------------------------------------------------------------------------------

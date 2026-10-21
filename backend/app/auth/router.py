@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import uuid
 from typing import Annotated
+from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, Request, Response, status
+from fastapi import APIRouter, Depends, Query, Request, Response, status
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 from app.audit.service import ClientMeta
-from app.auth import service
+from app.auth import google, service
 from app.auth.cookies import (
     REFRESH_COOKIE,
     clear_session_cookies,
@@ -30,6 +33,7 @@ from app.auth.schemas import (
     SignupRequest,
     UserOut,
 )
+from app.core.config import Settings
 from app.core.email import EmailSender
 from app.core.errors import ForbiddenError, UnauthorizedError
 from app.core.ratelimit import enforce_rate_limit
@@ -168,6 +172,60 @@ async def change_password(
         new_password=body.new_password,
         meta=ClientMeta.from_request(request),
     )
+
+
+class GoogleAvailability(BaseModel):
+    enabled: bool
+
+
+@router.get("/google", response_model=GoogleAvailability, summary="Whether Sign in with Google is configured")
+async def google_available(settings: SettingsDep) -> GoogleAvailability:
+    return GoogleAvailability(enabled=google.enabled(settings))
+
+
+@router.get("/google/start", summary="Begin Sign in with Google (redirects to Google)")
+async def google_start(
+    request: Request,
+    settings: SettingsDep,
+    valkey: ValkeyDep,
+    next_path: Annotated[str | None, Query(alias="next", max_length=500)] = None,
+    invite: Annotated[str | None, Query(max_length=200)] = None,
+    org: Annotated[str | None, Query(max_length=64)] = None,
+) -> RedirectResponse:
+    await enforce_rate_limit(valkey, f"google-start:ip:{_client_key(request)}", limit=60, window_s=_LOGIN_WINDOW_S)
+    try:
+        url = await google.start(valkey, settings, next_path=next_path, invite=invite, org=org)
+    except google.GoogleSignInError as exc:
+        return _login_error(settings, str(exc))
+    return RedirectResponse(url, status_code=status.HTTP_302_FOUND)
+
+
+@router.get(google.CALLBACK_PATH.removeprefix("/api/auth"), summary="Google redirects here after sign-in")
+async def google_callback(
+    request: Request,
+    db: DbSession,
+    settings: SettingsDep,
+    valkey: ValkeyDep,
+    code: Annotated[str | None, Query(max_length=2000)] = None,
+    state: Annotated[str | None, Query(max_length=200)] = None,
+    error: Annotated[str | None, Query(max_length=200)] = None,
+) -> RedirectResponse:
+    pending = await google.consume_state(valkey, state) if state else None
+    if error or not code or pending is None:
+        return _login_error(settings, "Google sign-in was cancelled or expired; please try again.")
+    try:
+        identity = await google.exchange(request.app.state.resources.http, settings, code, pending)
+        session = await service.google_sign_in(db, settings, identity, pending, ClientMeta.from_request(request))
+    except google.GoogleSignInError as exc:
+        await db.rollback()  # nothing from a failed sign-in is kept
+        return _login_error(settings, str(exc))
+    redirect = RedirectResponse(f"{settings.public_app_url.rstrip('/')}{pending.next_path}", status_code=302)
+    _apply_session(redirect, settings, session)
+    return redirect
+
+
+def _login_error(settings: Settings, message: str) -> RedirectResponse:
+    return RedirectResponse(f"{settings.public_app_url.rstrip('/')}/login?error={quote(message)}", status_code=302)
 
 
 @router.get("/invites/{token}", response_model=InvitePreview, summary="Show who an invitation is for")
