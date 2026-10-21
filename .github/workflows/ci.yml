@@ -173,6 +173,11 @@ jobs:
       - name: Browser tests
         working-directory: e2e
         run: npx playwright test
+      - name: OWASP ZAP baseline (passive scan; FAIL-level alerts block, warnings are reported)
+        run: |
+          for target in http://localhost:3000 http://localhost:8000/healthz; do
+            docker run --rm --network host ghcr.io/zaproxy/zaproxy:2.16.1 zap-baseline.py -t "$target" -I
+          done
       - name: Logs on failure
         if: failure()
         run: docker compose --profile core logs --tail=200 backend worker frontend
