@@ -1,5 +1,133 @@
 # Build progress
 
+## Phase 10: Privacy, compliance, hardening, deployment ✅ (2026-10-21)
+
+### Delivered
+- **Privacy:** subject search, export and erasure across Postgres, S3 and Qdrant. Each erasure runs in its owner's
+  tenant context, takes an optional reason, and is audited with only a hash of the email. A nightly retention
+  purge applies each org's `retention_days`.
+- **Production stack** (`deploy/compose.prod.yml`, `make up-prod`):
+  - runtime images, Caddy with automatic HTTPS (API, presigned files, optional frontend);
+  - resource limits, log rotation and healthchecks; voice and coding profiles.
+- **Backups:** nightly `pg_dump`, per-collection Qdrant snapshots and an object-store copy, encrypted with age and
+  copied to an off-site S3 bucket. `make backup-now` runs one immediately; the restore runbook is in DEPLOYMENT.md §7.
+- **Security headers:**
+  - API: nosniff, `DENY` framing, `no-referrer`, a strict CSP, and HSTS in production;
+  - frontend: framing, MIME, referrer and permissions headers, with `no-referrer` on candidate links.
+- **Rate limits:**
+  - auth endpoints (from Phase 1);
+  - per member on LLM-heavy, upload and privacy endpoints;
+  - per client IP on candidate endpoints.
+- **Overload:** an exhausted database pool degrades to `busy` (503 + Retry-After, WebSocket `busy` frame,
+  or close code 1013) and clients retry, instead of failing.
+- **Compliance:** `docs/MODEL_CARD.md` is generated from the code (`python -m app.cli model-card`) and a test
+  fails while it is stale. `tests/test_banned_imports.py` keeps face and emotion libraries out.
+- **CI:** gitleaks, pip-audit, npm audit, bandit, semgrep (OWASP), and production compose/Caddy validation.
+- **Load test:** `make loadtest` (`docs/LOADTEST.md`).
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| Erasure leaves no trace (PG, S3, Qdrant) | ✅ `tests/integration/test_privacy.py` scans all three stores after erasure |
+| Production image boots | ✅ runtime image with `APP_ENV=prod`: healthy, `/readyz` all ok, HSTS + CSP, `/docs` 404 |
+| Backups restore | ✅ `pg_restore --role=app_owner` into a fresh DB: 32/32 tables owned by app_owner, RLS on the same 31 tables, app_rw grants intact; a Qdrant snapshot upload restores all 57 points |
+| Security scanners | ✅ bandit: 0 medium/high (3 reviewed false positives annotated); gitleaks: 0 in history (2 reviewed false positives); semgrep: runs in CI only (semgrep.dev is blocked in the build sandbox) |
+| Load: 50 concurrent text interviews | ✅ 50/50, 250 simultaneous turns, 0 errors, p95 953 ms on one dev process (docs/LOADTEST.md) |
+| Fresh VPS + Vercel deploy | ⏳ needs your domain and server; runbook in DEPLOYMENT.md §6 |
+
+### Bugs found and fixed while testing
+- **The production image crashed at start-up.** A dev-only typing package (`mypy_boto3_s3`) was imported at
+  runtime. The import is now typing-only, and a test imports every module with dev packages blocked.
+- **50 simultaneous turns exhausted the 10 + 10 database pool.** The pool was resized, and an exhausted pool now
+  returns `busy` instead of an error.
+- **Bridge tunnels dropped every ~5 s when idle**, because of `pubsub.listen()` and the Valkey socket timeout.
+  The hub now polls `get_message`; a regression test idles the tunnel for 8 s.
+- **Interviews could get stuck in PREPARING** when no model was configured. Preparation now falls back to the
+  role pack and the error handler is fixed.
+
+### Awaiting your decision
+- Owner break-glass and an org-wide selection-rate report both need a cross-member read path. The build's safety
+  check blocked adding one without your explicit sign-off (BACKLOG).
+
+## Phase 9: Local Model Bridge ✅ (backend + bridge 2026-10-20, UI 2026-10-21)
+
+### Delivered
+- **`intrv-bridge`:**
+  - pairs with a 6-digit code, then dials out over a single outbound WebSocket;
+  - runs `.gguf` files through llama-server (`--no-mmap` on removable drives), or models already running in
+    Ollama, LM Studio or vLLM;
+  - accepts only chat, models and cancel frames, and stops when revoked.
+- **Backend:**
+  - device registry (token stored as a hash, RLS private) and the Valkey relay, so any replica reaches the PC;
+  - BRIDGE provider, plus GGUF_MANAGED confined to `GGUF_ALLOWED_DIRS`.
+- **UI (`/app/llm`):**
+  - install steps, pairing code with countdown, live device list, "Add and test" (probe results);
+  - honest notes on hardware and quality, and revoke.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| In-process bridge + stub server: stream through the tunnel, cancellation propagates | ✅ `tests/integration/test_bridge.py` |
+| Bridge refuses ops other than chat/models/cancel | ✅ bridge unit tests |
+| GGUF_MANAGED rejects paths outside the allow-list (`..`, symlinks) | ✅ `test_gguf_paths_are_confined` |
+| Browser: pair a real `intrv-bridge`, see its models, add and test, revoke | ✅ Playwright smoke against the dev stack (stub LM Studio) |
+| Manual: real `.gguf` on a USB stick runs an interview | ⏳ needs your hardware |
+
+## Phase 8: Practical rounds and vision ✅ (backend 2026-10-20)
+
+### Delivered
+- **Runner:** a Piston runner (compose profile `coding`) runs each task's tests, with compiler warnings as static
+  analysis.
+- **Code Reviewer:** its claims are verified against the submission before graders see them.
+- **Whiteboard reader:** only on vision-capable models (capability-probed); otherwise "Diagram review needs a
+  vision model", and the interview continues.
+- **Snapshots:** STRICT-mode camera snapshots go to the reviewer only, with consent.
+- **Skipped tasks:** tasks that cannot be assessed (no runner, no datasheet) are skipped and noted in the plan.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| `write_bitfield_helpers`: reference passes 5/5, empty starter fails | ✅ `tests/integration/test_practical.py` (real gcc behind a Piston-compatible API) |
+| Reviewer finds ≥3 of 5 known bugs in `debug_isr_adc` (scripted) and invented quotes are dropped | ✅ found 1, 2, 3; invented bug 5 dropped |
+| No vision model → whiteboard message, interview continues | ✅ |
+| Live Piston container | ⏳ GHCR is blocked in the build sandbox; runs in any networked environment |
+
+## Phase 7: Real-time voice ✅ (worker 2026-10-20)
+
+### Delivered
+- **Voice worker:** Pipecat 1.13 driving the same interview socket as the text room. It uses Silero VAD,
+  Smart Turn v3, faster-whisper or Groq for speech-to-text, and Kokoro in its own container for speech.
+- **Turn handling:** barge-in records what the candidate actually heard; silence prompts at 7, 20 and 45 s;
+  a cut-in after a long monologue; "Switch to text" keeps the same session.
+- **NAT traversal:** coturn with short-lived credentials.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| Offline pipeline on recorded WAVs: barge-in, silence prompts, continuation | ✅ `voice/tests` |
+| Latency report | ✅ `make voice-bench`: end of turn about 40 ms p50, first sentence to audio about 330 ms (Kokoro CPU) |
+| Browsers, speakers vs headphones, behind TURN | ⏳ manual checklist: needs a deployed stack with TURN |
+
+## Phase 6: Interview engine (text) end to end ✅ (2026-10-20)
+
+### Delivered
+- **Templates:** persona with a lint, a layered prompt preview (L0 locked), and simulation.
+- **Preparation:** CV and JD analysis and a planner, with a role-pack fallback.
+- **Live engine:** a persisted state machine with idempotent answers, a deterministic policy and a one-question
+  gate.
+- **Grading:** blind graders, quotes verified against the transcript, a median over 3 runs and variance flags.
+- **Integrity signals:** shown to the reviewer only, never scored.
+- **Self-healing:** a beat task recovers stuck work.
+- **UI:** interviews, plan editor, invite links, the candidate join page and room, owner preview, and the report
+  with decision and PDF/JSON export.
+
+### Acceptance results
+| Criterion | Result |
+|---|---|
+| Scripted text interview end to end (API + WebSocket) | ✅ `tests/integration/test_interviews.py` |
+| Interview with no model at all still runs and recovers after "Grade again" | ✅ |
+| Browser walkthrough: template, new interview, candidate join, report | ✅ Playwright smoke on the dev stack |
+
 ## Phase 5: Role packs, CV intelligence, question generation ✅ (2026-10-20)
 
 ### Delivered
