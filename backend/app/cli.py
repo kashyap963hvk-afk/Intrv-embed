@@ -15,6 +15,7 @@ import asyncio
 import getpass
 import sys
 import uuid
+from pathlib import Path
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.audit.service import SYSTEM_META
 from app.auth.schemas import SLUG_PATTERN
 from app.auth.service import ensure_strong_password
+from app.compliance import model_card
 from app.core.config import get_settings
 from app.core.email import EmailSender
 from app.core.errors import AppError
@@ -112,11 +114,18 @@ def main(argv: list[str] | None = None) -> int:
     owner.add_argument("--name", required=True)
     owner.add_argument("--password-stdin", action="store_true", help="read the password from stdin")
     sub.add_parser("selftest", help="check models, vector store and parsers")
+    card = sub.add_parser("model-card", help="regenerate docs/MODEL_CARD.md from the code and role packs")
+    card.add_argument("--out", default="../docs/MODEL_CARD.md")
+    card.add_argument("--role-packs", default="seed/role_packs")
     args = parser.parse_args(argv)
     if args.command == "create-owner":
         return asyncio.run(_create_owner(args))
     if args.command == "selftest":
         return asyncio.run(_selftest())
+    if args.command == "model-card":
+        model_card.write(args.role_packs, Path(args.out))
+        print(f"wrote {args.out}")
+        return 0
     return 2
 
 

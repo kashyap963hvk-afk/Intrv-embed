@@ -57,6 +57,16 @@ Auth uses **httpOnly cookies**. Browsers block third-party cookies, so `my-app.v
 
 No secrets go on Vercel. TURN credentials, OAuth tokens and LLM keys are all served or used by the backend.
 
+**Camera integrity model (and other candidate-room assets).** The in-browser camera check (ADR 0005) uses the
+MediaPipe face landmarker, served by the frontend itself so nothing is fetched from Google or a CDN:
+- The model is committed at `frontend/public/models/face_landmarker.task` (float16 v1, Apache-2.0, from
+  `https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task`,
+  SHA-256 `64184e229b263107bc2b804c6625db1341ff2bb731874b0bcc2fe6544e0bc9ff`).
+- `npm run dev` and `npm run build` first run `scripts/copy-vendor-assets.mjs`, which copies the MediaPipe
+  WebAssembly files and the Excalidraw whiteboard fonts from `node_modules` into `public/vendor/` (git-ignored).
+  Monaco (the code editor) is bundled from the installed package. If you add a Content-Security-Policy, the
+  candidate page needs `'wasm-unsafe-eval'` in `script-src` for the camera check.
+
 ### 4.2 Database roles (required for Row-Level Security)
 
 The app uses two Postgres roles (created automatically by `infra/postgres/init/01-roles.sh` in Docker):
