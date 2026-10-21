@@ -69,6 +69,7 @@ class Bridge:
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._send_lock = asyncio.Lock()
         self.connected = asyncio.Event()
+        self.sessions = 0  # tunnels opened since start; more than one means the connection dropped
 
     async def run_forever(self) -> None:
         attempt = 0
@@ -105,6 +106,7 @@ class Bridge:
                 },
             )
             self.connected.set()
+            self.sessions += 1
             try:
                 while True:
                     raw = await socket.recv()

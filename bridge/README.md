@@ -7,8 +7,10 @@ chat completions, the model list, and cancellation.
 
 ## Install
 
-- Download the single-file build for Windows, macOS or Linux from the release page, or
-- with Python: `uvx intrv-bridge --help` (or `pipx install intrv-bridge`).
+- with Python 3.12+ from a checkout of this repository: `uvx --from ./bridge intrv-bridge --help`
+  (or `pipx install ./bridge`); it is not published on PyPI, or
+- a single-file build for Windows, macOS or Linux made with PyInstaller (see "Build the single-file executable") and handed
+  to users by your organisation.
 
 ## Pair and run
 

@@ -143,6 +143,12 @@ def test_bridge_pair_stream_cancel_revoke(server: tuple[str, Settings]) -> None:
             assert [m["id"] for m in device["models"]] == ["local:good", "local:slow"]
             assert other.get("/api/bridge/devices").json() == []  # private to the member
 
+            # An idle tunnel must outlive the Valkey client's 5 s socket timeout (it used to drop and reconnect).
+            assert pc.bridge is not None
+            opened = pc.bridge.sessions
+            time.sleep(8)
+            assert pc.bridge.sessions == opened
+
             # A bridge profile: personal, never classified as training on data, only for the member's device.
             body = {"name": "My PC", "kind": "BRIDGE", "model": "local:good", "device_id": str(device_id)}
             created = member.post("/api/llm/profiles", json=body)

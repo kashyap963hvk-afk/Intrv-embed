@@ -30,6 +30,7 @@ PRESENCE_TTL_S = 30
 HEARTBEAT_S = 10
 FIRST_FRAME_TIMEOUT_S = 300.0  # a 7B model loading from a USB 2.0 stick takes minutes; the device sends status
 IDLE_TIMEOUT_S = 120.0
+FORWARD_POLL_S = 30.0  # longer than the Valkey socket timeout on purpose
 MAX_FRAME_BYTES = 256_000
 OPS = frozenset({"chat", "models", "cancel"})
 DEVICE_FRAMES = frozenset({"hello", "chunk", "status", "done", "err", "pong"})
@@ -139,8 +140,11 @@ class BridgeHub:
         await self.valkey.publish(_device_channel(device_id), json.dumps({"type": "close"}))
 
     async def _forward_requests(self, pubsub: Any, tunnel: Tunnel) -> None:
-        async for message in pubsub.listen():
-            if message.get("type") != "message":
+        # Not `pubsub.listen()`: that blocks with the client's 5 s socket timeout, so an idle device's tunnel
+        # died every few seconds. get_message(timeout=...) waits as long as asked.
+        while True:
+            message = await pubsub.get_message(ignore_subscribe_messages=True, timeout=FORWARD_POLL_S)
+            if message is None or message.get("type") != "message":
                 continue
             frame = json.loads(message["data"])
             if frame.get("type") == "close":
