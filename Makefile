@@ -7,7 +7,7 @@ BACKEND := cd backend &&
 FRONTEND := cd frontend &&
 
 .PHONY: help env up down logs ps test test-unit test-integration test-isolation lint fmt openapi \
-        migrate seed create-owner e2e selftest
+        migrate create-owner e2e selftest up-prod down-prod logs-prod backup-now
 
 help: ## Show this help
 	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "} {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -58,12 +58,9 @@ openapi: ## Regenerate backend/openapi.json and frontend API types
 migrate: ## Apply database migrations (also runs automatically on `make up`)
 	$(COMPOSE) run --rm migrate
 
-seed: ## Load role packs, provider presets and demo data (available from Phase 2/5)
-	@echo "make seed: available from Phase 2 (provider presets) and Phase 5 (role packs)"; exit 1
-
-create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.com NAME="Your Name"
+create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.com NAME="Your Name" [STACK=prod]
 	@test -n "$(ORG)" -a -n "$(EMAIL)" -a -n "$(NAME)" || { echo 'usage: make create-owner ORG=slug EMAIL=you@x.com NAME="Your Name"'; exit 1; }
-	$(COMPOSE) exec backend python -m app.cli create-owner --org-slug "$(ORG)" --org-name "$(ORG)" --email "$(EMAIL)" --name "$(NAME)" --password-stdin
+	$(if $(filter prod,$(STACK)),$(PROD),$(COMPOSE)) exec backend python -m app.cli create-owner --org-slug "$(ORG)" --org-name "$(ORG)" --email "$(EMAIL)" --name "$(NAME)" --password-stdin
 
 e2e: ## Playwright end-to-end tests (available from Phase 6)
 	@echo "make e2e: available from Phase 6"; exit 1
@@ -72,4 +69,21 @@ voice-bench: ## Voice pipeline latency per stage (p50/p95); start the TTS contai
 	cd voice && uv run python -m intrv_voice.bench --rounds 5 $(ARGS)
 
 selftest: ## Model load, vector store and parser checks inside the running backend
-	$(COMPOSE) exec backend python -m app.cli selftest
+	$(if $(filter prod,$(STACK)),$(PROD),$(COMPOSE)) exec backend python -m app.cli selftest
+
+# --- production (one VPS; docs/DEPLOYMENT.md) -----------------------------------------------------------------
+PROD := docker compose -f deploy/compose.prod.yml --env-file .env $(foreach p,$(PROFILES),--profile $(p))
+
+up-prod: ## Production stack with Caddy HTTPS and nightly backups (PROFILES="frontend voice coding")
+	@test -f .env || { echo ".env missing: run 'make env' and fill the production values"; exit 1; }
+	@grep -q '^APP_ENV=prod' .env || { echo "set APP_ENV=prod in .env (docs/DEPLOYMENT.md §6)"; exit 1; }
+	$(PROD) up -d --build --wait
+
+down-prod: ## Stop the production stack (volumes are kept)
+	$(PROD) down
+
+logs-prod: ## Follow production logs
+	$(PROD) logs -f --tail=100
+
+backup-now: ## Run one backup immediately (same as the nightly job)
+	$(PROD) run --rm -e BACKUP_NOW=1 backup

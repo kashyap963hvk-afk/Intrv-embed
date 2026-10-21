@@ -12,7 +12,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, EmailStr, Field
 
 from app.audit.service import ClientMeta, record
-from app.auth.deps import Owner, csrf_protect
+from app.auth.deps import Owner, csrf_protect, per_user_limit
 from app.auth.principal import Principal
 from app.core.errors import AppError
 from app.db.deps import DbSession
@@ -85,7 +85,9 @@ async def search(body: SubjectIn, principal: Owner, db: DbSession, resources: Re
     return [SubjectItem.model_validate(i.out()) for i in items]
 
 
-@router.post("/export", summary="Subject access export (JSON)")
+@router.post(
+    "/export", summary="Subject access export (JSON)", dependencies=[per_user_limit("privacy-export", limit=30)]
+)
 async def export(
     body: SubjectIn, request: Request, principal: Owner, db: DbSession, resources: ResourcesDep
 ) -> Response:
@@ -108,7 +110,12 @@ async def export(
     )
 
 
-@router.post("/erase", response_model=EraseOut, summary="Erase a candidate's data everywhere (cannot be undone)")
+@router.post(
+    "/erase",
+    response_model=EraseOut,
+    summary="Erase a candidate's data everywhere (cannot be undone)",
+    dependencies=[per_user_limit("privacy-erase", limit=30)],
+)
 async def erase(body: EraseIn, request: Request, principal: Owner, db: DbSession, resources: ResourcesDep) -> EraseOut:
     if not body.confirm:
         raise AppError("Set confirm to true: erasure cannot be undone.")

@@ -1,0 +1,3 @@
+# Reviewed false positives (gitleaks fingerprints): a fake key in a test and an enum comparison.
+4875149ce6ccb207a0e5d8086bb5b39466cdc8d2:frontend/src/app/app/knowledge/connector-tab.tsx:generic-api-key:341
+8d3521dbbade7a934ae763bfa4d99dac0a562673:backend/tests/integration/test_llm.py:generic-api-key:96

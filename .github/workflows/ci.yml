@@ -130,3 +130,28 @@ jobs:
         working-directory: frontend
         continue-on-error: true
         run: npm audit --audit-level=high
+      - name: Bandit (backend, bridge, voice, tts; medium and high)
+        run: uvx bandit==1.9.2 -r backend/app backend/workers bridge/src voice/src tts -q -ll
+      - name: Semgrep (OWASP Top 10 + Python rules; errors block)
+        run: >-
+          uvx --from semgrep==1.140.0 --with "pydantic<2.12" semgrep scan
+          --config p/python --config p/owasp-top-ten --severity ERROR --error --metrics off
+          backend/app bridge/src voice/src tts frontend/src
+
+  production-config:
+    name: Production compose and Caddy config
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Compose file resolves with every profile
+        run: |
+          python3 scripts/gen_env.py
+          printf 'APP_ENV=prod\nAPI_DOMAIN=api.example.com\nFILES_DOMAIN=files.example.com\nAPP_DOMAIN=app.example.com\nACME_EMAIL=ops@example.com\n' >> .env
+          docker compose -f deploy/compose.prod.yml --env-file .env --profile frontend --profile voice --profile coding config --quiet
+      - name: Caddyfile is valid
+        run: >-
+          docker run --rm -v "$PWD/deploy/caddy:/etc/caddy:ro" -e ACME_EMAIL=ops@example.com
+          -e API_DOMAIN=api.example.com -e FILES_DOMAIN=files.example.com caddy:2.10.2-alpine
+          caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile
+      - name: Backup script parses
+        run: sh -n deploy/backup/run.sh

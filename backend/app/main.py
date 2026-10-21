@@ -75,7 +75,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # Starlette runs the last-added middleware outermost. Request context goes inside CORS so that every
     # response it produces, including the 500 it renders for unhandled errors, still gets CORS headers;
     # otherwise browsers report a server error as an opaque network failure.
-    app.add_middleware(RequestContextMiddleware)
+    app.add_middleware(RequestContextMiddleware, hsts=settings.is_prod)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_allowed_origins,

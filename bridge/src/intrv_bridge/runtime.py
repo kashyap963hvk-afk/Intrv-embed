@@ -201,10 +201,10 @@ def _unpack(archive: Path, target_dir: Path) -> Path:
             for member in bundle.namelist():
                 if not (root / member).resolve().is_relative_to(root):
                     raise RuntimeError("archive contains a path outside the target folder")
-            bundle.extractall(root)  # noqa: S202 - every member was checked above
+            bundle.extractall(root)  # noqa: S202  # nosec B202 - every member was checked above
     else:
         with tarfile.open(archive, "r:gz") as bundle:
-            bundle.extractall(root, filter="data")  # refuses absolute paths, `..`, links out and devices
+            bundle.extractall(root, filter="data")  # nosec B202 - the "data" filter refuses absolute paths, `..`, links out and devices
     archive.unlink(missing_ok=True)
     name = "llama-server.exe" if platform.system() == "Windows" else "llama-server"
     binary = next(target_dir.rglob(name), None)

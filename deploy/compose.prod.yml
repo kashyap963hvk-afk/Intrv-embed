@@ -1,0 +1,310 @@
+# Intrv-embed production stack for one VPS.  Run from the repository root:
+#   make up-prod                      (core + Caddy with automatic HTTPS + nightly backups)
+#   make up-prod PROFILES="voice coding"
+#
+# Profiles:  (none)  data stores, API, workers, Caddy, backups
+#            frontend  the Next.js server on this box (skip it when the frontend is on Vercel)
+#            voice     voice worker + Kokoro TTS + coturn (needs UDP 3478 and 49160-49200 open)
+#            coding    Piston code runner for practical rounds
+#
+# Only Caddy (80/443) and, with the voice profile, coturn are reachable from outside.
+# Secrets come from ../.env (see docs/DEPLOYMENT.md §4).
+
+name: intrv-prod
+
+x-backend: &backend
+  build:
+    context: ../backend
+    target: runtime
+  image: intrv-backend:prod
+  env_file: ../.env
+  environment:
+    APP_ENV: prod
+    FORWARDED_ALLOW_IPS: "*"   # only Caddy can reach the API port on the internal network
+  volumes:
+    - models:/models
+  depends_on:
+    migrate:
+      condition: service_completed_successfully
+    valkey:
+      condition: service_healthy
+    qdrant:
+      condition: service_healthy
+  restart: unless-stopped
+  logging: &logging
+    driver: json-file
+    options: {max-size: "20m", max-file: "5"}
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?set it in .env}
+      APP_OWNER_DB_PASSWORD: ${APP_OWNER_DB_PASSWORD:?set it in .env}
+      APP_RW_DB_PASSWORD: ${APP_RW_DB_PASSWORD:?set it in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ../infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d intrv"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy: {resources: {limits: {memory: 2g}}}
+    restart: unless-stopped
+    logging: *logging
+
+  valkey:
+    image: valkey/valkey:8.1.10-alpine
+    environment:
+      VALKEY_PASSWORD: ${VALKEY_PASSWORD:?set it in .env}
+    command: ["sh", "-c", 'exec valkey-server --requirepass "$$VALKEY_PASSWORD" --appendonly yes --maxmemory 512mb --maxmemory-policy noeviction']
+    volumes:
+      - valkeydata:/data
+    healthcheck:
+      test: ["CMD-SHELL", 'valkey-cli -a "$$VALKEY_PASSWORD" --no-auth-warning ping | grep -q PONG']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy: {resources: {limits: {memory: 768m}}}
+    restart: unless-stopped
+    logging: *logging
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.2
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY:?set it in .env}
+      QDRANT__TELEMETRY_DISABLED: "true"
+    volumes:
+      - qdrantdata:/qdrant/storage
+      - qdrantsnapshots:/qdrant/snapshots
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/6333"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    deploy: {resources: {limits: {memory: 2g}}}
+    restart: unless-stopped
+    logging: *logging
+
+  # Object storage on this box. With Cloudflare R2 or AWS S3, point S3_ENDPOINT_URL there instead;
+  # these two services then sit idle and can be stopped.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.48
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?set it in .env}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?set it in .env}
+    volumes:
+      - ../infra/seaweedfs/entrypoint.sh:/entrypoint.sh:ro
+      - seaweeddata:/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "8333"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+    logging: *logging
+
+  s3-init:
+    image: amazon/aws-cli:2.38.1
+    depends_on:
+      seaweedfs:
+        condition: service_healthy
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_DEFAULT_REGION: ${S3_REGION:-us-east-1}
+      S3_BUCKET: ${S3_BUCKET:-intrv}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        for i in $$(seq 1 30); do
+        aws --endpoint-url "$$S3_ENDPOINT_URL" s3api head-bucket --bucket "$$S3_BUCKET" 2>/dev/null && exit 0;
+        aws --endpoint-url "$$S3_ENDPOINT_URL" s3api create-bucket --bucket "$$S3_BUCKET" && exit 0;
+        sleep 2; done; echo "could not create bucket $$S3_BUCKET" >&2; exit 1
+    restart: "no"
+
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      s3-init:
+        condition: service_completed_successfully
+    restart: "no"
+
+  backend:
+    <<: *backend
+    command: ["uvicorn", "app.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--workers", "${API_WORKERS:-2}"]
+    ports:
+      - "127.0.0.1:8000:8000"   # loopback only: the host-networked voice worker connects here
+    deploy: {resources: {limits: {memory: 2g}}}
+
+  worker:
+    <<: *backend
+    command: ["celery", "-A", "workers.celery_app:celery_app", "worker", "-Q", "ingest,grade,sync,default", "--concurrency", "${WORKER_CONCURRENCY:-2}", "--loglevel", "INFO"]
+    healthcheck:
+      test: ["CMD-SHELL", "celery -A workers.celery_app:celery_app inspect ping -d celery@$$HOSTNAME --timeout 5 | grep -q pong"]
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 30s
+    deploy: {resources: {limits: {memory: 4g}}}
+
+  beat:
+    <<: *backend
+    command: ["celery", "-A", "workers.celery_app:celery_app", "beat", "--schedule", "/tmp/celerybeat-schedule", "--loglevel", "INFO"]
+    healthcheck:
+      disable: true
+
+  frontend:
+    build:
+      context: ../frontend
+      target: runtime
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://${API_DOMAIN}
+        NEXT_PUBLIC_WS_BASE_URL: wss://${API_DOMAIN}
+        NEXT_PUBLIC_APP_URL: https://${APP_DOMAIN:-}
+        NEXT_PUBLIC_GOOGLE_APP_ID: ${NEXT_PUBLIC_GOOGLE_APP_ID:-}
+    image: intrv-frontend:prod
+    profiles: [frontend]
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    deploy: {resources: {limits: {memory: 1g}}}
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10.2-alpine
+    environment:
+      ACME_EMAIL: ${ACME_EMAIL:?set ACME_EMAIL in .env (Let's Encrypt account)}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in .env}
+      APP_DOMAIN: ${APP_DOMAIN:-}
+      FILES_DOMAIN: ${FILES_DOMAIN:?set FILES_DOMAIN in .env}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # the voice worker runs on the host network
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      - caddydata:/data
+      - caddyconfig:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+  backup:
+    build:
+      context: ./backup
+    image: intrv-backup:prod
+    env_file: ../.env
+    environment:
+      PGHOST: postgres
+      PGUSER: postgres
+      PGPASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+      PGDATABASE: intrv
+    volumes:
+      - backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      qdrant:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+  # --- voice (ADR 0009) ----------------------------------------------------------------------------------
+  voice:
+    build:
+      context: ../voice
+    image: intrv-voice:prod
+    profiles: [voice]
+    network_mode: host
+    env_file: ../.env
+    environment:
+      BACKEND_WS_URL: ws://127.0.0.1:8000
+      TTS_URL: http://127.0.0.1:8880
+    depends_on:
+      tts:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+  tts:
+    build:
+      context: ../tts
+    image: intrv-tts:prod
+    profiles: [voice]
+    ports:
+      - "127.0.0.1:8880:8880"
+    restart: unless-stopped
+    logging: *logging
+
+  coturn:
+    image: coturn/coturn:4.7.0
+    profiles: [voice]
+    network_mode: host
+    command:
+      - --use-auth-secret
+      - --static-auth-secret=${TURN_SHARED_SECRET:-}
+      - --realm=${TURN_REALM:-intrv.local}
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
+      - --no-cli
+      - --fingerprint
+      - --no-multicast-peers
+      - --denied-peer-ip=10.0.0.0-10.255.255.255
+      - --denied-peer-ip=172.16.0.0-172.31.255.255
+      - --denied-peer-ip=192.168.0.0-192.168.255.255
+      - --denied-peer-ip=127.0.0.0-127.255.255.255
+    restart: unless-stopped
+    logging: *logging
+
+  # --- practical rounds (ADR 0010) --------------------------------------------------------------------------
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    profiles: [coding]
+    privileged: true
+    volumes:
+      - pistondata:/piston
+    restart: unless-stopped
+    logging: *logging
+
+  piston-init:
+    image: curlimages/curl:8.17.0
+    profiles: [coding]
+    depends_on: [piston]
+    command:
+      - sh
+      - -c
+      - >
+        until curl -sf http://piston:2000/api/v2/runtimes >/dev/null; do sleep 2; done;
+        for pkg in gcc:10.2.0 python:3.10.0; do
+          curl -sf -X POST http://piston:2000/api/v2/packages -H 'Content-Type: application/json'
+          -d "{\"language\": \"$${pkg%%:*}\", \"version\": \"$${pkg##*:}\"}" || true;
+        done
+    restart: "no"
+
+volumes:
+  pgdata:
+  valkeydata:
+  qdrantdata:
+  qdrantsnapshots:
+  seaweeddata:
+  models:
+  caddydata:
+  caddyconfig:
+  backups:
+  pistondata:

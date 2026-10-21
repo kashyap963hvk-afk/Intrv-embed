@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Any
 
 import structlog
 from fastapi import Depends, Request
@@ -13,6 +13,7 @@ from app.auth.cookies import ACCESS_COOKIE, CSRF_COOKIE, CSRF_HEADER
 from app.auth.principal import Principal
 from app.core.config import Settings
 from app.core.errors import ForbiddenError, UnauthorizedError
+from app.core.ratelimit import enforce_rate_limit
 from app.core.security import decode_access_token, tokens_match
 from app.db.deps import DbSession
 from app.db.models import RefreshToken, User, UserStatus
@@ -98,3 +99,23 @@ async def csrf_protect(request: Request) -> None:
     header = request.headers.get(CSRF_HEADER)
     if not cookie or not header or not tokens_match(cookie, header):
         raise ForbiddenError("Missing or invalid CSRF token. Fetch one from GET /api/auth/csrf.")
+
+
+def per_user_limit(bucket: str, *, limit: int, window_s: int = 3600) -> Any:
+    """Route dependency: at most `limit` calls per member per window (LLM-heavy and upload endpoints)."""
+
+    async def dependency(principal: ActiveMember, valkey: ValkeyDep) -> None:
+        await enforce_rate_limit(valkey, f"{bucket}:user:{principal.user_id}", limit=limit, window_s=window_s)
+
+    return Depends(dependency)
+
+
+def per_client_limit(bucket: str, *, limit: int, window_s: int = 3600) -> Any:
+    """Route dependency for unauthenticated endpoints (candidate links): at most `limit` calls per client IP.
+    Behind the reverse proxy, uvicorn's --proxy-headers makes request.client the real address."""
+
+    async def dependency(request: Request, valkey: ValkeyDep) -> None:
+        client = request.client.host if request.client else "unknown"
+        await enforce_rate_limit(valkey, f"{bucket}:ip:{client}", limit=limit, window_s=window_s)
+
+    return Depends(dependency)

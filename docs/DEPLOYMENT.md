@@ -107,12 +107,105 @@ role has it; on others, use the provider's admin role to `ALTER ROLE app_owner B
 
 Model IDs change constantly, so the UI fetches `GET /models` live.
 
-## 6. First deploy checklist
+## 6. Deploy on one VPS (step by step)
 
-1. Buy or choose a domain. Point `app` to Vercel and `api` to your VPS.
-2. VPS: install Docker, clone the repo, `cp .env.example .env` and fill §4.2, then `make up-prod` (Caddy terminates TLS automatically).
-3. `make migrate && make seed && make create-owner`.
-4. Vercel: import the repo, set the root directory to `frontend/`, set the §4.1 variables, deploy.
-5. Log in as the owner, check `/admin → System self-test` (all green), add an LLM profile → **Test connection**.
-6. Upload a sample CV via "+" → generate questions → run a text interview → check the report.
-7. Only then enable voice (TURN configured) and invite real candidates, after the consent text is reviewed by whoever handles legal for you.
+**Server:** Ubuntu 24.04, 4 vCPU and 8 GB RAM minimum for text interviews (16 GB with voice; a GPU only if you
+self-host models). Open ports 80 and 443 (TCP and UDP), plus UDP 3478 and 49160–49200 if you enable voice.
+
+**DNS:** create A records pointing at the server for `api.example.com` and `files.example.com`, plus
+`app.example.com` if the frontend runs on the server instead of Vercel.
+
+```bash
+# 1. Docker and the code
+curl -fsSL https://get.docker.com | sh
+git clone <your fork> intrv && cd intrv
+
+# 2. Secrets: generates every password and key, then edit the rest
+make env
+```
+
+Edit `.env`:
+
+| Variable | Value |
+|---|---|
+| `APP_ENV` | `prod` (HTTPS is then enforced and API docs are off) |
+| `API_DOMAIN`, `FILES_DOMAIN`, `ACME_EMAIL` | your domains and an email for Let's Encrypt |
+| `APP_DOMAIN` | only if the frontend runs here (see step 4) |
+| `PUBLIC_APP_URL`, `CORS_ALLOWED_ORIGINS` | `https://app.example.com` |
+| `API_PUBLIC_URL` | `https://api.example.com` |
+| `COOKIE_DOMAIN` | `.example.com` (§3) |
+| `S3_PUBLIC_ENDPOINT_URL` | `https://files.example.com` (bundled store), or your R2/S3 endpoint |
+| `OWNER_BOOTSTRAP_EMAIL` | your email: the first start emails (and logs) an owner invite |
+| `SMTP_*`, `MAIL_FROM` | a real SMTP provider (invites, approvals); without it, use the logged link |
+| `BACKUP_*` | §7 |
+
+```bash
+# 3. Start: core services, Caddy (automatic HTTPS) and nightly backups. Migrations run first, automatically.
+make up-prod                              # add PROFILES="voice coding frontend" as needed
+
+# 4a. Frontend on Vercel (recommended): import the repo, root directory `frontend/`, variables from §4.1.
+# 4b. Or on this server: cp deploy/caddy/app.caddy.example deploy/caddy/app.caddy, set APP_DOMAIN,
+#     then: make up-prod PROFILES="frontend"
+
+# 5. The owner invite link (if no SMTP):
+make logs-prod | grep bootstrap_owner_invite
+
+# 6. Health
+curl https://api.example.com/readyz
+make selftest STACK=prod
+```
+
+Then log in as the owner, run **Admin → System self-test**, add an LLM profile in **/app/llm** and press
+**Test connection**.
+
+**Updating:** `git pull && make up-prod` (images rebuild, migrations run, containers restart one by one).
+
+**Optional profiles**
+- `voice`: set `VOICE_PUBLIC_URL=https://api.example.com` (Caddy forwards `/voice/*` to the worker) and
+  `TURN_URLS=turn:api.example.com:3478?transport=udp`. The worker image downloads the Whisper model while it is
+  built; or use Groq (`STT_BACKEND=groq`, `GROQ_API_KEY`).
+- `coding`: Piston runs candidate code (privileged container; no network inside the sandboxes). Set
+  `PISTON_URL=http://piston:2000`.
+
+## 7. Backups and restore
+
+The `backup` service runs every night at `BACKUP_HOUR_UTC`, and `make backup-now` runs it immediately. Each run
+writes a folder under the `backups` volume with three files:
+- `postgres.dump`: `pg_dump` custom format;
+- `qdrant.tar`: one snapshot per collection;
+- `objects.tar`: the whole object store (CVs, documents, recordings, diagrams).
+
+Each file is encrypted with `age` when `BACKUP_AGE_RECIPIENT` is set, and copied to `BACKUP_S3_BUCKET` when that
+is configured. Local copies are kept for `BACKUP_KEEP_DAYS`. Backups contain candidate personal data, so always
+set an age recipient, and keep its private key off the server.
+
+**Restore** on a fresh server. You need the **same `.env`**, because `MASTER_KEY_BASE64` decrypts the stored API
+keys and OAuth tokens.
+
+```bash
+set -a && . ./.env && set +a
+age -d -i backup-key.txt postgres.dump.age > postgres.dump      # same for qdrant.tar.age, objects.tar.age
+P="docker compose -f deploy/compose.prod.yml --env-file .env"
+$P up -d postgres qdrant seaweedfs && $P run --rm s3-init
+$P exec -T postgres pg_restore -U postgres -d intrv --clean --if-exists --no-owner --role=app_owner < postgres.dump
+tar xf qdrant.tar && for f in qdrant/*.snapshot; do
+  docker run --rm --network intrv-prod_default -v "$PWD/qdrant:/q:ro" curlimages/curl:8.17.0 -sf -X POST \
+    -H "api-key: $QDRANT_API_KEY" -F "snapshot=@/q/$(basename "$f")" \
+    "http://qdrant:6333/collections/$(basename "$f" .snapshot)/snapshots/upload?priority=snapshot"
+done
+tar xf objects.tar && $P run --rm -v "$PWD/objects:/restore:ro" --entrypoint aws s3-init \
+  --endpoint-url "$S3_ENDPOINT_URL" s3 sync /restore "s3://$S3_BUCKET"
+make up-prod
+```
+
+Test a restore on a spare machine once a quarter. A backup that has never been restored is only a hope.
+
+## 8. First deploy checklist
+
+1. Buy or choose a domain. Point `api` and `files` at your VPS, and `app` at Vercel (or at the VPS).
+2. VPS: follow §6.
+3. Vercel: import the repo, set the root directory to `frontend/`, set the §4.1 variables, deploy.
+4. Log in as the owner, check `/admin → System self-test` (all green), add an LLM profile → **Test connection**.
+5. Upload a sample CV via "+" → generate questions → run a text interview → check the report.
+6. Only then enable voice (TURN configured) and invite real candidates, after the consent text is reviewed by whoever handles legal for you.
+7. Run `make backup-now` and do one test restore (§7).

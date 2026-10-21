@@ -1,0 +1,41 @@
+# Caddy obtains and renews Let's Encrypt certificates automatically. DNS A/AAAA records for every domain
+# below must point at this server, with ports 80 and 443 open, before the first start.
+{
+	email {$ACME_EMAIL}
+}
+
+(security) {
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options nosniff
+		-Server
+	}
+}
+
+# API, WebSockets (interviews, Local Model Bridge), SSE, and the voice worker's WebRTC signalling.
+{$API_DOMAIN} {
+	import security
+	encode zstd gzip
+	request_body {
+		max_size 110MB
+	}
+	handle /voice/* {
+		reverse_proxy host.docker.internal:8090
+	}
+	handle {
+		reverse_proxy backend:8000 {
+			flush_interval -1
+		}
+	}
+}
+
+# Presigned downloads from the bundled S3 store (S3_PUBLIC_ENDPOINT_URL=https://FILES_DOMAIN).
+# The Host header is passed through unchanged, so the signatures stay valid.
+{$FILES_DOMAIN} {
+	import security
+	reverse_proxy seaweedfs:8333
+}
+
+# The frontend on this box (profile "frontend"): copy app.caddy.example to app.caddy.
+# Skip it when the frontend is on Vercel.
+import app.caddy*

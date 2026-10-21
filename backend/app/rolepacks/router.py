@@ -12,7 +12,7 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from app.audit.service import ClientMeta
-from app.auth.deps import ActiveMember, SettingsDep, csrf_protect
+from app.auth.deps import ActiveMember, SettingsDep, csrf_protect, per_user_limit
 from app.auth.principal import Principal
 from app.core.errors import AppError
 from app.db.deps import DbSession
@@ -171,7 +171,12 @@ async def create_pack(body: CreatePackIn, principal: ActiveMember, db: DbSession
     return _detail(principal, pack)
 
 
-@router.post("/build", response_model=BuildOut, summary="Role Builder: draft a pack from a plain-language description")
+@router.post(
+    "/build",
+    response_model=BuildOut,
+    summary="Role Builder: draft a pack from a plain-language description",
+    dependencies=[per_user_limit("role-builder", limit=20)],
+)
 async def build(body: BuildIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> BuildOut:
     draft = await builder.build_draft(
         resources.agent_deps,

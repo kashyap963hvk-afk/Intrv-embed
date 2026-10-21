@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from app.agents.schemas import GapMatrix
-from app.auth.deps import ActiveMember, csrf_protect
+from app.auth.deps import ActiveMember, csrf_protect, per_user_limit
 from app.auth.principal import Principal
 from app.core.errors import NotFoundError
 from app.cv import service
@@ -115,7 +115,12 @@ async def delete_profile(profile_id: uuid.UUID, principal: ActiveMember, db: DbS
     await db.delete(await _profile(db, principal, profile_id))
 
 
-@router.post("/match-jd", response_model=GapMatrix, summary="Gap matrix: job requirements vs CV evidence")
+@router.post(
+    "/match-jd",
+    response_model=GapMatrix,
+    summary="Gap matrix: job requirements vs CV evidence",
+    dependencies=[per_user_limit("jd-match", limit=60)],
+)
 async def match_jd(body: MatchIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> GapMatrix:
     profile = await _profile(db, principal, body.profile_id)
     spec = packs.spec_of(await packs.get_pack(db, body.role_pack_id))

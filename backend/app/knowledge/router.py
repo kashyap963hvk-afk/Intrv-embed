@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 
 from app.audit.service import ClientMeta, record
-from app.auth.deps import ActiveMember, Owner, SettingsDep, ValkeyDep, csrf_protect
+from app.auth.deps import ActiveMember, Owner, SettingsDep, ValkeyDep, csrf_protect, per_user_limit
 from app.auth.principal import Principal
 from app.core.errors import AppError, NotFoundError
 from app.core.resources import Resources
@@ -97,7 +97,12 @@ async def list_documents(
 # --- adding documents ("+" button) --------------------------------------------------------------------------
 
 
-@router.post("/api/spaces/{space_id}/documents", response_model=UploadResult, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api/spaces/{space_id}/documents",
+    response_model=UploadResult,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[per_user_limit("upload", limit=60)],
+)
 async def upload_documents(
     space_id: uuid.UUID,
     principal: ActiveMember,
@@ -137,7 +142,12 @@ async def upload_documents(
     return result
 
 
-@router.post("/api/spaces/{space_id}/documents/paste", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api/spaces/{space_id}/documents/paste",
+    response_model=DocumentOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[per_user_limit("paste", limit=120)],
+)
 async def paste_document(
     space_id: uuid.UUID,
     body: PasteIn,
@@ -157,7 +167,12 @@ async def paste_document(
     return service.document_out(doc, principal)
 
 
-@router.post("/api/spaces/{space_id}/documents/url", response_model=DocumentOut, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/api/spaces/{space_id}/documents/url",
+    response_model=DocumentOut,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[per_user_limit("add-url", limit=60)],
+)
 async def add_url(
     space_id: uuid.UUID,
     body: UrlIn,
@@ -210,7 +225,11 @@ async def download_document(
     return DownloadOut(url=url, expires_in_s=expires)
 
 
-@router.post("/api/documents/{document_id}/reindex", response_model=DocumentOut)
+@router.post(
+    "/api/documents/{document_id}/reindex",
+    response_model=DocumentOut,
+    dependencies=[per_user_limit("reindex", limit=60)],
+)
 async def reindex_document(
     document_id: uuid.UUID,
     principal: ActiveMember,
@@ -248,7 +267,12 @@ async def delete_document(
 # --- search ------------------------------------------------------------------------------------------------------
 
 
-@router.post("/api/search", response_model=SearchOut, summary="Hybrid search over the knowledge you can read")
+@router.post(
+    "/api/search",
+    response_model=SearchOut,
+    summary="Hybrid search over the knowledge you can read",
+    dependencies=[per_user_limit("search", limit=600)],
+)
 async def search(
     body: SearchIn, principal: ActiveMember, db: DbSession, valkey: ValkeyDep, resources: ResourcesDep
 ) -> SearchOut:

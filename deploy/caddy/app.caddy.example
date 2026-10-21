@@ -1,0 +1,6 @@
+# Serve the Next.js frontend from this server (docker compose profile "frontend").
+{$APP_DOMAIN} {
+	import security
+	encode zstd gzip
+	reverse_proxy frontend:3000
+}

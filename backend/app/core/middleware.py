@@ -20,6 +20,17 @@ from app.core.logging import get_logger
 from app.core.metrics import HTTP_LATENCY, HTTP_REQUESTS
 
 REQUEST_ID_HEADER = "x-request-id"
+# JSON API responses never need scripts, frames or a referrer (invite tokens live in URLs).
+SECURITY_HEADERS = {
+    "x-content-type-options": "nosniff",
+    "x-frame-options": "DENY",
+    "referrer-policy": "no-referrer",
+    "cross-origin-opener-policy": "same-origin",
+    "permissions-policy": "camera=(), microphone=(), geolocation=(), payment=()",
+}
+API_CSP = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'"
+HSTS = "max-age=63072000; includeSubDomains"
+_DOCS_PATHS = ("/docs", "/openapi.json")
 _VALID_REQUEST_ID = re.compile(r"^[A-Za-z0-9._-]{8,128}$")
 _UNMATCHED_ROUTE = "<unmatched>"
 
@@ -41,8 +52,9 @@ def _route_template(scope: Scope) -> str:
 
 
 class RequestContextMiddleware:
-    def __init__(self, app: ASGIApp) -> None:
+    def __init__(self, app: ASGIApp, *, hsts: bool = False) -> None:
         self.app = app
+        self.hsts = hsts
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         if scope["type"] != "http":
@@ -63,7 +75,14 @@ class RequestContextMiddleware:
             if message["type"] == "http.response.start":
                 status_code = message["status"]
                 response_started = True
-                MutableHeaders(scope=message)[REQUEST_ID_HEADER] = request_id
+                headers = MutableHeaders(scope=message)
+                headers[REQUEST_ID_HEADER] = request_id
+                for name, value in SECURITY_HEADERS.items():
+                    headers.setdefault(name, value)
+                if not scope["path"].startswith(_DOCS_PATHS):  # Swagger UI (dev only) needs its scripts
+                    headers.setdefault("content-security-policy", API_CSP)
+                if self.hsts:
+                    headers.setdefault("strict-transport-security", HSTS)
             await send(message)
 
         try:

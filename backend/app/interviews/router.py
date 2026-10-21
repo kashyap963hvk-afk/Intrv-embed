@@ -16,7 +16,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app.audit.service import ClientMeta
 from app.auth.cookies import ACCESS_COOKIE
-from app.auth.deps import ActiveMember, SettingsDep, csrf_protect
+from app.auth.deps import ActiveMember, SettingsDep, csrf_protect, per_client_limit, per_user_limit
 from app.core.errors import AppError, ConflictError
 from app.core.logging import get_logger
 from app.core.ratelimit import enforce_rate_limit
@@ -187,14 +187,21 @@ async def delete_template(template_id: uuid.UUID, principal: ActiveMember, db: D
     await db.delete(template)
 
 
-@templates_router.post("/{template_id}/preview-prompt", response_model=PromptPreview)
+@templates_router.post(
+    "/{template_id}/preview-prompt",
+    response_model=PromptPreview,
+    dependencies=[per_user_limit("prompt-preview", limit=120)],
+)
 async def preview_prompt(template_id: uuid.UUID, principal: ActiveMember, db: DbSession) -> PromptPreview:
     preview = await service.preview_prompt(db, principal, await service.get_template(db, template_id))
     return PromptPreview.model_validate(preview)
 
 
 @templates_router.post(
-    "/{template_id}/simulate", response_model=SimulateOut, summary="Run a few turns with a scripted candidate"
+    "/{template_id}/simulate",
+    response_model=SimulateOut,
+    summary="Run a few turns with a scripted candidate",
+    dependencies=[per_user_limit("simulate", limit=30)],
 )
 async def simulate_template(
     template_id: uuid.UUID, body: SimulateIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep
@@ -329,7 +336,12 @@ async def list_interviews(_member: ActiveMember, db: DbSession) -> list[Intervie
     return [_out(s, cards.get(s.id)) for s in sessions]
 
 
-@router.post("", response_model=InterviewDetail, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "",
+    response_model=InterviewDetail,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[per_user_limit("interview-create", limit=60)],
+)
 async def create_interview(
     body: CreateInterviewIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep
 ) -> InterviewDetail:
@@ -357,7 +369,12 @@ async def update_plan(session_id: uuid.UUID, body: PlanIn, _member: ActiveMember
     return _detail(session)
 
 
-@router.post("/{session_id}/prepare", response_model=InterviewDetail, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/{session_id}/prepare",
+    response_model=InterviewDetail,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[per_user_limit("interview-prepare", limit=30)],
+)
 async def prepare_again(
     session_id: uuid.UUID, _member: ActiveMember, db: DbSession, resources: ResourcesDep
 ) -> InterviewDetail:
@@ -410,7 +427,12 @@ async def get_report(
     return await service.report(db, await service.get_session(db, session_id), resources.storage)
 
 
-@router.post("/{session_id}/regrade", status_code=status.HTTP_202_ACCEPTED, summary="Grade the interview again")
+@router.post(
+    "/{session_id}/regrade",
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Grade the interview again",
+    dependencies=[per_user_limit("regrade", limit=20)],
+)
 async def regrade(session_id: uuid.UUID, _member: ActiveMember, db: DbSession, resources: ResourcesDep) -> None:
     session = await service.get_session(db, session_id)
     if session.status != SessionStatus.COMPLETED:
@@ -464,7 +486,7 @@ async def join_info(token: str, db: DbSession, resources: ResourcesDep) -> dict[
     return await service.join_info(resources.session_factory, ref)
 
 
-@join_router.post("/{token}/consent")
+@join_router.post("/{token}/consent", dependencies=[per_client_limit("join", limit=300)])
 async def consent(token: str, body: ConsentIn, db: DbSession, resources: ResourcesDep, meta: Meta) -> dict[str, Any]:
     ref = await service.resolve_invite(db, token)
     given = await service.give_consent(resources.session_factory, ref, camera=body.camera, meta=meta)
@@ -544,7 +566,11 @@ async def snapshot(token: str, file: UploadFile, db: DbSession, resources: Resou
     return {"stored": stored}
 
 
-@join_router.post("/{token}/integrity", summary="Browser integrity signals (batched)")
+@join_router.post(
+    "/{token}/integrity",
+    summary="Browser integrity signals (batched)",
+    dependencies=[per_client_limit("join-integrity", limit=600)],
+)
 async def integrity_events(token: str, body: IntegrityIn, db: DbSession, resources: ResourcesDep) -> dict[str, int]:
     ref = await service.resolve_invite(db, token)
     return {"stored": await service.candidate_events(resources.session_factory, ref, body.events)}

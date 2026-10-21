@@ -204,3 +204,24 @@ def test_readyz_hides_error_details_in_production() -> None:
     assert response.status_code == 503
     assert response.json()["checks"]["qdrant"]["error"] == "ConnectionRefusedError"
     assert "qdrant-internal" not in response.text
+
+
+def test_security_headers_on_every_response(test_client: TestClient) -> None:
+    for path in ("/healthz", "/test/not-found", "/test/boom"):
+        headers = test_client.get(path).headers
+        assert headers["x-content-type-options"] == "nosniff"
+        assert headers["x-frame-options"] == "DENY"
+        assert headers["referrer-policy"] == "no-referrer"
+        assert "frame-ancestors 'none'" in headers["content-security-policy"]
+        assert "strict-transport-security" not in headers  # dev: plain http
+
+
+def test_hsts_in_production() -> None:
+    settings = make_settings(
+        app_env="prod",
+        public_app_url="https://app.example.com",
+        api_public_url="https://api.example.com",
+        cors_allowed_origins=["https://app.example.com"],
+    )
+    with TestClient(create_app(settings)) as client:
+        assert client.get("/healthz").headers["strict-transport-security"].startswith("max-age=")

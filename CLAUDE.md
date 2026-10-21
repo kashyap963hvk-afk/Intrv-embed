@@ -31,7 +31,8 @@ make test              # backend unit + integration (Docker) tests, frontend typ
 make test-unit         # fast, no Docker
 make lint              # ruff, ruff format --check, mypy, OpenAPI drift, eslint, tsc
 make openapi           # regenerate backend/openapi.json + frontend/src/lib/api/schema.d.ts after API changes
-make migrate | seed | create-owner | e2e | selftest   # arrive in Phases 1/2/1/6/3
+make migrate | create-owner | e2e | selftest   # role packs and provider presets load automatically
+make up-prod | down-prod | logs-prod | backup-now  # production stack (deploy/compose.prod.yml)
 ```
 
 ## Definition of done (every task)

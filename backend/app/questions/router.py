@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from app.agents.schemas import Category
-from app.auth.deps import ActiveMember, csrf_protect
+from app.auth.deps import ActiveMember, csrf_protect, per_user_limit
 from app.core.errors import AppError
 from app.db.deps import DbSession, after_commit
 from app.db.models import Document, QuestionItem, QuestionSet, RolePack, SetStatus
@@ -154,7 +154,13 @@ async def list_sets(principal: ActiveMember, db: DbSession) -> list[SetOut]:
     return [_summary(s, counts.get(s.id, 0)) for s in sets]
 
 
-@router.post("", response_model=SetDetail, status_code=status.HTTP_202_ACCEPTED, summary="Generate a question set")
+@router.post(
+    "",
+    response_model=SetDetail,
+    status_code=status.HTTP_202_ACCEPTED,
+    summary="Generate a question set",
+    dependencies=[per_user_limit("question-set", limit=30)],
+)
 async def create_set(body: CreateSetIn, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> SetDetail:
     params = body.model_dump(mode="json", include={"count", "seniority", "difficulty", "mix", "space_ids"})
     qset = await service.create_set(
@@ -184,7 +190,12 @@ async def rename_set(set_id: uuid.UUID, body: SetUpdate, _member: ActiveMember, 
     return await _detail(db, qset)
 
 
-@router.post("/{set_id}/retry", response_model=SetDetail, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/{set_id}/retry",
+    response_model=SetDetail,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[per_user_limit("question-set", limit=30)],
+)
 async def retry_set(set_id: uuid.UUID, principal: ActiveMember, db: DbSession, resources: ResourcesDep) -> SetDetail:
     qset = await service.get_set(db, set_id)
     if qset.status == SetStatus.GENERATING:
@@ -233,7 +244,11 @@ async def delete_item(set_id: uuid.UUID, item_id: uuid.UUID, _member: ActiveMemb
     await db.delete(item)
 
 
-@router.post("/{set_id}/items/{item_id}/regenerate", response_model=ItemOut)
+@router.post(
+    "/{set_id}/items/{item_id}/regenerate",
+    response_model=ItemOut,
+    dependencies=[per_user_limit("question-item", limit=120)],
+)
 async def regenerate_item(
     set_id: uuid.UUID,
     item_id: uuid.UUID,

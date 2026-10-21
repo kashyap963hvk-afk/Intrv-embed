@@ -104,7 +104,7 @@ class Settings(BaseSettings):
     rerank_backend: Literal["tei", "fastembed", "none"] = "none"
     rerank_model: str = "Xenova/ms-marco-MiniLM-L-6-v2"
     tei_rerank_url: str | None = None
-    models_cache_dir: str = "/tmp/intrv-models"  # noqa: S108 - overridden by a volume in containers
+    models_cache_dir: str = "/tmp/intrv-models"  # noqa: S108  # nosec B108 - overridden by a volume in containers
 
     # --- Ingestion -----------------------------------------------------------------------------
     parser_backend: Literal["auto", "basic", "docling"] = "auto"
