@@ -69,6 +69,11 @@ test("owner plans an interview, the candidate takes it, the owner reviews and de
   expect(profile.status(), await profile.text()).toBe(201);
   const profileId = ((await profile.json()) as { id: string }).id;
 
+  const hydrationErrors: string[] = [];
+  page.on("console", (message) => {
+    if (message.type() === "error" && /hydrat/i.test(message.text())) hydrationErrors.push(message.text());
+  });
+
   try {
     // Owner signs in through the UI.
     await page.goto("/login");
@@ -125,6 +130,7 @@ test("owner plans an interview, the candidate takes it, the owner reviews and de
     await page.goto(`/app/interviews/${sessionId}/report`);
     await expect(page.getByRole("heading", { name: "Human decision" })).toBeVisible();
     await expect(page.getByText("A/B images with a boot counter").first()).toBeVisible();
+    expect(hydrationErrors).toEqual([]);
   } finally {
     await api.delete(`/api/llm/profiles/${profileId}`);
     await api.http.dispose();

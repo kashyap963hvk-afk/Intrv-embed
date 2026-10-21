@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useSyncExternalStore, type ReactNode } from "react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { isOwner, useMe, type Me } from "@/lib/auth";
@@ -13,11 +13,24 @@ interface RequireAuthProps {
   requireOwner?: boolean;
 }
 
+const noSubscription = () => () => {};
+
+/** False while React hydrates server HTML, true afterwards (the server snapshot is always false). */
+function useHydrated(): boolean {
+  return useSyncExternalStore(
+    noSubscription,
+    () => true,
+    () => false,
+  );
+}
+
 /** Client-side guard: the API is the real authority; this only routes users to the right page. */
 export function RequireAuth({ children, requireActive = true, requireOwner = false }: RequireAuthProps) {
   const { data: me, isPending, isError, error } = useMe();
   const router = useRouter();
   const pathname = usePathname();
+  // The user may already be cached on the client; render what the server rendered until hydration is done.
+  const hydrated = useHydrated();
 
   const signedOut = !isPending && !isError && me === null;
   const pending = Boolean(me && requireActive && me.user.status === "PENDING");
@@ -35,7 +48,7 @@ export function RequireAuth({ children, requireActive = true, requireOwner = fal
       </Alert>
     );
   }
-  if (isPending || !me || pending) {
+  if (!hydrated || isPending || !me || pending) {
     return <p className="text-sm text-muted-foreground">Loading…</p>;
   }
   if (requireOwner && !isOwner(me)) {
