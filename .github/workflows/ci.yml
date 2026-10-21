@@ -155,3 +155,24 @@ jobs:
           caddy adapt --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Backup script parses
         run: sh -n deploy/backup/run.sh
+
+  e2e:
+    name: End-to-end (compose stack + Playwright)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - name: Start the core stack
+        run: make env && make up
+      - name: Playwright browsers
+        working-directory: e2e
+        run: npm ci --no-audit --no-fund && npx playwright install --with-deps chromium
+      - name: Browser tests
+        working-directory: e2e
+        run: npx playwright test
+      - name: Logs on failure
+        if: failure()
+        run: docker compose --profile core logs --tail=200 backend worker frontend

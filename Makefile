@@ -62,8 +62,8 @@ create-owner: ## Create an org owner: make create-owner ORG=acme EMAIL=you@acme.
 	@test -n "$(ORG)" -a -n "$(EMAIL)" -a -n "$(NAME)" || { echo 'usage: make create-owner ORG=slug EMAIL=you@x.com NAME="Your Name"'; exit 1; }
 	$(if $(filter prod,$(STACK)),$(PROD),$(COMPOSE)) exec backend python -m app.cli create-owner --org-slug "$(ORG)" --org-name "$(ORG)" --email "$(EMAIL)" --name "$(NAME)" --password-stdin
 
-e2e: ## Playwright end-to-end tests (available from Phase 6)
-	@echo "make e2e: available from Phase 6"; exit 1
+e2e: ## Playwright browser tests against the running stack (`make up` first; see e2e/playwright.config.ts)
+	cd e2e && npm ci --no-audit --no-fund && npx playwright test
 
 voice-bench: ## Voice pipeline latency per stage (p50/p95); start the TTS container first for ARGS="--tts http"
 	cd voice && uv run python -m intrv_voice.bench --rounds 5 $(ARGS)
