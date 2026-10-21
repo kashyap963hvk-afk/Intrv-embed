@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import uuid
-from typing import BinaryIO
+from typing import TYPE_CHECKING, BinaryIO
 
 import anyio
-from mypy_boto3_s3 import S3Client
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client  # typing only: boto3-stubs is a dev dependency
 
 
 def object_key(org_id: uuid.UUID, space_id: uuid.UUID, document_id: uuid.UUID, version: int, extension: str) -> str:

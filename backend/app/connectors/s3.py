@@ -5,13 +5,12 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from functools import partial
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import anyio
 import boto3
 from botocore.config import Config as BotoConfig
 from botocore.exceptions import BotoCoreError, ClientError
-from mypy_boto3_s3 import S3Client
 
 from app.connectors.base import (
     ChangeSet,
@@ -29,6 +28,9 @@ from app.connectors.base import (
 )
 from app.connectors.net import check_endpoint
 from app.db.models import ConnectorKind
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client  # typing only: boto3-stubs is a dev dependency
 
 MAX_LISTED = 10_000  # objects per source; larger buckets should be split into several prefixes
 _AUTH_CODES = frozenset({"AccessDenied", "InvalidAccessKeyId", "SignatureDoesNotMatch", "ExpiredToken"})

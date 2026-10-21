@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import boto3
 import httpx
 import httpx2
 from botocore.config import Config as BotoConfig
-from mypy_boto3_s3 import S3Client
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
@@ -35,6 +35,9 @@ from app.llm.limits import ProfileLimiter
 from app.practical.piston import PistonClient
 from app.rag.engine import RagEngine
 from workers.config import create_celery
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3 import S3Client  # typing only: boto3-stubs is a dev dependency
 
 
 def create_s3_client(settings: Settings, *, public: bool = False) -> S3Client:
