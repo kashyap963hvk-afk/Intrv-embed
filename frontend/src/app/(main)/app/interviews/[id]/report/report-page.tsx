@@ -20,12 +20,14 @@ import {
   type Scorecard,
 } from "@/lib/interviews";
 import { useExportReport, useInterviewEvents, useRegrade, useReport } from "@/lib/interviews-api";
+import { useReportExtras } from "@/lib/report-extras-api";
 
 import { InterviewStatusBadge } from "../../interview-status-badge";
 import { ToneBadge } from "../../tone-badge";
 import { CompetencyCard } from "./competency-card";
 import { DecisionForm } from "./decision-form";
 import { IntegrityPanel } from "./integrity-panel";
+import { PracticalWork, SnapshotStrip } from "./practical-work";
 import { TranscriptList } from "./transcript-list";
 
 function Bullets({ title, items, empty }: { title: string; items: string[]; empty?: string }) {
@@ -244,6 +246,7 @@ function Grading({ id, report }: { id: string; report: Report }) {
 function ReportView() {
   const { id } = useParams<{ id: string }>();
   const report = useReport(id);
+  const extras = useReportExtras(id, report.data?.status === "LIVE");
   useInterviewEvents();
 
   if (report.isPending) return <p className="text-sm text-muted-foreground">Loading report…</p>;
@@ -276,10 +279,12 @@ function ReportView() {
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="flex min-w-0 flex-col gap-6">
           <Grading id={id} report={data} />
+          <PracticalWork submissions={extras.data?.practical ?? []} topics={data.plan.topics} />
         </div>
         <div className="flex flex-col gap-6">
           <DecisionForm key={scorecard?.reviewed_at ?? "none"} interviewId={id} scorecard={scorecard} />
           <IntegrityPanel integrity={data.integrity} />
+          <SnapshotStrip snapshots={extras.data?.snapshots ?? []} />
         </div>
       </div>
       <section className="flex flex-col gap-3">

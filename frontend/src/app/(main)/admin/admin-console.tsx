@@ -8,6 +8,7 @@ import { AuditTab } from "./audit-tab";
 import { GroupsTab } from "./groups-tab";
 import { InvitesTab } from "./invites-tab";
 import { OrgTab } from "./org-tab";
+import { PrivacyTab } from "./privacy-tab";
 import { SpacesTab } from "./spaces-tab";
 import { UsersTab } from "./users-tab";
 
@@ -30,6 +31,7 @@ export function AdminConsole() {
               <TabsTrigger value="spaces">Spaces</TabsTrigger>
               <TabsTrigger value="audit">Audit log</TabsTrigger>
               <TabsTrigger value="ai">AI policy</TabsTrigger>
+              <TabsTrigger value="privacy">Privacy</TabsTrigger>
               <TabsTrigger value="org">Organization</TabsTrigger>
             </TabsList>
             <TabsContent value="users">
@@ -49,6 +51,9 @@ export function AdminConsole() {
             </TabsContent>
             <TabsContent value="ai">
               <AiPolicyCard />
+            </TabsContent>
+            <TabsContent value="privacy">
+              <PrivacyTab />
             </TabsContent>
             <TabsContent value="org">
               <OrgTab />

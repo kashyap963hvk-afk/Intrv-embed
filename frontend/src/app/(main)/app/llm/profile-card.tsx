@@ -143,7 +143,9 @@ export function ProfileCard({ profile, canEdit }: { profile: Profile; canEdit: b
         <div className="flex flex-wrap gap-2">
           <Button size="sm" disabled={probe.isPending} onClick={() => probe.mutate(undefined)}>
             {probe.isPending
-              ? "Testing… (up to a minute)"
+              ? profile.kind === "BRIDGE" || profile.kind === "GGUF_MANAGED"
+                ? "Testing… (a local model can take a few minutes to load)"
+                : "Testing… (up to a minute)"
               : profile.status === "UNTESTED"
                 ? "Test connection"
                 : "Test again"}

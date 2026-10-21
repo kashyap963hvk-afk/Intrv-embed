@@ -13,10 +13,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { isOwner, type Me } from "@/lib/auth";
 import {
-  buildTemplatePatch,
   insertVariable,
   PERSONA_VARIABLES,
   sameTemplateForm,
@@ -28,6 +28,7 @@ import {
 } from "@/lib/interviews";
 import { useDeleteTemplate, useTemplate, useUpdateTemplate } from "@/lib/interviews-api";
 import { useRolePacks } from "@/lib/rolepacks-api";
+import { buildTemplateSave, shareTemplatePatch } from "@/lib/template-save";
 
 import { SettingsFields } from "../../settings-fields";
 import { PromptPreviewPanel } from "./prompt-preview";
@@ -96,6 +97,27 @@ function PersonaField({
   );
 }
 
+function ShareToggle({ template }: { template: Template }) {
+  const share = useUpdateTemplate(template.id);
+  const id = `tpl-share-${template.id}`;
+
+  function change(next: boolean) {
+    const message = next
+      ? `Share ${template.name} with the whole organization? Everyone can use it, and only owners can change it.`
+      : `Stop sharing ${template.name}? It becomes a template only you can see and use.`;
+    if (window.confirm(message)) share.mutate(shareTemplatePatch(next));
+  }
+
+  return (
+    <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+      <Switch id={id} checked={template.shared} disabled={share.isPending} onCheckedChange={change} />
+      <Label htmlFor={id} className="text-sm">
+        Share with organization
+      </Label>
+    </div>
+  );
+}
+
 function Editor({ template, me }: { template: Template; me: Me }) {
   const [form, setForm] = useState<TemplateForm>(() => templateForm(template));
   const [saved, setSaved] = useState(() => templateForm(template));
@@ -103,7 +125,8 @@ function Editor({ template, me }: { template: Template; me: Me }) {
   const save = useUpdateTemplate(template.id);
   const remove = useDeleteTemplate();
   const router = useRouter();
-  const canEdit = !template.shared || isOwner(me);
+  const owner = isOwner(me);
+  const canEdit = !template.shared || owner;
   const pack = packs.data?.find((p) => p.id === form.rolePackId);
   const dirty = !sameTemplateForm(form, saved);
   const problem = templateFormProblem(form);
@@ -131,20 +154,23 @@ function Editor({ template, me }: { template: Template; me: Me }) {
             <p className="text-sm text-muted-foreground">Organization templates can only be changed by owners.</p>
           )}
         </div>
-        {canEdit && (
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-destructive"
-            disabled={remove.isPending}
-            onClick={() =>
-              window.confirm(`Delete the template ${template.name}?`) &&
-              remove.mutate(template, { onSuccess: () => router.push("/app/interviews/templates") })
-            }
-          >
-            <Trash /> Delete
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {owner && <ShareToggle template={template} />}
+          {canEdit && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-destructive"
+              disabled={remove.isPending}
+              onClick={() =>
+                window.confirm(`Delete the template ${template.name}?`) &&
+                remove.mutate(template, { onSuccess: () => router.push("/app/interviews/templates") })
+              }
+            >
+              <Trash /> Delete
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -153,7 +179,7 @@ function Editor({ template, me }: { template: Template; me: Me }) {
           onSubmit={(e) => {
             e.preventDefault();
             if (problem) return;
-            save.mutate(buildTemplatePatch(form, pack?.variants[0]?.id ?? null), {
+            save.mutate(buildTemplateSave(form, saved), {
               onSuccess: (updated) => {
                 const next = templateForm(updated);
                 setForm(next);
@@ -182,9 +208,7 @@ function Editor({ template, me }: { template: Template; me: Me }) {
                       value={form.rolePackId}
                       onChange={(e) => update({ rolePackId: e.target.value, roleVariant: "" })}
                     >
-                      {!form.rolePackId && (
-                        <option value="">{packs.isPending ? "Loading…" : "Choose a role pack"}</option>
-                      )}
+                      <option value="">{packs.isPending ? "Loading…" : "No role pack"}</option>
                       {packs.data?.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.name}
